@@ -1,0 +1,21 @@
+mPBCH32M030DS0 — 第三者の著作物 / Third-party notices
+
+1. WCH CH32M030 EVT (IAP / APP サンプル, SDK)
+   firmware/bootloader/src, firmware/app_template/src の多くのファイルは
+   WCH の CH32M030 EVT (https://github.com/openwch/ch32m030) の
+   "UART_USB_IAP" サンプルを改変したものです。各ファイル先頭の著作権表示を保持しています。
+     Copyright (c) 2021 Nanjing Qinheng Microelectronics Co., Ltd.
+     "This software (modified or not) and binary are used for microcontroller
+      manufactured by Nanjing Qinheng Microelectronics."
+   → これらのファイルは WCH 製マイコンでの使用に限られます。
+   SDK 本体 (Peripheral ドライバ, スタートアップ, リンカスクリプト原型) はリポジトリに含めず、
+   firmware/sdk/fetch_sdk.sh で取得します。firmware/common/*.ld は SDK の Link.ld を
+   メモリ配置のみ変更したものです。
+
+2. KiCad ライブラリ
+   回路図のフットプリント参照 (Resistor_SMD, Capacitor_SMD, Package_SO, Connector_USB 等) は
+   KiCad 標準ライブラリ (CC-BY-SA 4.0 + 設計利用の例外) を参照しています。
+
+3. CH32M030DS0_QFN48 フットプリント (hardware/lib/CH32M030DS0_QFN48.pretty)
+   ghostinkoma が作成した作業途中の基板 (hardware/wip) から抽出したものです。
+   原型は kicad-footprint-generator (ipc_noLead_generator.py) の出力です。

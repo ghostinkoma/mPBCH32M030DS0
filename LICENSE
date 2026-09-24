@@ -1,0 +1,38 @@
+mPBCH32M030DS0 ライセンス / License
+Copyright (c) 2026 ghostinkoma
+
+■ 日本語
+
+1. 個人利用
+   本リポジトリの回路図・基板データ・ドキュメント・ソフトウェア (以下「本成果物」) は、
+   個人的・非商用の目的に限り、無償で使用・複製・改変・再配布することができます。
+   その際は、以下のクレジットを目に見える形で必ず表示してください
+   (再配布物・派生物・公開する作品の説明や基板シルク等)。
+
+       mPBCH32M030DS0 by ghostinkoma (https://github.com/ghostinkoma/mPBCH32M030DS0)
+
+2. 商用利用
+   商用目的での利用 (製品への組込み、販売、有償サービスでの利用、業務での利用等) は、
+   事前に作者へ連絡し、許諾を得てください。
+       連絡先: sinhex.k@gmail.com
+
+3. 無保証・免責
+   本成果物は「現状のまま」提供され、明示・黙示を問わず、商品性、特定目的への適合性、
+   権利非侵害を含む一切の保証をしません。本成果物の使用 (基板の製作・通電・モーター駆動を含む)
+   によって生じたいかなる損害 (火災、感電、機器・部品の破損、人身事故等を含む) についても、
+   作者は一切の責任を負いません。すべて利用者自身の責任で使用してください。
+
+4. 第三者の著作物
+   本成果物には、各自の元ライセンスが適用される第三者の著作物が含まれます (NOTICE 参照)。
+   それらの部分には本ライセンスではなく、元のライセンスが適用されます。
+
+■ English (summary — the Japanese text above prevails)
+
+1. Personal / non-commercial use: free to use, copy, modify and redistribute, provided that
+   the credit "mPBCH32M030DS0 by ghostinkoma (https://github.com/ghostinkoma/mPBCH32M030DS0)"
+   is visibly displayed.
+2. Commercial use requires prior permission from the author: sinhex.k@gmail.com
+3. NO WARRANTY. Provided "AS IS" without warranty of any kind. The author shall not be liable
+   for any damage (including fire, electric shock, damage to equipment or injury) arising from
+   the use of this work. Use entirely at your own risk.
+4. Third-party components keep their original licenses (see NOTICE).
