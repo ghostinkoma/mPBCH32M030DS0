@@ -1,4 +1,6 @@
-# 設計検討書 — mPBCH32M030DS0
+# 設計検討書 — mPBCH32M030DS0 (Rev 0.2)
+
+> Rev 0.2 の内蔵機能活用 (USB-PD 給電, CMP3 BEMF, QII1, ISOURCE 診断) は [advanced_features.md](advanced_features.md) にまとめています。
 
 CH32M030C8U7 (QFN48) + TPN1R603PL によるユニバーサル・モータードライバの部品選定と回路設計の根拠。
 数値の出典は WCH **CH32M030DS0 V1.2 (データシート)**、**CH32M030RM V1.2 (リファレンスマニュアル)**、
@@ -43,10 +45,10 @@ WCH 公式 EVT (`openwch/ch32m030`) と東芝 TPN1R603PL データシートで�
 | ブートストラップ | 1µF/25V X7R 0805 ×4 | DS 推奨 1〜10µF。Qg 41nC で降下 41mV/周期 |
 | シャント | 各レッグ 10mΩ 2512, バス 10mΩ 2512 | OPA ゲイン切替で ±2.9A〜±20A。バスは ADC 直読み 10mV/A |
 | TVS | SMBJ16A | クランプ 26V < FET 30V / VHV 絶対最大 30V → 入力 8〜16V |
-| 逆接保護 | TPN1R603PL (GND 側) + 15V ツェナ | FET 共通化・低損失 |
+| 逆接・逆流保護 (Rev 0.2) | LM74700-Q1 + TPN1R603PL のハイサイド理想ダイオード ×2 (J1 用 U4/Q9, USB-PD 用 U5/Q10) | J1 と USB-PD を安全に OR 接続できる。FET を共通化し、損失は 15A で約 0.3W |
 | VHV 給電 | B5819W ×2 のダイオード OR (12V / USB 5V) + 10Ω | USB だけでも MCU が起動し書き込み可能 |
 | 水晶 | 8MHz 3225, CL=20pF, 負荷容量 30pF ×2 | DS 表3-9 (CL 20pF, ESR ≤60Ω)。帰還抵抗は内蔵 |
-| USB ESD | USBLC6-2SC6 | D+/D- と VBUS を保護 (CC は 4kV HBM 内蔵耐性) |
+| USB ESD | USBLC6-2SC6 (基準 +3V3) + SMAJ20A (VBUS) | USBLC6 の VBUS ピンは 5.25V 定格のため +3V3 に接続。PD 給電の VBUS (≤20V) は SMAJ20A で保護 |
 | 5V | 78L05 | ホールセンサ用 30mA 程度 |
 
 ---
@@ -81,7 +83,8 @@ WCH 公式 EVT (`openwch/ch32m030`) と東芝 TPN1R603PL データシートで�
 | IBUS (全電流) | バス 10mΩ → R13/C17 → PB3 (直接) | IN1 | 10mV/A, ≈81mA/LSB |
 | VBUS | 110k/10k → PB4 | IN17 | ≈9.7mV/LSB, 〜28.8V (入力上限 VDD33−0.9V) |
 | 温度 | NTC 10k ← PA4 ISOURCE1 | IN5 | |
-| 相電圧 U/V/W | 20k/3k → JP2〜JP4 → PA5/PA7/PA12 | IN6/IN2/IN19 | センサレス用 |
+| 相電圧 U/V/W | 20k/3k → JP2〜JP4 → PA5/PA7/PA6 | IN6/IN2/(W は ADC 無し) | センサレスは CMP3 + 内部仮想中性点で検出 (docs/advanced_features.md) |
+| USB VBUS | 120k/10k → PA2 | IN15 | PD 契約電圧の確認・抜去検出 |
 | 過電流閾値 | 12k/1k → PB2 | IN0 | 254mV = 25.4A (読み戻し可) |
 
 - 3 相: Iu = IA, Iv = IB, Iw = −(Iu+Iv)。IBUS は電力計算・保護用。
@@ -103,7 +106,7 @@ WCH 公式 EVT (`openwch/ch32m030`) と東芝 TPN1R603PL データシートで�
 
 | 事象 | 対策 |
 |---|---|
-| 逆接続 | Q9 (GND 側) が OFF |
+| 逆接続 / 逆流 | U4+Q9 / U5+Q10 の理想ダイオードが遮断 (J1 と USB-PD の相互逆流も阻止) |
 | 過電流 | CMP3 (IBUS vs 25.4A) → TIM1 BKIN、CMP2 (IA) → TIM1 BKIN、TIM2 は CMP3 割込みで停止。F1 15A |
 | 過電圧 | PB4 OVP: VBUS 18.0V で MCU リセット (全ゲート OFF)。TVS SMBJ16A |
 | 過熱 | NTC (FW) + チップ OTP |
@@ -140,3 +143,4 @@ PWM デューティに比例した明るさで点灯し、上下同時点灯が�
 3. USB のみ給電 (VHV ≈ 4.5V) 時の USB 動作確認 (DS: VHV<5V で PA0〜PA3 の出力振幅が低下。D+/D- は PB0/PB1 なので影響なし想定)
 4. TIM2 リマップ2 で HB2/HB3 を駆動する際、TIM1 CH3/CH3N の出力を無効化すること (同一ピンの競合)
 5. RST ピン (PC0) はオプションバイトで有効化が必要 (WCH-LinkUtility)
+6. Rev 0.2 で追加した内蔵機能 (CMP3 RMID, LM74700, ISOURCE 診断, PD) の確認事項は [advanced_features.md §6](advanced_features.md#6-要実機確認) を参照

@@ -10,7 +10,7 @@
  * Modified 2026 by ghostinkoma for mPBCH32M030DS0:
  *  - 起動条件を「アプリ未書込 / アプリからの要求フラグ / USER・BOOT ボタン (PC4)」の OR に変更
  *  - UART を TX=PC1 / RX=PC2 (リマップ1) に変更 (PC0 は RST ピン)
- *  - ブートローダ中は状態 LED (PA6) を点滅
+ *  - ブートローダ中は状態 LED (PC4, BOOT ボタンと共用) を点滅
  *  - USB bcdDevice = 0xB001 でアプリ (0xA001) と区別
  *******************************************************************************/
 
@@ -65,7 +65,7 @@ static void StatusLed_Init(void)
 
     RCC_PB2PeriphClockCmd(MPB_LED_RCC, ENABLE);
     gpio.GPIO_Pin = MPB_LED_PIN;
-    gpio.GPIO_Mode = GPIO_Mode_Out_PP;
+    gpio.GPIO_Mode = GPIO_Mode_Out_OD;   /* PC4 はボタンと共用: オープンドレイン */
     gpio.GPIO_Speed = GPIO_Speed_30MHz;
     GPIO_Init(MPB_LED_PORT, &gpio);
 }
@@ -108,7 +108,7 @@ int main(void)
         {
             tick = 0;
             led ^= 1;
-            GPIO_WriteBit(MPB_LED_PORT, MPB_LED_PIN, led ? Bit_SET : Bit_RESET);
+            GPIO_WriteBit(MPB_LED_PORT, MPB_LED_PIN, led ? MPB_LED_ON : MPB_LED_OFF);
         }
     }
 }

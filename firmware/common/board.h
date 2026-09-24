@@ -27,10 +27,16 @@
 #define MPB_BOOTKEY_PORT    GPIOC
 #define MPB_BOOTKEY_PIN     GPIO_Pin_4
 #define MPB_BOOTKEY_RCC     RCC_PB2Periph_GPIOC
-/* 状態 LED: PA6 (High = 点灯, JP6 ショート時) */
-#define MPB_LED_PORT        GPIOA
-#define MPB_LED_PIN         GPIO_Pin_6
-#define MPB_LED_RCC         RCC_PB2Periph_GPIOA
+/* 状態 LED: PC4 (USER/BOOT と共用, Low = 点灯)。+3V3 - LED - 1k - PC4 なのでオープンドレインで駆動する
+ * (ボタン押下で Low になっても短絡しない) */
+#define MPB_LED_PORT        GPIOC
+#define MPB_LED_PIN         GPIO_Pin_4
+#define MPB_LED_RCC         RCC_PB2Periph_GPIOC
+#define MPB_LED_ON          Bit_RESET
+#define MPB_LED_OFF         Bit_SET
+/* USB-PD 給電パス許可: PC3 (High = U5 LM74700 有効, 外部 100k プルダウン) */
+#define MPB_PDEN_PORT       GPIOC
+#define MPB_PDEN_PIN        GPIO_Pin_3
 /* UART: USART1 リマップ1 (TX = PC1, RX = PC2)。PC0 は RST ピン */
 #define MPB_UART_REMAP      GPIO_PartialRemap1_USART1
 #define MPB_UART_BAUD       460800u

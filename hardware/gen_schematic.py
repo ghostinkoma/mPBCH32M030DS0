@@ -18,7 +18,7 @@ PROJECT = "mPBCH32M030DS0"
 OUT = os.path.dirname(os.path.abspath(__file__))
 NS = uuid.UUID("6b1f3c2e-8d5a-4f0e-9c1a-2a7d3e4b5c60")
 TITLE = "mPBCH32M030DS0  CH32M030 Universal Motor Driver"
-REV = "0.1"
+REV = "0.2"
 DATE = "2026-09-24"
 
 
@@ -126,17 +126,17 @@ for _n in (2, 3, 4, 5, 8):
 # CH32M030C8U7 (QFN48 5x5mm / 0.35mm ピッチ) — データシート V1.2 表 2-1 の QFN48 列。
 # 裏面パッド (DS ではピン番号 0) は KiCad の慣例に合わせて "49" とする。機能別に左右へ配置。
 MCU_L = [("34", "VHV"), ("26", "VDD8"), ("33", "VDD33"), ("49", "GND(EP)"),
-         ("37", "PA2/SWCLK/CC3/A15"), ("38", "PA3/SWDIO/CC4/A16"),
+         ("37", "PA2/CC3/A15 (SWCLK)"), ("38", "PA3/SWDIO/CC4/A16"),
          ("35", "PA0/CC1R/A13"), ("36", "PA1/CC2R/A14"), ("39", "PB0/UDP/A11"), ("40", "PB1/UDM/A12"),
          ("8", "PB5/XI/A3"), ("9", "PB6/XO/A4"), ("27", "PC0/RST/T1C4"),
-         ("28", "PC1/UART_TX"), ("29", "PC2/UART_RX_1"), ("30", "PC3/T1C1_3/SPI_MOSI"),
+         ("28", "PC1/UART_TX"), ("29", "PC2/UART_RX_1"), ("30", "PC3"),
          ("31", "PC4/T1C2_3/SPI_MISO"), ("32", "PC5/HVIO"),
          ("3", "PA14/I2C_SDA_2/A9"), ("4", "PA15/I2C_SCL_2/A10"), ("2", "PA13/T1BKIN_1/A18"),
-         ("43", "PA6/ISINK1/CM3N1"), ("7", "PB4/V_DET(OVP)/A17"), ("6", "PB3/CM3P3/A1"),
+         ("43", "PA6/CM3N1/T2C2/ISINK1"), ("7", "PB4/V_DET(OVP)/A17"), ("6", "PB3/CM3P3/A1"),
          ("5", "PB2/CM3N3/A0")]
 MCU_R = [("46", "ISP1"), ("45", "PA8/ISN1/A7"), ("47", "PA10/ISP2"), ("48", "PA11/ISN2/A8"),
-         ("41", "PA4/ISOURCE1/A5"), ("42", "PA5/CM3N0/A6"), ("44", "PA7/CM3N2/A2"),
-         ("1", "PA12/QII1/A19"),
+         ("41", "PA4/ISOURCE1/A5"), ("42", "PA5/CM3N0/T2C1/ISRC2/A6"), ("44", "PA7/CM3N2/T2C3/ISINK2/A2"),
+         ("1", "PA12/QII1(OPA1)/A19"),
          ("13", "PB9/T1C1/HO0"), ("12", "VB0"), ("11", "VS0"), ("10", "PB8/T1C1N/LO0"),
          ("17", "PB11/T1C2/HO1"), ("16", "VB1"), ("15", "VS1"), ("14", "PB10/T1C2N/LO1"),
          ("21", "PB13/T1C3/T2C1_2/HO2"), ("20", "VB2"), ("19", "VS2"), ("18", "PB12/T1C3N/T2C1N_2/LO2"),
@@ -166,6 +166,13 @@ defsym("USBLC6", "U",
         ("5", "VBUS", 10.16, 0, 180, 2.54, False), ("4", "IO2", 10.16, -2.54, 180, 2.54, False)],
        [_rect(-7.62, 5.08, 7.62, -5.08, fill="background")], show_pin_names=True,
        show_pin_numbers=True, ref_at=(-7.62, 7.62), val_at=(-7.62, 6.35))
+# 理想ダイオードコントローラ LM74700-Q1 (SOT-23-6, KiCad 公式シンボルと同じピン番号)
+defsym("LM74700", "U",
+       [("6", "ANODE", -10.16, 2.54, 0, 2.54, False), ("3", "EN", -10.16, 0, 0, 2.54, False),
+        ("1", "VCAP", -10.16, -2.54, 0, 2.54, False), ("4", "CATHODE", 10.16, 2.54, 180, 2.54, False),
+        ("5", "GATE", 10.16, 0, 180, 2.54, False), ("2", "GND", 0, -7.62, 90, 2.54, False)],
+       [_rect(-7.62, 5.08, 7.62, -5.08, fill="background")], show_pin_names=True,
+       show_pin_numbers=True, ref_at=(-7.62, 9.4), val_at=(-7.62, 6.6))
 # 4 端子水晶 (1-3 が振動子, 2-4 がケース GND)
 defsym("XTAL4", "Y",
        [("1", "1", -5.08, 0, 0, 2.54, False), ("3", "3", 5.08, 0, 180, 2.54, False),
@@ -220,6 +227,8 @@ FP = {
     "QFN48": "CH32M030DS0_QFN48:CH32M030DS0_QFN48",
     "USBC": "Connector_USB:USB_C_Receptacle_GCT_USB4105-xx-A_16P_TopMnt_Horizontal",
     "SOT236": "Package_TO_SOT_SMD:SOT-23-6",
+    "SMA": "Diode_SMD:D_SMA",
+    "FUSE1812": "Fuse:Fuse_1812_4532Metric",
     "XTAL3225": "Crystal:Crystal_SMD_3225-4Pin_3.2x2.5mm",
     "PTC1206": "Fuse:Fuse_1206_3216Metric",
     "HDR5": "Connector_PinHeader_2.54mm:PinHeader_1x05_P2.54mm_Vertical",
@@ -310,17 +319,26 @@ sheets = []
 # ===== 1. 電源 =====
 pw = Sheet("power", "電源入力・保護・補助電源・電源表示", 2)
 sheets.append(pw)
-pw.box(20, 25, 200, 150, "電源入力 (J1 端子台) / 逆接続保護 / サージ保護 / バルク容量")
-pw.add("CONN2", "J1", "PWR_IN 12V", 45, 50, nets={"1": "VIN", "2": "GND_IN"}, fp="TB2",
+pw.box(20, 25, 200, 150, "電源入力 (J1) / 理想ダイオード (逆接・逆流防止) / サージ保護 / バルク容量")
+pw.add("CONN2", "J1", "PWR_IN 12V", 45, 50, nets={"1": "VIN", "2": "GND"}, fp="TB2",
        mpn="5.08mm 2P 端子台 (定格 ≥15A)")
-f1 = pw.add("FUSE", "F1", "15A", 70, 50, rot=90, nets={"1": "VIN", "2": "VBUS"}, fp="FUSE",
+f1 = pw.add("FUSE", "F1", "15A", 70, 50, rot=90, nets={"1": "VIN", "2": "VIN_F"}, fp="FUSE",
             mpn="ミニブレードヒューズ 15A", wired=("2",))
-# VBUS レール (y=50) と GND レール (y=75)
-pw.wire(pw.pin(f1, "2"), (180, 50))
-pw.label("VBUS", 180, 50, 0)
-pw.wire((100, 75), (160, 75))
-pw.label("GND", 160, 75, 0)
-for x, (ref, sym, val, fp, mpn) in zip((100, 125, 150), [
+# J1 側 理想ダイオード: Q9 (S=入力, D=VBUS) + U4 LM74700 (ANODE=VIN_F, CATHODE=VBUS)
+pw.add("NMOS", "Q9", "TPN1R603PL", 95, 50, rot=270, nets={"1": "VIN_F", "4": "Q9_G", "5": "VBUS"},
+       fp="TSON", mpn="TPN1R603PL,L1Q (J1 側 理想ダイオード)", wired=("1", "5"))
+pw.wire(pw.pin(f1, "2"), (89.92, 50))
+pw.junction(82, 50)
+pw.label("VIN_F", 82, 50, 90)
+pw.wire((100.08, 50), (195, 50))
+pw.label("VBUS", 195, 50, 0)
+pw.add("LM74700", "U4", "LM74700-Q1", 70, 105,
+       nets={"6": "VIN_F", "3": "VIN_F", "1": "VCAP1", "4": "VBUS", "5": "Q9_G", "2": "GND"},
+       fp="SOT236", mpn="TI LM74700-Q1 (DBV)")
+pw.add("C", "C5", "0.1uF/25V", 110, 105, nets={"1": "VCAP1", "2": "VIN_F"}, fp="C0603")
+pw.wire((125, 75), (185, 75))
+pw.label("GND", 185, 75, 0)
+for x, (ref, sym, val, fp, mpn) in zip((125, 150, 175), [
         ("D1", "D_TVS", "SMBJ16A", "SMB", "SMBJ16A (Vwm16V / Vc26V)"),
         ("C1", "CP", "470uF/25V", "CP10", "低ESR 電解/導電性高分子 470uF 25V"),
         ("C2", "CP", "470uF/25V", "CP10", "低ESR 電解/導電性高分子 470uF 25V")]):
@@ -329,23 +347,32 @@ for x, (ref, sym, val, fp, mpn) in zip((100, 125, 150), [
     pw.wire((x, 50), (x, 58.69))
     pw.wire((x, 66.31), (x, 75))
     pw.junction(x, 50)
-    if x != 100:
+    if x != 125:
         pw.junction(x, 75)
-# 逆接続保護 (GND 帰路の N-ch)
-pw.add("NMOS", "Q9", "TPN1R603PL", 90, 105, nets={"4": "RP_G", "5": "GND_IN", "1": "GND"},
-       fp="TSON", mpn="TPN1R603PL,L1Q (逆接続保護・ローサイド)", wired=("4",))
-pw.wire((84.92, 105), (65, 105))
-pw.add("R", "R1", "10k", 65, 93, nets={"1": "VBUS", "2": "RP_G"}, fp="R0603", wired=("2",))
-pw.wire((65, 96.81), (65, 105))
-pw.add("R", "R2", "100k", 65, 117, nets={"1": "RP_G", "2": "GND"}, fp="R0603", wired=("1",))
-pw.wire((65, 113.19), (65, 105))
-pw.add("D_ZENER", "DZ1", "BZT52C15", 45, 117, rot=270, nets={"1": "RP_G", "2": "GND"}, fp="SOD123",
-       mpn="BZT52C15 (Vgs クランプ 15V)", wired=("1",))
-pw.wire((45, 113.19), (45, 105), (65, 105))
-pw.junction(65, 105)
-pw.text("Q9: N-ch ローサイド逆接保護。正接続時はボディダイオード→Vgs=VBUS(15Vクランプ)でON。", 25, 133, 1.5)
-pw.text("注意: 外部機器の GND は必ず基板側 GND (Q9 ソース側) を使うこと。GND_IN は J1 専用。", 25, 138, 1.5)
-pw.text("TVS SMBJ16A のクランプ(26V@Ipp)は MOSFET 30V / VHV 絶対最大 30V 未満 → 入力は 8〜16V (公称12V)。", 25, 143, 1.5)
+pw.text("U4+Q9: 逆接続 (最大 -65V) と VBUS→J1 への逆流を阻止する理想ダイオード。導通損失 15A で約 0.3W。", 25, 128, 1.4)
+pw.text("J1 と USB-PD (下) は理想ダイオード OR。両方あれば電圧の高い方が供給し、互いに逆流しない。", 25, 133, 1.4)
+pw.text("TVS SMBJ16A のクランプ(26V@Ipp)は MOSFET 30V / VHV 絶対最大 30V 未満 → 入力は 8〜16V (公称12V)。", 25, 138, 1.4)
+pw.text("LM74700: VCAP コンデンサは VCAP-ANODE 間 (TI 推奨回路)。試作前にピン配置と EN しきい値を DS で確認。", 25, 143, 1.4)
+
+pw.box(20, 160, 250, 280, "USB-PD 給電パス (PD 契約後に MCU が許可, 最大 15V / 5A)")
+pw.add("FUSE", "F3", "5A", 50, 185, rot=90, nets={"1": "USB_VBUS", "2": "USB_VBUS_P"}, fp="FUSE1812",
+       mpn="1812 5A 速断ヒューズ")
+pw.add("D_TVS", "D9", "SMAJ20A", 75, 205, rot=270, nets={"1": "USB_VBUS_P", "2": "GND"}, fp="SMA",
+       mpn="SMAJ20A (USB 側 ESD/サージ, PD 20V まで許容)")
+pw.add("NMOS", "Q10", "TPN1R603PL", 125, 185, rot=270, nets={"1": "USB_VBUS_P", "4": "Q10_G", "5": "VBUS"},
+       fp="TSON", mpn="TPN1R603PL,L1Q (USB 側 理想ダイオード)")
+pw.add("LM74700", "U5", "LM74700-Q1", 125, 225,
+       nets={"6": "USB_VBUS_P", "3": "PD_PWR_EN", "1": "VCAP2", "4": "VBUS", "5": "Q10_G", "2": "GND"},
+       fp="SOT236", mpn="TI LM74700-Q1 (DBV)")
+pw.add("C", "C6", "0.1uF/25V", 165, 225, nets={"1": "VCAP2", "2": "USB_VBUS_P"}, fp="C0603")
+pw.add("R", "R6", "100k", 190, 225, nets={"1": "PD_PWR_EN", "2": "GND"}, fp="R0603")
+pw.add("R", "R7", "120k 1%", 215, 190, nets={"1": "USB_VBUS_P", "2": "USB_VBUS_SNS"}, fp="R0603")
+pw.add("R", "R8", "10k 1%", 215, 237, nets={"1": "USB_VBUS_SNS", "2": "GND"}, fp="R0603")
+pw.add("C", "C7", "10nF", 237, 237, nets={"1": "USB_VBUS_SNS", "2": "GND"}, fp="C0603")
+pw.text("PD_PWR_EN (PC3) = Low/リセット中は OFF (R6)。FW は PS_RDY 受信 + USB_VBUS_SNS (PA2) で電圧確認後に ON。", 23, 255, 1.3)
+pw.text("PB4 の OVP リセット (VBUS 18V) で MCU がリセットされると EN も Low → USB 給電も自動遮断。", 23, 260, 1.3)
+pw.text("USB_VBUS_SNS = USB VBUS / 13 (20V → 1.54V: VHV<5V 時の PA2 入力範囲 VDD33-1.7V 以内)。", 23, 265, 1.3)
+pw.text("VBUS の突入: 940uF を PD 電源で充電するため FW は EN ON 後に電流を段階的に上げる。", 23, 270, 1.3)
 
 pw.box(210, 25, 405, 95, "5V 補助電源 (ホールセンサ用) / 電源表示 LED")
 pw.add("REG3", "U2", "78L05", 280, 50, nets={"3": "VBUS", "1": "+5V", "2": "GND"}, fp="SOT89",
@@ -404,13 +431,13 @@ us.add("USBC16", "J8", "USB-C", 60, 80,
 us.add("FUSE", "F2", "PTC 0.5A", 120, 50, rot=90, nets={"1": "USB_VBUS", "2": "USB_VBUS_F"}, fp="PTC1206",
        mpn="ポリスイッチ 0.5A 1206")
 us.add("USBLC6", "U3", "USBLC6-2SC6", 175, 85,
-       nets={"1": "USB_DP", "2": "GND", "3": "USB_DN", "6": "USB_DP", "5": "USB_VBUS_F", "4": "USB_DN"},
-       fp="SOT236", mpn="USBLC6-2SC6 (D+/D- ESD 保護)")
+       nets={"1": "USB_DP", "2": "GND", "3": "USB_DN", "6": "USB_DP", "5": "+3V3", "4": "USB_DN"},
+       fp="SOT236", mpn="USBLC6-2SC6 (D+/D- ESD 保護, 基準は +3V3)")
 us.add("R", "R130", "1M", 120, 110, rot=90, nets={"1": "USB_SHIELD", "2": "GND"}, fp="R0603")
 us.add("C", "C130", "4.7nF/100V", 120, 122, rot=90, nets={"1": "USB_SHIELD", "2": "GND"}, fp="C0603")
 us.text("CC1/CC2 = PA0/PA1 (CC1R/CC2R): C8U7 は Type-C 規定の Rd 5.1kΩ を内蔵 → 外付け Rd 不要 (DS 表1-1 注1)。", 23, 135, 1.3)
-us.text("D+/D- = PB0/PB1 直結 (USBFS の D+ プルアップ内蔵)。VBUS は D6 経由で VHV に OR 接続 (電源シート)。", 23, 140, 1.3)
-us.text("USB PD シンクとして 9V/12V を要求すれば USB-PD 充電器からモータ電源を得る拡張も可能 (FW 次第, 要電流検討)。", 23, 145, 1.3)
+us.text("D+/D- = PB0/PB1 直結 (USBFS の D+ プルアップ内蔵)。USB_VBUS は F2→D6 で VHV, F3→U5/Q10 で VBUS へ (電源シート)。", 23, 140, 1.3)
+us.text("USB PD シンク: 9/12/15V (PPS ≤16V) を要求し, 電源シートの U5/Q10 経由でモータ電源 VBUS に供給できる。USBLC6 の基準は +3V3 (VBUS 20V 対策)。", 23, 145, 1.3)
 
 us.box(260, 25, 405, 100, "水晶発振子 (HSE 8MHz)")
 us.add("XTAL4", "Y1", "8MHz CL=20pF", 330, 55, nets={"1": "XI", "3": "XO", "2": "GND"}, fp="XTAL3225",
@@ -431,7 +458,7 @@ us.box(20, 160, 250, 280, "メモ")
 for k, line in enumerate([
     "・USB は設定変更・ログ・FW 更新 (IAP) 用。IAP 起動判定は PC4 (USER/BOOT ボタン) を使う",
     "   (WCH の IAP サンプルは PB4 判定なので, 自作ブートローダで PC4 に変更すること)",
-    "・PA2/PA3 (SWCLK/SWDIO) は CC3/CC4 と兼用だが, 本基板では PD1 側は使わずデバッグ専用",
+    "・PA3 (SWIO) は 1 線デバッグ専用。PA2 (SWCLK/CC3) は USB VBUS 監視に転用 (2 線デバッグは使わない)",
     "・USB-C シールドは 1MΩ || 4.7nF で GND へ (ESD 逃がし)",
 ]):
     us.text(line, 23, 175 + k * 7, 1.4)
@@ -441,13 +468,13 @@ mc = Sheet("mcu", "CH32M030C8U7 (QFN48) / ゲートドライバ周辺", 4)
 sheets.append(mc)
 MCU_NETS = {
     "34": "VHV", "26": "VDD8", "33": "+3V3", "49": "GND",
-    "37": "SWCLK", "38": "SWDIO", "35": "USB_CC1", "36": "USB_CC2", "39": "USB_DP", "40": "USB_DN",
+    "37": "USB_VBUS_SNS", "38": "SWDIO", "35": "USB_CC1", "36": "USB_CC2", "39": "USB_DP", "40": "USB_DN",
     "8": "XI", "9": "XO", "27": "nRST", "28": "UART_TX", "29": "UART_RX",
-    "30": "GPIO_PC3", "31": "GPIO_PC4", "32": "GPIO_PC5",
-    "3": "I2C_SDA", "4": "I2C_SCL", "2": "nFAULT", "43": "GPIO_PA6", "7": "VBUS_SNS",
+    "30": "PD_PWR_EN", "31": "GPIO_PC4", "32": "GPIO_PC5",
+    "3": "I2C_SDA", "4": "I2C_SCL", "2": "nFAULT", "43": "SENS_W", "7": "VBUS_SNS",
     "6": "IBUS_F", "5": "OCP_REF",
     "46": "IA_P", "45": "IA_N", "47": "IB_P", "48": "IB_N", "41": "NTC",
-    "42": "SENS_U", "44": "SENS_V", "1": "SENS_W",
+    "42": "SENS_U", "44": "SENS_V", "1": "QII_IN",
 }
 for i, pins in enumerate((("13", "12", "11", "10"), ("17", "16", "15", "14"),
                           ("21", "20", "19", "18"), ("25", "24", "23", "22"))):
@@ -480,11 +507,11 @@ for j, (ref, sym, val, n1, n2, fp) in enumerate([
     mc.add(sym, ref, val, 45 + (j % 2) * 45, 115 + (j // 2) * 16, rot=90, nets={"1": n1, "2": n2}, fp=fp)
 mc.text("PB4: VBUS/12 → ADC_IN17 + OVP リセット (1.5V → VBUS 18.0V で MCU リセット = 全ゲート OFF)。", 18, 182, 1.25)
 mc.text("PB3: バス電流 ADC_IN1 (10mΩ: 1A = 10mV) + CMP3_P3。PB2: 閾値 254mV (25.4A) = CMP3_N3 / ADC_IN0。", 18, 188, 1.25)
-mc.text("CMP3 → TIM1 BKIN (ハード遮断)。TIM2 (HB2/HB3 を TIM2 駆動時) は CMP3 割込みで FW 停止。", 18, 194, 1.25)
+mc.text("CMP3 → TIM1 BKIN。センサレス (CMP3 を BEMF 用に使う) 時は JP7=バスにして CMP2 で遮断。", 18, 194, 1.25)
 
-mc.box(280, 20, 405, 110, "相電流アンプ入力 (OPA3=ISP1 / OPA4=ISP2 差動 → ADC 内部接続)")
+mc.box(280, 20, 405, 110, "電流アンプ入力 (OPA3=ISP1: JP7 選択 / OPA4=ISP2: JP5 選択 → ADC 内部接続)")
 for j, (ref, sym, val, n1, n2, fp) in enumerate([
-    ("R16", "R", "100R 1%", "SRC0", "IA_P", "R0603"),
+    ("R16", "R", "100R 1%", "ISA_SEL", "IA_P", "R0603"),
     ("R17", "R", "100R 1%", "ISH", "IA_N", "R0603"),
     ("C19", "C", "2.2nF C0G", "IA_P", "IA_N", "C0603"),
     ("R18", "R", "100R 1%", "ISB_SEL", "IB_P", "R0603"),
@@ -494,7 +521,7 @@ for j, (ref, sym, val, n1, n2, fp) in enumerate([
     mc.add(sym, ref, val, 310 + (j % 2) * 55, 35 + (j // 2) * 16, rot=90, nets={"1": n1, "2": n2}, fp=fp)
 mc.text("OPA3 出力 → ADC_IN9, OPA4 出力 → ADC_IN10 (チップ内部接続, RM 17.2.2)。", 283, 90, 1.25)
 mc.text("ゲイン 4/8/16/55, バイアス 1.6V (10mΩ: G55=±2.9A, G16=±10A, G8=±20A)。", 283, 95, 1.25)
-mc.text("CMP2: P=OPA3 出力, N=DAC1 → TIM1 BKIN (HB0 レッグの第2過電流保護)。", 283, 100, 1.25)
+mc.text("CMP2: P=OPA3 出力, N=内蔵 DAC (0.1〜3.1V/0.2V) → TIM1 BKIN (サイクル毎電流制限にも)。", 283, 100, 1.25)
 
 mc.box(280, 115, 405, 205, "ブートストラップ容量 (VBx-VSx, ピン直近)")
 for i in range(4):
@@ -505,14 +532,14 @@ mc.text("Qg=41nC に対し 1uF → 1 周期の電圧降下 ≈ 41mV。", 283, 18
 
 mc.box(20, 212, 290, 285, "ピン割当の要点 (QFN48 = CH32M030C8U7)")
 for k, line in enumerate([
-    "HB0〜HB2: TIM1 CH1/CH1N〜CH3/CH3N (デフォルト配置)。TIM1 リマップ1 で BKIN を PA13 (nFAULT) へ",
-    "HB2/HB3 を TIM2 で駆動する場合: TIM2 リマップ2 → PB13/PB12 = CH1/CH1N, PB15/PB14 = CH2/CH2N",
-    "  (DS 1.4.20: 2 組のフルブリッジは PB8〜PB11 = TIM1, PB12〜PB15 = TIM2 で駆動) → 4 レッグ全て相補 PWM",
-    "電流: IA (OPA3, HB0) / IB (OPA4, JP5 で HB1 or HB2) / IBUS (PB3 直接 ADC) を内蔵 ADC で計測",
-    "センサ: SENS_U/V/W = PA5/PA7/PA12 (ADC_IN6/IN2/IN19 + EXTI)。JP2〜JP4 でホール/相電圧を選択",
-    "USB: PA0/PA1 = CC1/CC2, PB0/PB1 = D+/D-。水晶: PB5/PB6。RST: PC0。SWD: PA2/PA3",
-    "I2C: PA14/PA15 (I2C リマップ2)。UART: PC1=TX / PC2=RX (UART リマップ1)",
-    "空き GPIO → J6: PC3, PC4 (USER/BOOT), PC5 (HV I/O, VHV レベル), PA6 (状態 LED 兼用)",
+    "PWM: HB0〜HB2 = TIM1 (相補+ブレーキ)。HB2/HB3 を TIM2 リマップ2 (PB12〜PB15) で駆動すれば 4 レッグ全て相補",
+    "電流: IA = OPA3 (JP7: HB0 レッグ / バス) → ADC9, IB = OPA4 (JP5: HB1 / HB2) → ADC10, IBUS = PB3 直接 → ADC1",
+    "保護: CMP3 (PB3 vs PB2) または CMP2 (OPA3 出力 vs 内蔵 DAC) → TIM1 BKIN。PB4 OVP リセット",
+    "3 相センシング PA5/PA6/PA7 = CMP3 N0/N1/N2 (内部仮想中性点 RMID + TIM2 キャプチャ) = TIM2 CH1/2/3 (ホール XOR)",
+    "QII1: PA12 → OPA1 (AV20/40) → CMP1 → TIM3 CH1 キャプチャ (JP8: タコ/VR 入力 or バス電流リップル)",
+    "USB: CC1/CC2 = PA0/PA1 (PD0 シンク), D+/D- = PB0/PB1, USB VBUS 監視 = PA2, PD 給電許可 = PC3",
+    "I2C: PA14/PA15 (リマップ2)。UART: PC1/PC2 (リマップ1)。RST: PC0。SDI 1 線: PA3。水晶: PB5/PB6",
+    "J6 引き出し: PC4 (USER/BOOT + 状態 LED), PC5 (HV I/O), TACH_IN, nFAULT (PA13 = TIM1_BKIN_1)",
 ]):
     mc.text(line, 25, 224 + k * 7, 1.4)
 
@@ -580,15 +607,18 @@ br.text("ゲート: 47Ω 直列 + 20kΩ G-S プルダウン (WCH 評価ボード
 
 br.box(15, 150, 150, 285, "バスシャント / 電流チャネル選択 / モータ端子")
 br.add("R", "R70", "10mR 1% 2W", 45, 170, rot=90, nets={"1": "ISH", "2": "GND"}, fp="R2512")
-br.add("CONN3", "JP5", "ISEL", 45, 195, nets={"1": "SRC1", "2": "ISB_SEL", "3": "SRC2"}, fp="HDR3",
+br.add("CONN3", "JP5", "ISEL_B", 45, 195, nets={"1": "SRC1", "2": "ISB_SEL", "3": "SRC2"}, fp="HDR3",
        mpn="2.54mm 3P + ジャンパ (1-2: 3相 V / 2-3: HB2)")
+br.add("CONN3", "JP7", "ISEL_A", 45, 225, nets={"1": "SRC0", "2": "ISA_SEL", "3": "ISH"}, fp="HDR3",
+       mpn="2.54mm 3P + ジャンパ (1-2: HB0 レッグ / 2-3: バス電流)")
 br.add("CONN4", "J2", "MOTOR", 110, 175, nets={"1": "SW0", "2": "SW1", "3": "SW2", "4": "SW3"},
        fp="TB4", mpn="5.08mm 4P 端子台 (定格 ≥15A)")
 br.text("J2: 3相=U/V/W(1-3) | DC=1-2 (+3-4) | ステッピング=A+,A-,B+,B-", 20, 255, 1.4)
 br.text("JP5 1-2: ISP2=HB1(V相)  2-3: ISP2=HB2(コイルB / DC-B)", 20, 262, 1.4)
-br.text("RS_BUS(R70) は全レッグ共通の帰路 → PB3 で ADC 計測 + CMP3 過電流ブレーキ", 20, 269, 1.4)
+br.text("JP7 1-2: ISP1=HB0 (差動)  2-3: ISP1=バス (ISH, OPA3 を単端 NSEL=VSS で使用)", 20, 248, 1.4)
+br.text("RS_BUS(R70) は全レッグ共通の帰路 → PB3 で ADC 計測 + CMP3 過電流ブレーキ, JP8 経由で QII1 (リップル)", 20, 269, 1.4)
 
-br.box(155, 150, 405, 240, "相電圧 (BEMF) 検出 / ホール・相電圧 切替")
+br.box(155, 150, 405, 240, "相電圧 (BEMF) / ホール 切替 → PA5/PA6/PA7 (CMP3 N0-N2 = TIM2 CH1-3)")
 for k, ph in enumerate("UVW"):
     xb = 175 + k * 75
     br.add("R", f"R{71 + 3 * k}", "20k 1%", xb, 165, rot=90, nets={"1": f"SW{k}", "2": f"BEMF_{ph}"}, fp="R0603")
@@ -598,8 +628,8 @@ for k, ph in enumerate("UVW"):
     br.add("CONN3", f"JP{2 + k}", f"SEL_{ph}", xb + 5, 205,
            nets={"1": f"BEMF_{ph}", "2": f"SENS_{ph}", "3": f"HALL_{hall}"}, fp="HDR3",
            mpn="2.54mm 3P + ジャンパ (1-2: 相電圧 / 2-3: HALL)")
-br.text("分圧比 3/23: VBUS 16V → 2.09V。センサレスは ADC で相電圧を PWM ON 中に標本化 (VBUS/2 比較)。", 160, 228, 1.3)
-br.text("ジャンパ未実装時は SENS_x (PA5/PA7/PA12) を汎用 GPIO/ADC として JP 中央ピンから利用可。", 160, 234, 1.3)
+br.text("分圧比 3/23。センサレス: CMP3 が各相 (N) を内部仮想中性点 (RMID, 80k x3) と比較し TIM2 でゼロクロス時刻を捕捉。", 160, 228, 1.3)
+br.text("ホール: 同じ 3 ピンが TIM2 CH1-3 → ホールセンサ XOR モードでハード計時。ISOURCE2/ISINK も同ピン (結線自己診断)。", 160, 234, 1.3)
 
 # ===== 5. I/O =====
 io = Sheet("io", "インターフェース (ホール / 通信 / GPIO 引き出し / UI)", 6)
@@ -614,46 +644,50 @@ for k, h in enumerate("ABC"):
     io.add("C", f"C{100 + k}", "1nF", 150, yb + 9, rot=90, nets={"1": f"HALL_{h}", "2": "GND"}, fp="C0603")
 io.text("プルアップは 3.3V (MCU 入力保護)。5V プッシュプル出力のホールは 1k 直列で電流制限 (注入 ≤4mA)。", 18, 112, 1.3)
 
-io.box(210, 20, 405, 120, "温度検出 (パワー段近傍 NTC) / USER・BOOT ボタン / 状態 LED")
+io.box(210, 20, 405, 120, "温度検出 (NTC ← ISOURCE1) / USER・BOOT ボタン + 状態 LED (PC4 共用)")
 io.add("NTC", "TH1", "10k B3435", 235, 45, rot=0, nets={"1": "NTC", "2": "GND"}, fp="R0603")
 io.add("C", "C103", "0.1uF", 255, 45, rot=0, nets={"1": "NTC", "2": "GND"}, fp="C0603")
 io.add("R", "R110", "10k", 280, 45, rot=0, nets={"1": "+3V3", "2": "NTC"}, fp="R0603", dnp=True)
 io.text("NTC は PA4 (ISOURCE1 内蔵電流源) → ADC_IN5。R110 (DNP) で分圧方式にも変更可。", 213, 65, 1.3)
 io.add("SW", "SW2", "USER/BOOT", 330, 45, nets={"1": "GPIO_PC4", "2": "GND"}, fp="SW")
 io.add("R", "R111", "10k", 370, 45, rot=0, nets={"1": "+3V3", "2": "GPIO_PC4"}, fp="R0603")
-io.add("SJ2", "JP6", "LED_EN", 235, 92, nets={"1": "GPIO_PA6", "2": "LED_STAT"}, fp="SJ_C",
-       mpn="はんだジャンパ (通常ショート)")
-io.add("R", "R112", "1k", 270, 92, rot=90, nets={"1": "LED_STAT", "2": "LED_STAT_A"}, fp="R0603")
-io.add("LED", "D3", "GREEN STAT", 305, 92, rot=180, nets={"2": "LED_STAT_A", "1": "GND"}, fp="LED0603")
-io.text("PA6 = 状態 LED。JP6 を切ると PA6 を J6 の汎用 GPIO として使える。", 213, 110, 1.3)
+# 状態 LED は PC4 (USER/BOOT) と共用: +3V3 → LED → 1k → PC4 (Low アクティブ)。
+# PC4 を入力にしている間 (リセット直後/ボタン読み) は 10k プルアップで LED は消灯、ボタン押下で点灯。
+io.add("LED", "D3", "GREEN STAT", 250, 92, rot=180, nets={"2": "+3V3", "1": "LED_STAT_K"}, fp="LED0603")
+io.add("R", "R112", "1k", 290, 92, rot=90, nets={"1": "LED_STAT_K", "2": "GPIO_PC4"}, fp="R0603")
+io.text("状態 LED = PC4 Low で点灯 (USER/BOOT ボタンと共用, ボタン押下中も点灯)。PA6 は 3 相センシング (W) へ。", 213, 110, 1.3)
 
-io.box(15, 130, 200, 280, "通信 (I2C / UART) / デバッグ (WCH-LinkE SDI)")
+io.box(15, 130, 200, 280, "通信 (I2C / UART) / デバッグ (WCH-LinkE 1 線 SDI)")
 io.add("CONN4", "J4", "I2C", 40, 150, nets={"1": "GND", "2": "+3V3", "3": "I2C_SDA", "4": "I2C_SCL"},
        fp="SH4", mpn="JST SH 4P (Qwiic/STEMMA QT 配列)")
 io.add("R", "R114", "4.7k", 120, 150, rot=90, nets={"1": "+3V3", "2": "I2C_SDA"}, fp="R0603", dnp=True)
 io.add("R", "R115", "4.7k", 120, 162, rot=90, nets={"1": "+3V3", "2": "I2C_SCL"}, fp="R0603", dnp=True)
 io.add("CONN4", "J5", "UART", 40, 195, nets={"1": "GND", "2": "+3V3", "3": "UART_TX", "4": "UART_RX"}, fp="XH4")
-io.add("CONN5", "J7", "SWD", 40, 235,
-       nets={"1": "+3V3", "2": "SWDIO", "3": "SWCLK", "4": "nRST", "5": "GND"}, fp="HDR5",
-       mpn="2.54mm 5P (WCH-LinkE: 3V3/SWDIO/SWCLK/RST/GND)")
+io.add("CONN4", "J7", "SDI", 40, 235,
+       nets={"1": "+3V3", "2": "SWDIO", "3": "nRST", "4": "GND"}, fp="HDR4",
+       mpn="2.54mm 4P (WCH-LinkE 1 線 SDI: 3V3/SWIO/RST/GND)")
 io.text("I2C プルアップはバスに 1 組。マスタ側に無い場合のみ R114/R115 を実装。", 18, 268, 1.3)
 io.text("J7 の 3V3 は電圧参照用。WCH-Link から 3.3V を供給しないこと (VDD33 ≤ VDD8 ≤ VHV の制約)。", 18, 274, 1.3)
 
-io.box(210, 130, 405, 250, "汎用 GPIO 引き出し (J6)")
+io.box(210, 130, 405, 248, "汎用 GPIO 引き出し (J6) / QII1 小信号入力 (タコ・VR センサ・電流リップル)")
 io.add("CONN8", "J6", "GPIO", 235, 150,
-       nets={"1": "GND", "2": "+3V3", "3": "GPIO_PC3", "4": "GPIO_PC4", "5": "GPIO_PA6",
-             "6": "GPIO_PC5", "7": "nFAULT_IN", "8": "+5V"}, fp="HDR8", mpn="2.54mm 8P ピンヘッダ")
+       nets={"1": "GND", "2": "+3V3", "3": "GPIO_PC4", "4": "GPIO_PC5", "5": "TACH_IN",
+             "6": "nFAULT_IN", "7": "+5V", "8": "GND"}, fp="HDR8", mpn="2.54mm 8P ピンヘッダ")
 io.add("R", "R120", "470R", 300, 170, rot=90, nets={"1": "nFAULT_IN", "2": "nFAULT"}, fp="R0603")
 io.add("R", "R122", "10k", 360, 170, rot=90, nets={"1": "+3V3", "2": "nFAULT"}, fp="R0603")
+io.add("R", "R123", "4.7k", 300, 185, rot=90, nets={"1": "TACH_IN", "2": "TACH_R"}, fp="R0603")
+io.add("CONN3", "JP8", "QII_SRC", 345, 185, nets={"1": "TACH_R", "2": "QII_SRC", "3": "IBUS_F"}, fp="HDR3",
+       mpn="2.54mm 3P + ジャンパ (1-2: TACH_IN / 2-3: バス電流リップル)")
+io.add("C", "C105", "0.1uF", 385, 185, rot=90, nets={"1": "QII_SRC", "2": "QII_IN"}, fp="C0603")
 for k, line in enumerate([
-    "PC3: GPIO / TIM1_CH1_3 / SPI_MOSI  (例: STEP 入力)",
-    "PC4: GPIO / TIM1_CH2_3 / SPI_MISO  (USER/BOOT ボタン兼用, 例: DIR 入力)",
-    "PA6: GPIO / TIM2_CH2 / ISINK1       (状態 LED 兼用, JP6)",
+    "PC4: GPIO / TIM1_CH2_3 / SPI_MISO (USER/BOOT + 状態 LED 兼用, 例: DIR 入力)",
     "PC5: HV I/O (VHV 系, 入力耐圧 VHV+6V, 出力 ≈1mA) → 12V 系の EN / リミット入力に",
-    "nFAULT (PA13 = TIM1_BKIN_1): Low で全ゲート OFF。10k プルアップ",
-    "3.3V 系 I/O は 5V 非耐性 (絶対最大 VDD33+0.3V)。",
+    "TACH_IN → R123 → JP8 1-2 → C105 → PA12: OPA1 (AV 20/40, 自己バイアス 1.23V) → CMP1 (ヒス 100/200mV)",
+    "  → TIM3 CH1 キャプチャ。ファン FG, VR センサ, 小振幅パルスの周期計測。JP8 2-3 はバス電流の AC 成分",
+    "  (ブラシ DC の整流子リップル計数 = エンコーダ無し位置推定)。OPA1 出力は ADC IN19 でも読める",
+    "nFAULT (PA13 = TIM1_BKIN_1): Low で全ゲート OFF。10k プルアップ。3.3V 系 I/O は 5V 非耐性",
 ]):
-    io.text(line, 213, 200 + k * 7, 1.3)
+    io.text(line, 213, 202 + k * 7, 1.3)
 
 # ---------------------------------------------------------------------------
 # 出力
@@ -795,22 +829,21 @@ def root_sexpr(sheet_uuids):
     o = ['(kicad_sch (version 20230121) (generator eeschema)', f'(uuid {ROOT_UUID})', '(paper "A3")',
          title_block("トップシート / 仕様概要"), "(lib_symbols)"]
     notes = [
-        "CH32M030C8U7 (QFN48) ユニバーサル・モータードライバ (3相 BLDC/PMSM ・ フルブリッジ DC x2 ・ バイポーラステッピング)",
+        "mPBCH32M030DS0 Rev 0.2 — CH32M030C8U7 (QFN48) ユニバーサル・モータードライバ (3相 ・ DC x2 ・ ステッピング)",
         "",
-        "・入力: J1 端子台 8〜16V DC (公称 12V) / USB-C 5V (MCU・通信のみ)  ・出力: J2 端子台 4 ハーフブリッジ (TPN1R603PL x8)",
-        "・MCU: CH32M030C8U7 QFN48 5x5mm (RISC-V 72MHz, N+N プリドライバ x4, OPA x4, CMP x3, USBFS, USB PD, 8MHz 水晶)",
-        "・PWM: HB0〜HB2 = TIM1 (相補), HB2/HB3 = TIM2 リマップ2 (相補) → 4 レッグすべてデッドタイム付き相補駆動",
-        "・電流 (内蔵 ADC): IA = OPA3 (HB0) / IB = OPA4 (JP5: HB1 or HB2) / IBUS = バスシャント直接。CMP3/CMP2 → TIM1 ブレーキ",
-        "・表示: 電源 LED x3 (VBUS / 5V / 3V3), ゲート確認 LED x8 (各ハーフブリッジ H/L), 状態 LED x1",
-        "・操作: RESET (PC0), USER/BOOT (PC4)。通信: USB-C, I2C (J4), UART (J5), SWD (J7), GPIO 引き出し (J6)",
+        "・電源: J1 8〜16V と USB-C PD (9/12/15V, ≤5A) を理想ダイオード OR (LM74700 + TPN1R603PL x2)。PD は契約後に MCU が許可",
+        "・PWM: HB0〜HB2 = TIM1, HB2/HB3 = TIM2 リマップ2 (4 レッグ相補)。ゲート確認 LED x8, 電源 LED x3",
+        "・電流: IA = OPA3 (JP7: HB0/バス), IB = OPA4 (JP5: HB1/HB2), IBUS = PB3 直接。CMP3 or CMP2(+DAC) → TIM1 ブレーキ",
+        "・3 相センシング PA5/PA6/PA7: CMP3 + 内部仮想中性点 + TIM2 キャプチャ (センサレス) / TIM2 ホール XOR / ISOURCE 自己診断",
+        "・QII1 (OPA1+CMP1 → TIM3): タコ・VR センサ入力, ブラシ DC の電流リップル計数 (JP8)",
+        "・USB-C: USB2.0 FS (ブートローダ書き込み) + PD シンク。RESET, USER/BOOT(+状態 LED), 8MHz 水晶",
         "",
         "駆動モード対応表 (J2 の結線)",
-        "  3相モータ     : U=OUT0 V=OUT1 W=OUT2 (OUT3 未使用)     JP5=1-2  TIM1 CH1-3",
-        "  DC モータ 1ch : OUT0-OUT1 (TIM1 CH1/CH2)",
-        "  DC モータ 2ch : 上記 + OUT2-OUT3 (TIM2 CH1/CH2 リマップ2)    JP5=2-3",
-        "  ステッピング  : A+=OUT0 A-=OUT1 B+=OUT2 B-=OUT3      JP5=2-3",
+        "  3相 FOC       : U=OUT0 V=OUT1 W=OUT2   JP5=1-2 JP7=1-2  保護 CMP3(バス)+CMP2(IA)",
+        "  3相 センサレス 6 ステップ : 同上        JP7=2-3 (バス)  CMP3 = BEMF, 保護 CMP2(バス)",
+        "  DC x2 / ステッピング : A+=OUT0 A-=OUT1 B+=OUT2 B-=OUT3  JP5=2-3 JP7=1-2",
         "",
-        "詳細設計・部品選定・ピン割当・ブートローダは README.md と docs/ を参照。",
+        "詳細設計・部品選定・内蔵機能の活用検討は README.md, docs/design.md, docs/advanced_features.md を参照。",
     ]
     for k, t in enumerate(notes):
         o.append(f'(text "{t}" (at 20 {fmt(30 + k * 7)} 0) (effects (font (size 2 2)) (justify left bottom)) '
