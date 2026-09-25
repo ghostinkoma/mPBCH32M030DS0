@@ -21,6 +21,10 @@ ARCH    := -march=rv32imac_zicsr_zifencei -mabi=ilp32
 IRQDEF  := -DUSE_STD_IRQ_ATTR
 endif
 
+# パワー段 (子基板) A/B/C/D。B (24V 系) は VBUS 分圧比が変わる (src/mpb.h)
+POWER_STAGE ?= A
+IRQDEF  += -DMPB_POWER_STAGE=\'$(POWER_STAGE)\'
+
 CFLAGS  += $(ARCH) $(LIBC_SPECS) -Os -g -ffunction-sections -fdata-sections -fno-common \
            -msmall-data-limit=8 -Wall -Wno-unused-parameter $(IRQDEF) \
            -Isrc -I$(FW_ROOT)/common -I$(SDK)/Core -I$(SDK)/Debug -I$(SDK)/Peripheral/inc

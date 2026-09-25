@@ -1,0 +1,4 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "mdrv")(type "KiCad")(uri "${KIPRJMOD}/../../lib/mdrv.kicad_sym")(options "")(descr "mPBCH32M030DS0 symbols"))
+)

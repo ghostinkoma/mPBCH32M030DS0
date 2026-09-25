@@ -1,0 +1,794 @@
+{
+ "name": "mPBCH32M030DS0_PWR_B",
+ "parts": [
+  {
+   "ref": "Q1",
+   "fp": "Package_TO_SOT_SMD:TO-263-2",
+   "value": "TKR74F04PB",
+   "dnp": false,
+   "nets": {
+    "3": "SW0",
+    "1": "GH0",
+    "2": "VBUS"
+   }
+  },
+  {
+   "ref": "R30",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "22R",
+   "dnp": false,
+   "nets": {
+    "1": "HO0",
+    "2": "GH0"
+   }
+  },
+  {
+   "ref": "R31",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "10k",
+   "dnp": false,
+   "nets": {
+    "1": "GH0",
+    "2": "SW0"
+   }
+  },
+  {
+   "ref": "Q2",
+   "fp": "Package_TO_SOT_SMD:TO-263-2",
+   "value": "TKR74F04PB",
+   "dnp": false,
+   "nets": {
+    "3": "SRC0",
+    "1": "GL0",
+    "2": "SW0"
+   }
+  },
+  {
+   "ref": "R32",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "22R",
+   "dnp": false,
+   "nets": {
+    "1": "LO0",
+    "2": "GL0"
+   }
+  },
+  {
+   "ref": "R33",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "10k",
+   "dnp": false,
+   "nets": {
+    "1": "GL0",
+    "2": "SRC0"
+   }
+  },
+  {
+   "ref": "R34",
+   "fp": "Resistor_SMD:R_2512_6332Metric",
+   "value": "10mR 1% 3W",
+   "dnp": false,
+   "nets": {
+    "1": "SRC0",
+    "2": "ISH"
+   }
+  },
+  {
+   "ref": "C30",
+   "fp": "Capacitor_SMD:C_0402_1005Metric",
+   "value": "0.1uF/50V",
+   "dnp": false,
+   "nets": {
+    "1": "VBUS",
+    "2": "SRC0"
+   }
+  },
+  {
+   "ref": "C31",
+   "fp": "Capacitor_SMD:C_0805_2012Metric",
+   "value": "10uF/50V",
+   "dnp": false,
+   "nets": {
+    "1": "VBUS",
+    "2": "SRC0"
+   }
+  },
+  {
+   "ref": "R35",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "22k",
+   "dnp": false,
+   "nets": {
+    "1": "GH0",
+    "2": "GLEDH0"
+   }
+  },
+  {
+   "ref": "D10",
+   "fp": "LED_SMD:LED_0603_1608Metric",
+   "value": "RED GH0",
+   "dnp": false,
+   "nets": {
+    "1": "SW0",
+    "2": "GLEDH0"
+   }
+  },
+  {
+   "ref": "R36",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "22k",
+   "dnp": false,
+   "nets": {
+    "1": "GL0",
+    "2": "GLEDL0"
+   }
+  },
+  {
+   "ref": "D11",
+   "fp": "LED_SMD:LED_0603_1608Metric",
+   "value": "GREEN GL0",
+   "dnp": false,
+   "nets": {
+    "1": "SRC0",
+    "2": "GLEDL0"
+   }
+  },
+  {
+   "ref": "Q3",
+   "fp": "Package_TO_SOT_SMD:TO-263-2",
+   "value": "TKR74F04PB",
+   "dnp": false,
+   "nets": {
+    "3": "SW1",
+    "1": "GH1",
+    "2": "VBUS"
+   }
+  },
+  {
+   "ref": "R40",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "22R",
+   "dnp": false,
+   "nets": {
+    "1": "HO1",
+    "2": "GH1"
+   }
+  },
+  {
+   "ref": "R41",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "10k",
+   "dnp": false,
+   "nets": {
+    "1": "GH1",
+    "2": "SW1"
+   }
+  },
+  {
+   "ref": "Q4",
+   "fp": "Package_TO_SOT_SMD:TO-263-2",
+   "value": "TKR74F04PB",
+   "dnp": false,
+   "nets": {
+    "3": "SRC1",
+    "1": "GL1",
+    "2": "SW1"
+   }
+  },
+  {
+   "ref": "R42",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "22R",
+   "dnp": false,
+   "nets": {
+    "1": "LO1",
+    "2": "GL1"
+   }
+  },
+  {
+   "ref": "R43",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "10k",
+   "dnp": false,
+   "nets": {
+    "1": "GL1",
+    "2": "SRC1"
+   }
+  },
+  {
+   "ref": "R44",
+   "fp": "Resistor_SMD:R_2512_6332Metric",
+   "value": "10mR 1% 3W",
+   "dnp": false,
+   "nets": {
+    "1": "SRC1",
+    "2": "ISH"
+   }
+  },
+  {
+   "ref": "C40",
+   "fp": "Capacitor_SMD:C_0402_1005Metric",
+   "value": "0.1uF/50V",
+   "dnp": false,
+   "nets": {
+    "1": "VBUS",
+    "2": "SRC1"
+   }
+  },
+  {
+   "ref": "C41",
+   "fp": "Capacitor_SMD:C_0805_2012Metric",
+   "value": "10uF/50V",
+   "dnp": false,
+   "nets": {
+    "1": "VBUS",
+    "2": "SRC1"
+   }
+  },
+  {
+   "ref": "R45",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "22k",
+   "dnp": false,
+   "nets": {
+    "1": "GH1",
+    "2": "GLEDH1"
+   }
+  },
+  {
+   "ref": "D12",
+   "fp": "LED_SMD:LED_0603_1608Metric",
+   "value": "RED GH1",
+   "dnp": false,
+   "nets": {
+    "1": "SW1",
+    "2": "GLEDH1"
+   }
+  },
+  {
+   "ref": "R46",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "22k",
+   "dnp": false,
+   "nets": {
+    "1": "GL1",
+    "2": "GLEDL1"
+   }
+  },
+  {
+   "ref": "D13",
+   "fp": "LED_SMD:LED_0603_1608Metric",
+   "value": "GREEN GL1",
+   "dnp": false,
+   "nets": {
+    "1": "SRC1",
+    "2": "GLEDL1"
+   }
+  },
+  {
+   "ref": "Q5",
+   "fp": "Package_TO_SOT_SMD:TO-263-2",
+   "value": "TKR74F04PB",
+   "dnp": false,
+   "nets": {
+    "3": "SW2",
+    "1": "GH2",
+    "2": "VBUS"
+   }
+  },
+  {
+   "ref": "R50",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "22R",
+   "dnp": false,
+   "nets": {
+    "1": "HO2",
+    "2": "GH2"
+   }
+  },
+  {
+   "ref": "R51",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "10k",
+   "dnp": false,
+   "nets": {
+    "1": "GH2",
+    "2": "SW2"
+   }
+  },
+  {
+   "ref": "Q6",
+   "fp": "Package_TO_SOT_SMD:TO-263-2",
+   "value": "TKR74F04PB",
+   "dnp": false,
+   "nets": {
+    "3": "SRC2",
+    "1": "GL2",
+    "2": "SW2"
+   }
+  },
+  {
+   "ref": "R52",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "22R",
+   "dnp": false,
+   "nets": {
+    "1": "LO2",
+    "2": "GL2"
+   }
+  },
+  {
+   "ref": "R53",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "10k",
+   "dnp": false,
+   "nets": {
+    "1": "GL2",
+    "2": "SRC2"
+   }
+  },
+  {
+   "ref": "R54",
+   "fp": "Resistor_SMD:R_2512_6332Metric",
+   "value": "10mR 1% 3W",
+   "dnp": false,
+   "nets": {
+    "1": "SRC2",
+    "2": "ISH"
+   }
+  },
+  {
+   "ref": "C50",
+   "fp": "Capacitor_SMD:C_0402_1005Metric",
+   "value": "0.1uF/50V",
+   "dnp": false,
+   "nets": {
+    "1": "VBUS",
+    "2": "SRC2"
+   }
+  },
+  {
+   "ref": "C51",
+   "fp": "Capacitor_SMD:C_0805_2012Metric",
+   "value": "10uF/50V",
+   "dnp": false,
+   "nets": {
+    "1": "VBUS",
+    "2": "SRC2"
+   }
+  },
+  {
+   "ref": "R55",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "22k",
+   "dnp": false,
+   "nets": {
+    "1": "GH2",
+    "2": "GLEDH2"
+   }
+  },
+  {
+   "ref": "D14",
+   "fp": "LED_SMD:LED_0603_1608Metric",
+   "value": "RED GH2",
+   "dnp": false,
+   "nets": {
+    "1": "SW2",
+    "2": "GLEDH2"
+   }
+  },
+  {
+   "ref": "R56",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "22k",
+   "dnp": false,
+   "nets": {
+    "1": "GL2",
+    "2": "GLEDL2"
+   }
+  },
+  {
+   "ref": "D15",
+   "fp": "LED_SMD:LED_0603_1608Metric",
+   "value": "GREEN GL2",
+   "dnp": false,
+   "nets": {
+    "1": "SRC2",
+    "2": "GLEDL2"
+   }
+  },
+  {
+   "ref": "Q7",
+   "fp": "Package_TO_SOT_SMD:TO-263-2",
+   "value": "TKR74F04PB",
+   "dnp": false,
+   "nets": {
+    "3": "SW3",
+    "1": "GH3",
+    "2": "VBUS"
+   }
+  },
+  {
+   "ref": "R60",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "22R",
+   "dnp": false,
+   "nets": {
+    "1": "HO3",
+    "2": "GH3"
+   }
+  },
+  {
+   "ref": "R61",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "10k",
+   "dnp": false,
+   "nets": {
+    "1": "GH3",
+    "2": "SW3"
+   }
+  },
+  {
+   "ref": "Q8",
+   "fp": "Package_TO_SOT_SMD:TO-263-2",
+   "value": "TKR74F04PB",
+   "dnp": false,
+   "nets": {
+    "3": "SRC3",
+    "1": "GL3",
+    "2": "SW3"
+   }
+  },
+  {
+   "ref": "R62",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "22R",
+   "dnp": false,
+   "nets": {
+    "1": "LO3",
+    "2": "GL3"
+   }
+  },
+  {
+   "ref": "R63",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "10k",
+   "dnp": false,
+   "nets": {
+    "1": "GL3",
+    "2": "SRC3"
+   }
+  },
+  {
+   "ref": "R64",
+   "fp": "Resistor_SMD:R_2512_6332Metric",
+   "value": "10mR 1% 3W",
+   "dnp": false,
+   "nets": {
+    "1": "SRC3",
+    "2": "ISH"
+   }
+  },
+  {
+   "ref": "C60",
+   "fp": "Capacitor_SMD:C_0402_1005Metric",
+   "value": "0.1uF/50V",
+   "dnp": false,
+   "nets": {
+    "1": "VBUS",
+    "2": "SRC3"
+   }
+  },
+  {
+   "ref": "C61",
+   "fp": "Capacitor_SMD:C_0805_2012Metric",
+   "value": "10uF/50V",
+   "dnp": false,
+   "nets": {
+    "1": "VBUS",
+    "2": "SRC3"
+   }
+  },
+  {
+   "ref": "R65",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "22k",
+   "dnp": false,
+   "nets": {
+    "1": "GH3",
+    "2": "GLEDH3"
+   }
+  },
+  {
+   "ref": "D16",
+   "fp": "LED_SMD:LED_0603_1608Metric",
+   "value": "RED GH3",
+   "dnp": false,
+   "nets": {
+    "1": "SW3",
+    "2": "GLEDH3"
+   }
+  },
+  {
+   "ref": "R66",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "22k",
+   "dnp": false,
+   "nets": {
+    "1": "GL3",
+    "2": "GLEDL3"
+   }
+  },
+  {
+   "ref": "D17",
+   "fp": "LED_SMD:LED_0603_1608Metric",
+   "value": "GREEN GL3",
+   "dnp": false,
+   "nets": {
+    "1": "SRC3",
+    "2": "GLEDL3"
+   }
+  },
+  {
+   "ref": "R70",
+   "fp": "Resistor_SMD:R_2512_6332Metric",
+   "value": "10mR 1% 3W",
+   "dnp": false,
+   "nets": {
+    "1": "ISH",
+    "2": "GND"
+   }
+  },
+  {
+   "ref": "JP5",
+   "fp": "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical",
+   "value": "ISEL_B",
+   "dnp": false,
+   "nets": {
+    "1": "SRC1",
+    "2": "ISB_SEL",
+    "3": "SRC2"
+   }
+  },
+  {
+   "ref": "JP7",
+   "fp": "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical",
+   "value": "ISEL_A",
+   "dnp": false,
+   "nets": {
+    "1": "SRC0",
+    "2": "ISA_SEL",
+    "3": "ISH"
+   }
+  },
+  {
+   "ref": "J2",
+   "fp": "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical",
+   "value": "OUT0",
+   "dnp": false,
+   "nets": {
+    "1": "SW0",
+    "2": "SW0"
+   }
+  },
+  {
+   "ref": "J4",
+   "fp": "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical",
+   "value": "OUT1",
+   "dnp": false,
+   "nets": {
+    "1": "SW1",
+    "2": "SW1"
+   }
+  },
+  {
+   "ref": "J5",
+   "fp": "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical",
+   "value": "OUT2",
+   "dnp": false,
+   "nets": {
+    "1": "SW2",
+    "2": "SW2"
+   }
+  },
+  {
+   "ref": "J6",
+   "fp": "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical",
+   "value": "OUT3",
+   "dnp": false,
+   "nets": {
+    "1": "SW3",
+    "2": "SW3"
+   }
+  },
+  {
+   "ref": "R71",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "47k 1%",
+   "dnp": false,
+   "nets": {
+    "1": "SW0",
+    "2": "BEMF_U"
+   }
+  },
+  {
+   "ref": "R72",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "3.3k 1%",
+   "dnp": false,
+   "nets": {
+    "1": "BEMF_U",
+    "2": "GND"
+   }
+  },
+  {
+   "ref": "C71",
+   "fp": "Capacitor_SMD:C_0402_1005Metric",
+   "value": "1nF/50V",
+   "dnp": false,
+   "nets": {
+    "1": "BEMF_U",
+    "2": "GND"
+   }
+  },
+  {
+   "ref": "R74",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "47k 1%",
+   "dnp": false,
+   "nets": {
+    "1": "SW1",
+    "2": "BEMF_V"
+   }
+  },
+  {
+   "ref": "R75",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "3.3k 1%",
+   "dnp": false,
+   "nets": {
+    "1": "BEMF_V",
+    "2": "GND"
+   }
+  },
+  {
+   "ref": "C72",
+   "fp": "Capacitor_SMD:C_0402_1005Metric",
+   "value": "1nF/50V",
+   "dnp": false,
+   "nets": {
+    "1": "BEMF_V",
+    "2": "GND"
+   }
+  },
+  {
+   "ref": "R77",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "47k 1%",
+   "dnp": false,
+   "nets": {
+    "1": "SW2",
+    "2": "BEMF_W"
+   }
+  },
+  {
+   "ref": "R78",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "3.3k 1%",
+   "dnp": false,
+   "nets": {
+    "1": "BEMF_W",
+    "2": "GND"
+   }
+  },
+  {
+   "ref": "C73",
+   "fp": "Capacitor_SMD:C_0402_1005Metric",
+   "value": "1nF/50V",
+   "dnp": false,
+   "nets": {
+    "1": "BEMF_W",
+    "2": "GND"
+   }
+  },
+  {
+   "ref": "J1",
+   "fp": "Connector_PinSocket_2.54mm:PinSocket_2x05_P2.54mm_Vertical",
+   "value": "B2B_PWR",
+   "dnp": false,
+   "nets": {
+    "1": "VBUS",
+    "2": "GND",
+    "3": "VBUS",
+    "4": "GND",
+    "5": "VBUS",
+    "6": "GND",
+    "7": "VBUS",
+    "8": "GND",
+    "9": "VBUS",
+    "10": "GND"
+   }
+  },
+  {
+   "ref": "J3",
+   "fp": "Connector_PinSocket_2.54mm:PinSocket_2x11_P2.54mm_Vertical",
+   "value": "B2B_SIG",
+   "dnp": false,
+   "nets": {
+    "1": "HO0",
+    "2": "SW0",
+    "3": "LO0",
+    "4": "GND",
+    "5": "HO1",
+    "6": "SW1",
+    "7": "LO1",
+    "8": "ISA_SEL",
+    "9": "HO2",
+    "10": "SW2",
+    "11": "LO2",
+    "12": "GND",
+    "13": "HO3",
+    "14": "SW3",
+    "15": "LO3",
+    "16": "ISB_SEL",
+    "17": "ISH",
+    "18": "GND",
+    "19": "BEMF_U",
+    "20": "BEMF_V",
+    "21": "BEMF_W",
+    "22": "NTC"
+   }
+  },
+  {
+   "ref": "C1",
+   "fp": "Capacitor_THT:CP_Radial_D8.0mm_P3.50mm",
+   "value": "330uF/35V",
+   "dnp": false,
+   "nets": {
+    "1": "VBUS",
+    "2": "GND"
+   }
+  },
+  {
+   "ref": "C2",
+   "fp": "Capacitor_THT:CP_Radial_D8.0mm_P3.50mm",
+   "value": "330uF/35V",
+   "dnp": false,
+   "nets": {
+    "1": "VBUS",
+    "2": "GND"
+   }
+  },
+  {
+   "ref": "TH1",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "10k B3435",
+   "dnp": false,
+   "nets": {
+    "1": "NTC",
+    "2": "GND"
+   }
+  },
+  {
+   "ref": "H1",
+   "fp": "MountingHole:MountingHole_2.2mm_M2",
+   "value": "M2",
+   "dnp": false,
+   "nets": {}
+  },
+  {
+   "ref": "H2",
+   "fp": "MountingHole:MountingHole_2.2mm_M2",
+   "value": "M2",
+   "dnp": false,
+   "nets": {}
+  },
+  {
+   "ref": "H3",
+   "fp": "MountingHole:MountingHole_2.2mm_M2",
+   "value": "M2",
+   "dnp": false,
+   "nets": {}
+  }
+ ]
+}

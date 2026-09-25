@@ -1,0 +1,5 @@
+(fp_lib_table
+  (version 7)
+  (lib (name "CH32M030DS0_QFN48")(type "KiCad")(uri "${KIPRJMOD}/../../lib/CH32M030DS0_QFN48.pretty")(options "")(descr "CH32M030 QFN48"))
+  (lib (name "mPB")(type "KiCad")(uri "${KIPRJMOD}/../../lib/mPB.pretty")(options "")(descr "mPBCH32M030DS0 footprints"))
+)

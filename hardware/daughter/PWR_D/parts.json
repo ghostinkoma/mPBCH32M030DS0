@@ -1,0 +1,132 @@
+{
+ "name": "mPBCH32M030DS0_PWR_D",
+ "parts": [
+  {
+   "ref": "J1",
+   "fp": "Connector_PinSocket_2.54mm:PinSocket_2x05_P2.54mm_Vertical",
+   "value": "B2B_PWR",
+   "dnp": false,
+   "nets": {
+    "1": "VBUS",
+    "2": "GND",
+    "3": "VBUS",
+    "4": "GND",
+    "5": "VBUS",
+    "6": "GND",
+    "7": "VBUS",
+    "8": "GND",
+    "9": "VBUS",
+    "10": "GND"
+   }
+  },
+  {
+   "ref": "J3",
+   "fp": "Connector_PinSocket_2.54mm:PinSocket_2x11_P2.54mm_Vertical",
+   "value": "B2B_SIG",
+   "dnp": false,
+   "nets": {
+    "1": "HO0",
+    "2": "SW0",
+    "3": "LO0",
+    "4": "GND",
+    "5": "HO1",
+    "6": "SW1",
+    "7": "LO1",
+    "8": "ISA_SEL",
+    "9": "HO2",
+    "10": "SW2",
+    "11": "LO2",
+    "12": "GND",
+    "13": "HO3",
+    "14": "SW3",
+    "15": "LO3",
+    "16": "ISB_SEL",
+    "17": "ISH",
+    "18": "GND",
+    "19": "BEMF_U",
+    "20": "BEMF_V",
+    "21": "BEMF_W",
+    "22": "NTC"
+   }
+  },
+  {
+   "ref": "J2",
+   "fp": "Connector_PinHeader_2.54mm:PinHeader_2x05_P2.54mm_Vertical",
+   "value": "PWR_OUT",
+   "dnp": false,
+   "nets": {
+    "1": "VBUS",
+    "2": "GND",
+    "3": "VBUS",
+    "4": "GND",
+    "5": "VBUS",
+    "6": "GND",
+    "7": "VBUS",
+    "8": "GND",
+    "9": "VBUS",
+    "10": "GND"
+   }
+  },
+  {
+   "ref": "J4",
+   "fp": "Connector_PinHeader_2.54mm:PinHeader_2x11_P2.54mm_Vertical",
+   "value": "GATE_SENSE",
+   "dnp": false,
+   "nets": {
+    "1": "HO0",
+    "2": "SW0",
+    "3": "LO0",
+    "4": "GND",
+    "5": "HO1",
+    "6": "SW1",
+    "7": "LO1",
+    "8": "ISA_SEL",
+    "9": "HO2",
+    "10": "SW2",
+    "11": "LO2",
+    "12": "GND",
+    "13": "HO3",
+    "14": "SW3",
+    "15": "LO3",
+    "16": "ISB_SEL",
+    "17": "ISH",
+    "18": "GND",
+    "19": "BEMF_U",
+    "20": "BEMF_V",
+    "21": "BEMF_W",
+    "22": "NTC"
+   }
+  },
+  {
+   "ref": "C1",
+   "fp": "Capacitor_THT:CP_Radial_D6.3mm_P2.50mm",
+   "value": "220uF/25V",
+   "dnp": true,
+   "nets": {
+    "1": "VBUS",
+    "2": "GND"
+   }
+  },
+  {
+   "ref": "H1",
+   "fp": "MountingHole:MountingHole_2.2mm_M2",
+   "value": "M2",
+   "dnp": false,
+   "nets": {}
+  },
+  {
+   "ref": "H2",
+   "fp": "MountingHole:MountingHole_2.2mm_M2",
+   "value": "M2",
+   "dnp": false,
+   "nets": {}
+  },
+  {
+   "ref": "H3",
+   "fp": "MountingHole:MountingHole_2.2mm_M2",
+   "value": "M2",
+   "dnp": false,
+   "nets": {}
+  }
+ ]
+}

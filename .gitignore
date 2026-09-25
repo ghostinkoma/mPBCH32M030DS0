@@ -1,2 +1,13 @@
 __pycache__/
 *.pyc
+# KiCad / 基板生成の中間ファイル (配線結果 *.ses は再利用のため残す)
+*.kicad_prl
+*-backups/
+fp-info-cache
+hardware/tools/*.jar
+hardware/**/build/*
+!hardware/**/build/*.ses
+hardware/daughter_*.log
+hardware/fab/*/
+hardware/**/logs/
+hardware/logs/

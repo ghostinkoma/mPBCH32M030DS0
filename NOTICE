@@ -14,9 +14,14 @@ mPBCH32M030DS0 — 第三者の著作物 / Third-party notices
    メモリ配置のみ変更したものです。
 
 2. KiCad ライブラリ
-   回路図のフットプリント参照 (Resistor_SMD, Capacitor_SMD, Package_SO, Connector_USB 等) は
-   KiCad 標準ライブラリ (CC-BY-SA 4.0 + 設計利用の例外) を参照しています。
+   回路図のフットプリント参照と, 基板ファイル (*.kicad_pcb) に埋め込まれたフットプリント
+   (Resistor_SMD, Capacitor_SMD, Package_SO, Connector_USB, Connector_PinHeader 等) は
+   KiCad 標準ライブラリ 7.0.11 (CC-BY-SA 4.0 + 設計利用の例外) のものです。
 
 3. CH32M030DS0_QFN48 フットプリント (hardware/lib/CH32M030DS0_QFN48.pretty)
    ghostinkoma が作成した作業途中の基板 (hardware/wip) から抽出したものです。
    原型は kicad-footprint-generator (ipc_noLead_generator.py) の出力です。
+
+4. Freerouting (自動配線, GPL-3.0)
+   基板の配線は Freerouting 1.9.0 (https://github.com/freerouting/freerouting) で生成しました。
+   ツール本体はリポジトリに含めず, hardware/tools/fetch_freerouting.sh で取得します。

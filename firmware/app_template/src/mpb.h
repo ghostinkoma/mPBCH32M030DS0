@@ -26,9 +26,21 @@
 #define MPB_ADC_SENS_V    ADC_Channel_2    /* PA7 (PA6 = W は ADC 無し, CMP3 専用) */
 #define MPB_ADC_QII       ADC_Channel_19   /* OPA1 出力 (内部) */
 
-#define MPB_VBUS_DIV      12u              /* 110k / 10k */
+/* ---- パワー段 (子基板) の選択: make POWER_STAGE=B のように指定 (既定 A) -------------
+ *  'A' TPN1R603PL (12V 系)   'B' TKR74F04PB (24V 系: 主基板 R11=180k, D1=SMBJ24A に変更)
+ *  'C' MTN2306AN3 (廉価, ≤3A) 'D' MOSFET なし (外付けパワー段, シャントは 10mΩ 相当を推奨)   */
+#ifndef MPB_POWER_STAGE
+#define MPB_POWER_STAGE   'A'
+#endif
+#if MPB_POWER_STAGE == 'B'
+#define MPB_VBUS_DIV      19u              /* 180k / 10k (OVP 28.5V) */
+#define MPB_VBUS_MAX_MV   26000u           /* VS 絶対最大 30V に対する運用上限 */
+#else
+#define MPB_VBUS_DIV      12u              /* 110k / 10k (OVP 18V) */
+#define MPB_VBUS_MAX_MV   16000u
+#endif
 #define MPB_USBVBUS_DIV   13u              /* 120k / 10k */
-#define MPB_SHUNT_MOHM    10u              /* 各レッグ / バス 10mΩ */
+#define MPB_SHUNT_MOHM    10u              /* 各レッグ / バス 10mΩ (子基板 A/B/C 共通) */
 
 /* ---- 時間基準 (TIM3 1MHz フリーラン。TIM3 CH1 は QII タコ捕捉にも使う) ------ */
 void     Mpb_Time_Init(void);
