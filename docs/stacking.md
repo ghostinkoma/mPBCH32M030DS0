@@ -136,13 +136,16 @@ DC バイアスで実効容量が下がる箇所 (VHV 24V, ブートストラッ
 
 ## MCU モジュールの残作業 (手配線)
 
-自動配線 (Freerouting 1.9 / 2.1、配置を変えた複数の試行、引き剥がし付きの補修) では、20.32mm 幅の中で
-QFN48 (0.35mm ピッチ) と 42 本の端子列の間を 2 層・0.127mm ルールで配線しきれず、**22 か所が未接続**のまま残っています。
-KiCad 8 で `hardware/mPBCH32M030DS0.kicad_pcb` を開き、DRC の「未接続」を順に手配線してから発注してください。
+自動配線 (Freerouting 1.9 / 2.1、配置を変えた複数の試行、引き剥がし付きの補修) では、QFN48 (0.35mm ピッチ) と
+42 本の端子列の間を 2 層・0.127mm ルールで配線しきれず、未接続が残っています。KiCad 8 で開き、DRC の「未接続」を
+順に手配線してから発注してください。手配線用にベタを外した版 (`*_nopour/`) を用意しています。
 
-- 未接続のネット: +5V, HALL_B_IN, HO1, HO3, I2C_SCL, I2C_SDA, IA_N, IA_P, IBUS_F, IB_P, LO2, OCP_REF, QII_IN,
-  SENS_V, SENS_W, SW2, USB_CC2, USB_VBUS_SNS, VBUS, VBUS_SNS, XI, nFAULT
-- 多くは QFN の下辺・左辺から、下半分の部品 (電流アンプ入力 RC、JP2〜JP4、I2C 直列抵抗、QII) へ向かう配線です。
+| | 基板 | 未接続 | 未接続のネット |
+|---|---|---|---|
+| 8 マス版 | `hardware/mPBCH32M030DS0.kicad_pcb` (ベタなし: `hardware/w8_nopour/`) | 22 か所 | +5V, HALL_B_IN, HO1, HO3, I2C_SCL, I2C_SDA, IA_N, IA_P, IBUS_F, IB_P, LO2, OCP_REF, QII_IN, SENS_V, SENS_W, SW2, USB_CC2, USB_VBUS_SNS, VBUS, VBUS_SNS, XI, nFAULT |
+| 9 マス版 | `hardware/w9/mPBCH32M030DS0.kicad_pcb` (ベタなし: `hardware/w9_nopour/`) | 8 か所 | GPIO_PC4, I2C_SCL, I2C_SDA (2), IA_N, IBUS_F, IB_N, nFAULT |
+
+- 多くは QFN の下辺・左辺から、下半分の部品 (電流アンプ入力 RC、I2C 直列抵抗、nFAULT、QII) へ向かう配線です。
   下面の下半分には空きがあるので、QFN の近くでビアを打って下面へ逃がすと通せます。
-- 参考: モジュール幅を 9 マス (22.86mm、端子列 0.7in) に広げた試作では未接続が 10 か所まで減りました。
-  子基板 A/C も同じ幅になり、面積削減は約 −40% ぎりぎりになります。
+- ベタなし版は配線とビアを残し、GND ベタ・大電流の太らせたベタ・スティッチングビアだけを外しています。
+  仕上げたあと GND ベタ (両面) を引き直し、ステッチングビアを打ってください。

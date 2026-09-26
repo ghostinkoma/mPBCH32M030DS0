@@ -1,0 +1,828 @@
+{
+ "name": "mPBCH32M030DS0_PWR_A",
+ "parts": [
+  {
+   "ref": "J1",
+   "fp": "Connector_PinSocket_2.54mm:PinSocket_1x21_P2.54mm_Vertical",
+   "value": "SOCK_L",
+   "dnp": false,
+   "nets": {
+    "1": "USB_VBUS",
+    "2": "USB_VBUS",
+    "3": "PD_PWR_EN",
+    "4": "GPIO_PC4",
+    "5": "GPIO_PC5",
+    "6": "+3V3",
+    "7": "+5V",
+    "8": "SWDIO",
+    "9": "VBUS",
+    "10": "NTC",
+    "11": "BEMF_U",
+    "12": "BEMF_V",
+    "13": "BEMF_W",
+    "14": "HALL_A_IN",
+    "15": "HALL_B_IN",
+    "16": "HALL_C_IN",
+    "17": "ISA_SEL",
+    "18": "ISH",
+    "19": "ISB_SEL",
+    "20": "TACH_IN",
+    "21": "GND"
+   }
+  },
+  {
+   "ref": "J2",
+   "fp": "Connector_PinSocket_2.54mm:PinSocket_1x21_P2.54mm_Vertical",
+   "value": "SOCK_R",
+   "dnp": false,
+   "nets": {
+    "1": "GND",
+    "2": "UART_RX",
+    "3": "UART_TX",
+    "4": "nRST",
+    "5": "HO3",
+    "6": "SW3",
+    "7": "LO3",
+    "8": "HO2",
+    "9": "SW2",
+    "10": "LO2",
+    "11": "HO1",
+    "12": "SW1",
+    "13": "LO1",
+    "14": "HO0",
+    "15": "SW0",
+    "16": "LO0",
+    "17": "VBUS_SNS",
+    "18": "I2C_SCL",
+    "19": "I2C_SDA",
+    "20": "nFAULT_IN",
+    "21": "GND"
+   }
+  },
+  {
+   "ref": "J3",
+   "fp": "Connector_PinHeader_2.54mm:PinHeader_2x06_P2.54mm_Vertical",
+   "value": "PWR_IN",
+   "dnp": false,
+   "nets": {
+    "1": "VIN",
+    "2": "VIN",
+    "3": "VIN",
+    "4": "VIN",
+    "5": "VIN",
+    "6": "VIN",
+    "7": "GND",
+    "8": "GND",
+    "9": "GND",
+    "10": "GND",
+    "11": "GND",
+    "12": "GND"
+   }
+  },
+  {
+   "ref": "F1",
+   "fp": "mPB:Fuse_Littelfuse_NANO2_2410",
+   "value": "10A",
+   "dnp": false,
+   "nets": {
+    "1": "VIN",
+    "2": "VIN_F"
+   }
+  },
+  {
+   "ref": "Q9",
+   "fp": "Package_SO:Vishay_PowerPAK_1212-8_Single",
+   "value": "TPN2R304PL",
+   "dnp": false,
+   "nets": {
+    "1": "VIN_F",
+    "2": "VIN_F",
+    "3": "VIN_F",
+    "4": "Q9_G",
+    "5": "VBUS"
+   }
+  },
+  {
+   "ref": "U4",
+   "fp": "Package_TO_SOT_SMD:SOT-23-6",
+   "value": "LM74700-Q1",
+   "dnp": false,
+   "nets": {
+    "6": "VIN_F",
+    "3": "VIN_F",
+    "1": "VCAP1",
+    "4": "VBUS",
+    "5": "Q9_G",
+    "2": "GND"
+   }
+  },
+  {
+   "ref": "C5",
+   "fp": "Capacitor_SMD:C_0402_1005Metric",
+   "value": "0.1uF/50V",
+   "dnp": false,
+   "nets": {
+    "1": "VCAP1",
+    "2": "VIN_F"
+   }
+  },
+  {
+   "ref": "D1",
+   "fp": "Diode_SMD:D_SMB",
+   "value": "SMBJ16A",
+   "dnp": false,
+   "nets": {
+    "1": "VBUS",
+    "2": "GND"
+   }
+  },
+  {
+   "ref": "C1",
+   "fp": "Capacitor_SMD:C_1206_3216Metric",
+   "value": "10uF/50V",
+   "dnp": false,
+   "nets": {
+    "1": "VBUS",
+    "2": "GND"
+   }
+  },
+  {
+   "ref": "C7",
+   "fp": "Capacitor_SMD:CP_Elec_8x6.2",
+   "value": "100uF/25V",
+   "dnp": false,
+   "nets": {
+    "1": "VBUS",
+    "2": "GND"
+   }
+  },
+  {
+   "ref": "C8",
+   "fp": "Capacitor_SMD:CP_Elec_8x6.2",
+   "value": "100uF/25V",
+   "dnp": false,
+   "nets": {
+    "1": "VBUS",
+    "2": "GND"
+   }
+  },
+  {
+   "ref": "F3",
+   "fp": "Fuse:Fuse_1812_4532Metric",
+   "value": "5A",
+   "dnp": false,
+   "nets": {
+    "1": "USB_VBUS",
+    "2": "USB_VBUS_P"
+   }
+  },
+  {
+   "ref": "D9",
+   "fp": "Diode_SMD:D_SMA",
+   "value": "SMAJ20A",
+   "dnp": false,
+   "nets": {
+    "1": "USB_VBUS_P",
+    "2": "GND"
+   }
+  },
+  {
+   "ref": "Q10",
+   "fp": "Package_SO:Vishay_PowerPAK_1212-8_Single",
+   "value": "TPN1R603PL",
+   "dnp": false,
+   "nets": {
+    "1": "USB_VBUS_P",
+    "2": "USB_VBUS_P",
+    "3": "USB_VBUS_P",
+    "4": "Q10_G",
+    "5": "VBUS"
+   }
+  },
+  {
+   "ref": "U5",
+   "fp": "Package_TO_SOT_SMD:SOT-23-6",
+   "value": "LM74700-Q1",
+   "dnp": false,
+   "nets": {
+    "6": "USB_VBUS_P",
+    "3": "PD_PWR_EN",
+    "1": "VCAP2",
+    "4": "VBUS",
+    "5": "Q10_G",
+    "2": "GND"
+   }
+  },
+  {
+   "ref": "C6",
+   "fp": "Capacitor_SMD:C_0402_1005Metric",
+   "value": "0.1uF/50V",
+   "dnp": false,
+   "nets": {
+    "1": "VCAP2",
+    "2": "USB_VBUS_P"
+   }
+  },
+  {
+   "ref": "R6",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "100k",
+   "dnp": false,
+   "nets": {
+    "1": "PD_PWR_EN",
+    "2": "GND"
+   }
+  },
+  {
+   "ref": "R11",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "110k 1%",
+   "dnp": false,
+   "nets": {
+    "1": "VBUS",
+    "2": "VBUS_SNS"
+   }
+  },
+  {
+   "ref": "R12",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "10k 1%",
+   "dnp": false,
+   "nets": {
+    "1": "VBUS_SNS",
+    "2": "GND"
+   }
+  },
+  {
+   "ref": "U2",
+   "fp": "Package_TO_SOT_SMD:SOT-89-3",
+   "value": "78L05",
+   "dnp": false,
+   "nets": {
+    "3": "VBUS",
+    "1": "+5V",
+    "2": "GND"
+   }
+  },
+  {
+   "ref": "C3",
+   "fp": "Capacitor_SMD:C_0603_1608Metric",
+   "value": "1uF/50V",
+   "dnp": false,
+   "nets": {
+    "1": "VBUS",
+    "2": "GND"
+   }
+  },
+  {
+   "ref": "C4",
+   "fp": "Capacitor_SMD:C_0402_1005Metric",
+   "value": "1uF/25V",
+   "dnp": false,
+   "nets": {
+    "1": "+5V",
+    "2": "GND"
+   }
+  },
+  {
+   "ref": "Q1",
+   "fp": "Package_SO:Vishay_PowerPAK_1212-8_Single",
+   "value": "TPN1R603PL",
+   "dnp": false,
+   "nets": {
+    "1": "SW0",
+    "2": "SW0",
+    "3": "SW0",
+    "4": "GH0",
+    "5": "VBUS"
+   }
+  },
+  {
+   "ref": "R30",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "47R",
+   "dnp": false,
+   "nets": {
+    "1": "HO0",
+    "2": "GH0"
+   }
+  },
+  {
+   "ref": "R31",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "20k",
+   "dnp": false,
+   "nets": {
+    "1": "GH0",
+    "2": "SW0"
+   }
+  },
+  {
+   "ref": "Q2",
+   "fp": "Package_SO:Vishay_PowerPAK_1212-8_Single",
+   "value": "TPN1R603PL",
+   "dnp": false,
+   "nets": {
+    "1": "SRC0",
+    "2": "SRC0",
+    "3": "SRC0",
+    "4": "GL0",
+    "5": "SW0"
+   }
+  },
+  {
+   "ref": "R32",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "47R",
+   "dnp": false,
+   "nets": {
+    "1": "LO0",
+    "2": "GL0"
+   }
+  },
+  {
+   "ref": "R33",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "20k",
+   "dnp": false,
+   "nets": {
+    "1": "GL0",
+    "2": "SRC0"
+   }
+  },
+  {
+   "ref": "R34",
+   "fp": "Resistor_SMD:R_2512_6332Metric",
+   "value": "10mR 1% 2W",
+   "dnp": false,
+   "nets": {
+    "1": "SRC0",
+    "2": "ISH"
+   }
+  },
+  {
+   "ref": "C30",
+   "fp": "Capacitor_SMD:C_0402_1005Metric",
+   "value": "0.1uF/50V",
+   "dnp": false,
+   "nets": {
+    "1": "VBUS",
+    "2": "SRC0"
+   }
+  },
+  {
+   "ref": "C31",
+   "fp": "Capacitor_SMD:C_1206_3216Metric",
+   "value": "10uF/50V",
+   "dnp": false,
+   "nets": {
+    "1": "VBUS",
+    "2": "SRC0"
+   }
+  },
+  {
+   "ref": "Q3",
+   "fp": "Package_SO:Vishay_PowerPAK_1212-8_Single",
+   "value": "TPN1R603PL",
+   "dnp": false,
+   "nets": {
+    "1": "SW1",
+    "2": "SW1",
+    "3": "SW1",
+    "4": "GH1",
+    "5": "VBUS"
+   }
+  },
+  {
+   "ref": "R40",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "47R",
+   "dnp": false,
+   "nets": {
+    "1": "HO1",
+    "2": "GH1"
+   }
+  },
+  {
+   "ref": "R41",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "20k",
+   "dnp": false,
+   "nets": {
+    "1": "GH1",
+    "2": "SW1"
+   }
+  },
+  {
+   "ref": "Q4",
+   "fp": "Package_SO:Vishay_PowerPAK_1212-8_Single",
+   "value": "TPN1R603PL",
+   "dnp": false,
+   "nets": {
+    "1": "SRC1",
+    "2": "SRC1",
+    "3": "SRC1",
+    "4": "GL1",
+    "5": "SW1"
+   }
+  },
+  {
+   "ref": "R42",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "47R",
+   "dnp": false,
+   "nets": {
+    "1": "LO1",
+    "2": "GL1"
+   }
+  },
+  {
+   "ref": "R43",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "20k",
+   "dnp": false,
+   "nets": {
+    "1": "GL1",
+    "2": "SRC1"
+   }
+  },
+  {
+   "ref": "R44",
+   "fp": "Resistor_SMD:R_2512_6332Metric",
+   "value": "10mR 1% 2W",
+   "dnp": false,
+   "nets": {
+    "1": "SRC1",
+    "2": "ISH"
+   }
+  },
+  {
+   "ref": "C40",
+   "fp": "Capacitor_SMD:C_0402_1005Metric",
+   "value": "0.1uF/50V",
+   "dnp": false,
+   "nets": {
+    "1": "VBUS",
+    "2": "SRC1"
+   }
+  },
+  {
+   "ref": "C41",
+   "fp": "Capacitor_SMD:C_1206_3216Metric",
+   "value": "10uF/50V",
+   "dnp": false,
+   "nets": {
+    "1": "VBUS",
+    "2": "SRC1"
+   }
+  },
+  {
+   "ref": "Q5",
+   "fp": "Package_SO:Vishay_PowerPAK_1212-8_Single",
+   "value": "TPN1R603PL",
+   "dnp": false,
+   "nets": {
+    "1": "SW2",
+    "2": "SW2",
+    "3": "SW2",
+    "4": "GH2",
+    "5": "VBUS"
+   }
+  },
+  {
+   "ref": "R50",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "47R",
+   "dnp": false,
+   "nets": {
+    "1": "HO2",
+    "2": "GH2"
+   }
+  },
+  {
+   "ref": "R51",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "20k",
+   "dnp": false,
+   "nets": {
+    "1": "GH2",
+    "2": "SW2"
+   }
+  },
+  {
+   "ref": "Q6",
+   "fp": "Package_SO:Vishay_PowerPAK_1212-8_Single",
+   "value": "TPN1R603PL",
+   "dnp": false,
+   "nets": {
+    "1": "SRC2",
+    "2": "SRC2",
+    "3": "SRC2",
+    "4": "GL2",
+    "5": "SW2"
+   }
+  },
+  {
+   "ref": "R52",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "47R",
+   "dnp": false,
+   "nets": {
+    "1": "LO2",
+    "2": "GL2"
+   }
+  },
+  {
+   "ref": "R53",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "20k",
+   "dnp": false,
+   "nets": {
+    "1": "GL2",
+    "2": "SRC2"
+   }
+  },
+  {
+   "ref": "R54",
+   "fp": "Resistor_SMD:R_2512_6332Metric",
+   "value": "10mR 1% 2W",
+   "dnp": false,
+   "nets": {
+    "1": "SRC2",
+    "2": "ISH"
+   }
+  },
+  {
+   "ref": "C50",
+   "fp": "Capacitor_SMD:C_0402_1005Metric",
+   "value": "0.1uF/50V",
+   "dnp": false,
+   "nets": {
+    "1": "VBUS",
+    "2": "SRC2"
+   }
+  },
+  {
+   "ref": "C51",
+   "fp": "Capacitor_SMD:C_1206_3216Metric",
+   "value": "10uF/50V",
+   "dnp": false,
+   "nets": {
+    "1": "VBUS",
+    "2": "SRC2"
+   }
+  },
+  {
+   "ref": "Q7",
+   "fp": "Package_SO:Vishay_PowerPAK_1212-8_Single",
+   "value": "TPN1R603PL",
+   "dnp": false,
+   "nets": {
+    "1": "SW3",
+    "2": "SW3",
+    "3": "SW3",
+    "4": "GH3",
+    "5": "VBUS"
+   }
+  },
+  {
+   "ref": "R60",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "47R",
+   "dnp": false,
+   "nets": {
+    "1": "HO3",
+    "2": "GH3"
+   }
+  },
+  {
+   "ref": "R61",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "20k",
+   "dnp": false,
+   "nets": {
+    "1": "GH3",
+    "2": "SW3"
+   }
+  },
+  {
+   "ref": "Q8",
+   "fp": "Package_SO:Vishay_PowerPAK_1212-8_Single",
+   "value": "TPN1R603PL",
+   "dnp": false,
+   "nets": {
+    "1": "SRC3",
+    "2": "SRC3",
+    "3": "SRC3",
+    "4": "GL3",
+    "5": "SW3"
+   }
+  },
+  {
+   "ref": "R62",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "47R",
+   "dnp": false,
+   "nets": {
+    "1": "LO3",
+    "2": "GL3"
+   }
+  },
+  {
+   "ref": "R63",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "20k",
+   "dnp": false,
+   "nets": {
+    "1": "GL3",
+    "2": "SRC3"
+   }
+  },
+  {
+   "ref": "R64",
+   "fp": "Resistor_SMD:R_2512_6332Metric",
+   "value": "10mR 1% 2W",
+   "dnp": false,
+   "nets": {
+    "1": "SRC3",
+    "2": "ISH"
+   }
+  },
+  {
+   "ref": "C60",
+   "fp": "Capacitor_SMD:C_0402_1005Metric",
+   "value": "0.1uF/50V",
+   "dnp": false,
+   "nets": {
+    "1": "VBUS",
+    "2": "SRC3"
+   }
+  },
+  {
+   "ref": "C61",
+   "fp": "Capacitor_SMD:C_1206_3216Metric",
+   "value": "10uF/50V",
+   "dnp": false,
+   "nets": {
+    "1": "VBUS",
+    "2": "SRC3"
+   }
+  },
+  {
+   "ref": "R70",
+   "fp": "Resistor_SMD:R_2512_6332Metric",
+   "value": "10mR 1% 2W",
+   "dnp": false,
+   "nets": {
+    "1": "ISH",
+    "2": "GND"
+   }
+  },
+  {
+   "ref": "JP5",
+   "fp": "Jumper:SolderJumper-3_P1.3mm_Bridged12_RoundedPad1.0x1.5mm_NumberLabels",
+   "value": "ISEL_B",
+   "dnp": false,
+   "nets": {
+    "1": "SRC1",
+    "2": "ISB_SEL",
+    "3": "SRC2"
+   }
+  },
+  {
+   "ref": "JP7",
+   "fp": "Jumper:SolderJumper-3_P1.3mm_Bridged12_RoundedPad1.0x1.5mm_NumberLabels",
+   "value": "ISEL_A",
+   "dnp": false,
+   "nets": {
+    "1": "SRC0",
+    "2": "ISA_SEL",
+    "3": "ISH"
+   }
+  },
+  {
+   "ref": "J4",
+   "fp": "Connector_PinHeader_2.54mm:PinHeader_2x08_P2.54mm_Vertical",
+   "value": "MOTOR",
+   "dnp": false,
+   "nets": {
+    "1": "SW0",
+    "2": "SW0",
+    "3": "SW0",
+    "4": "SW0",
+    "5": "SW1",
+    "6": "SW1",
+    "7": "SW1",
+    "8": "SW1",
+    "9": "SW2",
+    "10": "SW2",
+    "11": "SW2",
+    "12": "SW2",
+    "13": "SW3",
+    "14": "SW3",
+    "15": "SW3",
+    "16": "SW3"
+   }
+  },
+  {
+   "ref": "R71",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "20k 1%",
+   "dnp": false,
+   "nets": {
+    "1": "SW0",
+    "2": "BEMF_U"
+   }
+  },
+  {
+   "ref": "R72",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "3k 1%",
+   "dnp": false,
+   "nets": {
+    "1": "BEMF_U",
+    "2": "GND"
+   }
+  },
+  {
+   "ref": "C71",
+   "fp": "Capacitor_SMD:C_0402_1005Metric",
+   "value": "1nF/50V",
+   "dnp": false,
+   "nets": {
+    "1": "BEMF_U",
+    "2": "GND"
+   }
+  },
+  {
+   "ref": "R74",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "20k 1%",
+   "dnp": false,
+   "nets": {
+    "1": "SW1",
+    "2": "BEMF_V"
+   }
+  },
+  {
+   "ref": "R75",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "3k 1%",
+   "dnp": false,
+   "nets": {
+    "1": "BEMF_V",
+    "2": "GND"
+   }
+  },
+  {
+   "ref": "C72",
+   "fp": "Capacitor_SMD:C_0402_1005Metric",
+   "value": "1nF/50V",
+   "dnp": false,
+   "nets": {
+    "1": "BEMF_V",
+    "2": "GND"
+   }
+  },
+  {
+   "ref": "R77",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "20k 1%",
+   "dnp": false,
+   "nets": {
+    "1": "SW2",
+    "2": "BEMF_W"
+   }
+  },
+  {
+   "ref": "R78",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "3k 1%",
+   "dnp": false,
+   "nets": {
+    "1": "BEMF_W",
+    "2": "GND"
+   }
+  },
+  {
+   "ref": "C73",
+   "fp": "Capacitor_SMD:C_0402_1005Metric",
+   "value": "1nF/50V",
+   "dnp": false,
+   "nets": {
+    "1": "BEMF_W",
+    "2": "GND"
+   }
+  },
+  {
+   "ref": "TH1",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "value": "10k B3435",
+   "dnp": false,
+   "nets": {
+    "1": "NTC",
+    "2": "GND"
+   }
+  }
+ ]
+}

@@ -9,6 +9,8 @@ hardware/**/build/*
 !hardware/**/build/*.ses
 hardware/daughter_*.log
 hardware/fab/*/
+!hardware/fab/w9/
+hardware/fab/w9/*/
 hardware/**/logs/
 hardware/logs/
 hardware/**/build/*_pass2.*

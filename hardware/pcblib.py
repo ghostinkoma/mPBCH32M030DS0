@@ -696,6 +696,7 @@ class Pcb:
         一時ファイルに保存して kicad-cli (別プロセス) で実行する。失敗したら 1 回だけ再試行する."""
         import shutil
         tmp = os.path.join(self.dir, "build", self.name + "_drctmp.kicad_pcb")
+        os.makedirs(os.path.dirname(tmp), exist_ok=True)
         assert pcbnew.SaveBoard(tmp, self.b)
         pro = os.path.join(self.dir, self.name + ".kicad_pro")
         if os.path.exists(pro):
@@ -893,9 +894,10 @@ class Pcb:
                         put_(cx, cy, L)
             return cells
 
-        def maze(net, a, a_layers, e, e_layers, grid=0.1, margin=4.0, soft=False, dry=False):
+        def maze(net, a, a_layers, e, e_layers, grid=0.1, margin=None, soft=False, dry=False):
             """格子 A* (2 層 + ビア) で a→e を結ぶ。障害物は他ネットのパッド・配線・ビア・穴と基板端."""
             import heapq
+            margin = margin or float(os.environ.get("MPB_MAZE_MARGIN", "4.0"))
             x0, y0 = max(min(a[0], e[0]) - margin, 0.6), max(min(a[1], e[1]) - margin, 0.6)
             x1, y1 = min(max(a[0], e[0]) + margin, self.W - 0.6), min(max(a[1], e[1]) + margin, self.H - 0.6)
             nx, ny = int((x1 - x0) / grid) + 1, int((y1 - y0) / grid) + 1
