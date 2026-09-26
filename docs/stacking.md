@@ -131,7 +131,7 @@ DC バイアスで実効容量が下がる箇所 (VHV 24V, ブートストラッ
 |---|---|
 | 回路図 (4 プロジェクト, KiCad 8.0.9) | `verify_netlist.py`: モジュール 83/83, 子基板 A/B/C 58/58 ネット一致 |
 | 部品の重なり | courtyard 干渉なし (同一面) / 反対面の THT 穴との干渉なし / 基板外へのはみ出しなし |
-| DRC | 子基板 A/B/C: 未接続 0・電気的エラー 0。**MCU モジュール: 自動配線で 22 か所が未接続** (下記) ([pcb/drc_summary.md](pcb/drc_summary.md)) |
+| DRC | 子基板 A/B/C: 未接続 0・電気的エラー 0。**MCU モジュール: 9 マス版は未接続 0・電気的エラー 0。8 マス版は自動配線で 22 か所が未接続** (下記) ([pcb/drc_summary.md](pcb/drc_summary.md)) |
 | 製造データ | `hardware/fab/<基板名>.zip` (ガーバー, ドリル + 図, 両面の部品座標 CSV) |
 
 ## MCU モジュールの残作業 (手配線)
@@ -143,8 +143,9 @@ DC バイアスで実効容量が下がる箇所 (VHV 24V, ブートストラッ
 | | 基板 | 未接続 | 未接続のネット |
 |---|---|---|---|
 | 8 マス版 | `hardware/mPBCH32M030DS0.kicad_pcb` (ベタなし: `hardware/w8_nopour/`) | 22 か所 | +5V, HALL_B_IN, HO1, HO3, I2C_SCL, I2C_SDA, IA_N, IA_P, IBUS_F, IB_P, LO2, OCP_REF, QII_IN, SENS_V, SENS_W, SW2, USB_CC2, USB_VBUS_SNS, VBUS, VBUS_SNS, XI, nFAULT |
-| 9 マス版 | `hardware/w9/mPBCH32M030DS0.kicad_pcb` (ベタなし: `hardware/w9_nopour/`) | 8 か所 | GPIO_PC4, I2C_SCL, I2C_SDA (2), IA_N, IBUS_F, IB_N, nFAULT |
+| 9 マス版 | `hardware/w9/mPBCH32M030DS0.kicad_pcb` (ベタなし: `hardware/w9_nopour/`) | **0 (完了)** | — (水晶 Y1 と C131/C132 を QFN 下辺の XI/XO (8/9 番ピン) 直下の裏面へ移し、下辺ピン 1〜7 の引き出しを空けて再配線) |
 
+- 8 マス版でも同じく水晶を裏面へ移すと通りやすくなる見込みです。
 - 多くは QFN の下辺・左辺から、下半分の部品 (電流アンプ入力 RC、I2C 直列抵抗、nFAULT、QII) へ向かう配線です。
   下面の下半分には空きがあるので、QFN の近くでビアを打って下面へ逃がすと通せます。
 - ベタなし版は配線とビアを残し、GND ベタ・大電流の太らせたベタ・スティッチングビアだけを外しています。

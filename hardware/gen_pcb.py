@@ -171,6 +171,11 @@ def build_main(route=True):
             if ref not in ("J1", "J2") and ref not in gl:
                 p = fp.GetPosition()
                 fp.SetPosition(pcblib.pcbnew.VECTOR2I(int(p.x * k) + off, p.y))
+    if W9:   # 水晶は XI/XO (QFN 下辺の 8/9 番ピン) の真下の裏面へ。表の下辺ピン 1〜7 の引き出しを空ける
+        x89 = (b.pad_xy("U1", "8")[0] + b.pad_xy("U1", "9")[0]) / 2
+        put_c(b, "Y1", x89 - 0.45, 24.5, rot=90, side="B")
+        yb = b.bbox("Y1")[3] + 0.25
+        b.pack(["C131", "C132"], b.bbox("Y1")[0], yb, b.bbox("Y1")[2] + 0.4, side="B", gap=0.25)
     pin_labels(b, [("J1", gs.PINMAP_L, +1), ("J2", gs.PINMAP_R, -1)], "B.SilkS", 1.15)
     return finish(b, route, silk=[("mPB CH32M030", MW / 2, MH - 3.4, 0.8, "B.SilkS"),
                                   ("ghostinkoma/mPBCH32M030DS0", MW / 2, MH - 1.8, 0.6, "B.SilkS")],
