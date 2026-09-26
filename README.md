@@ -48,30 +48,30 @@ USB-C から ESP32-C3 / Arduino のように書き込めて、**USB-PD 充電器
 | ピン | J1 (左列) | J2 (右列) |
 |---|---|---|
 | 1 | USB_VBUS | GND |
-| 2 | USB_VBUS | UART_TX |
-| 3 | VBUS_SNS | UART_RX |
-| 4 | PD_PWR_EN | GPIO_PC4 |
-| 5 | +5V | GPIO_PC5 |
-| 6 | +3V3 | HO3 |
-| 7 | SWDIO | SW3 |
-| 8 | nRST | LO3 |
-| 9 | VBUS | HO2 |
-| 10 | NTC | SW2 |
-| 11 | BEMF_U | LO2 |
-| 12 | BEMF_V | HO1 |
-| 13 | BEMF_W | SW1 |
-| 14 | HALL_A_IN | LO1 |
-| 15 | HALL_B_IN | HO0 |
-| 16 | HALL_C_IN | SW0 |
-| 17 | ISA_SEL | LO0 |
-| 18 | ISH | I2C_SDA |
-| 19 | ISB_SEL | I2C_SCL |
+| 2 | USB_VBUS | UART_RX |
+| 3 | PD_PWR_EN | UART_TX |
+| 4 | GPIO_PC4 | nRST |
+| 5 | GPIO_PC5 | HO3 |
+| 6 | +3V3 | SW3 |
+| 7 | +5V | LO3 |
+| 8 | SWDIO | HO2 |
+| 9 | VBUS | SW2 |
+| 10 | NTC | LO2 |
+| 11 | BEMF_U | HO1 |
+| 12 | BEMF_V | SW1 |
+| 13 | BEMF_W | LO1 |
+| 14 | HALL_A_IN | HO0 |
+| 15 | HALL_B_IN | SW0 |
+| 16 | HALL_C_IN | LO0 |
+| 17 | ISA_SEL | VBUS_SNS |
+| 18 | ISH | I2C_SCL |
+| 19 | ISB_SEL | I2C_SDA |
 | 20 | TACH_IN | nFAULT_IN |
 | 21 | GND | GND |
 
 - **ブレッドボード単体で使う場合**: USB-C から給電すると MCU・書き込み・USB は動作します (VHV ≈ 4.5V)。
   モータを回すときは VBUS ピン (≥ 8V) に外部電源と、HO/LO/SW に外付けのパワー段をつなぎます。
-  VBUS_SNS (VBUS 監視) には外付けで分圧 (≤ 3.3V) を入れてください (子基板では R11/R12)。
+  VBUS_SNS (J2-17, VBUS 監視) には外付けで分圧 (≤ 3.3V) を入れてください (子基板では R11/R12)。
 - +5V ピンは子基板の 78L05 から供給されます (ホールセンサ用)。単体で使うときは必要に応じて外部から 5V を入れます。
 - HOx / LOx はゲート駆動出力 (VB/VDD8 振幅)、SWx は各相出力でブートストラップの帰路 (VSx) を兼ねます。
 
@@ -173,12 +173,12 @@ IA は JP7 で HB0 レッグ / バス電流を切り替えられ、CMP2 + 内蔵
 
 Y1 8MHz (3225, CL=20pF) — **PB5 (XI) / PB6 (XO)**, 30pF ×2 → GND。帰還抵抗は内蔵。
 
-### 残りの GPIO の引き出し (モジュール J2)
+### 残りの GPIO の引き出し (モジュール J1/J2)
 
 | ピン | 機能 |
 |---|---|
-| PC4 (J2-4) | GPIO / TIM1_CH2_3 / SPI_MISO (USER/BOOT ボタン + 状態 LED 兼用, 例: DIR) |
-| PC5 (J2-5) | **HV I/O** (VHV 系, 入力耐圧 VHV+6V) — 12V 系の EN / リミットスイッチに |
+| PC4 (J1-4) | GPIO / TIM1_CH2_3 / SPI_MISO (USER/BOOT ボタン + 状態 LED 兼用, 例: DIR) |
+| PC5 (J1-5) | **HV I/O** (VHV 系, 入力耐圧 VHV+6V) — 12V 系の EN / リミットスイッチに |
 | TACH_IN (J1-20) | R123 → JP8 → C105 → PA12 (QII1: OPA1 → CMP1 → TIM3 CH1)。ファン FG / VR センサ等の周期計測 |
 | nFAULT (J2-20) | PA13 = TIM1_BKIN_1 (Low で全ゲート OFF) |
 
@@ -195,8 +195,8 @@ Rev 0.2 では PC3 (PD 給電許可) と PA6 (W 相センシング) を内蔵機
 | 4 | PA15 | I2C SCL (リマップ2) | 28 | PC1 | UART TX |
 | 5 | PB2 | OCP_REF (CMP3_N3) | 29 | PC2 | UART RX (リマップ1) |
 | 6 | PB3 | IBUS (CMP3_P3, ADC1) | 30 | PC3 | PD_PWR_EN (USB 給電許可) |
-| 7 | PB4 | VBUS 監視 / OVP | 31 | PC4 | USER/BOOT + 状態 LED, GPIO (J2-4) |
-| 8 | PB5 | XI | 32 | PC5 | HV I/O (J2-5) |
+| 7 | PB4 | VBUS 監視 / OVP | 31 | PC4 | USER/BOOT + 状態 LED, GPIO (J1-4) |
+| 8 | PB5 | XI | 32 | PC5 | HV I/O (J1-5) |
 | 9 | PB6 | XO | 33 | VDD33 | 4.7µF+0.1µF |
 | 10 | PB8 | LO0 (TIM1_CH1N) | 34 | VHV | 10µF+0.1µF |
 | 11/12 | VS0/VB0 | HB0 ブート | 35 | PA0 | USB CC1 |
@@ -247,7 +247,7 @@ cd firmware && ./sdk/fetch_sdk.sh
 make -C bootloader          # → bootloader/build/mpb_bootloader.hex
 make -C app_template        # → app_template/build/app.bin
 
-# 2) 【初回のみ】ブートローダを WCH-LinkE (1 線 SDI: J1-7 SWDIO / J1-8 nRST / GND) で書き込む
+# 2) 【初回のみ】ブートローダを WCH-LinkE (1 線 SDI: J1-8 SWDIO / J2-4 nRST / GND) で書き込む
 #    子基板 J3 (またはモジュールの VBUS ピン) に 12V を給電 (SWD には VHV ≥ 5V が必要)。WCH-Link から 3.3V は供給しない。
 #    WCH-LinkUtility (Windows) か MounRiver Studio で mpb_bootloader.hex を 0x08000000 へ
 #    (wlink が CH32M030 に対応していれば: make -C bootloader flash)
@@ -262,7 +262,7 @@ make -C app_template upload
 - アプリが暴走して応答しない時は **SW2 (USER/BOOT) を押しながら SW1 (RESET)** → 状態 LED が高速点滅 → 書き込み可能。
 - USB だけの給電でも MCU とブートローダは動作する (VHV ≈ 4.5V)。モーター駆動には子基板 J3 の 12V か、PD 充電器 (9〜15V) が必要。
 - Windows: pyusb 用に Zadig で WinUSB を 1A86:55E0 に割り当てる。WCH 純正の `WCHMcuIAP_WinAPP.exe` も同じプロトコルで使える。
-- UART 書き込み: `python3 tools/mpb_upload.py --uart COM3 app.bin` (J2-2 TX / J2-3 RX, 460800bps, 先に BOOT ボタンでブートローダを起動)。
+- UART 書き込み: `python3 tools/mpb_upload.py --uart COM3 app.bin` (J2-3 TX / J2-2 RX, 460800bps, 先に BOOT ボタンでブートローダを起動)。
 
 ### 検証状況
 

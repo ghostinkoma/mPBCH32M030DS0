@@ -53,8 +53,12 @@ def run_freerouting(dsn, ses, passes, opts=(), log=None, timeout=3600):
         for f in (ses, done):
             if os.path.exists(f):
                 os.remove(f)
+        jar = os.environ.get("MPB_FR_JAR")          # 例: freerouting-2.1.0.jar (tools/ に置く)
+        head = ["@" + jar] if jar else []
+        if jar and not jar.startswith("freerouting-1."):
+            opts = list(opts) + ["--gui.enabled=false", "-mt", "1"]
         with open(dsn + ".frreq", "w") as f:
-            f.write(" ".join([os.path.basename(dsn), os.path.basename(ses), str(passes)] + list(opts)))
+            f.write(" ".join(head + [os.path.basename(dsn), os.path.basename(ses), str(passes)] + list(opts)))
         t0 = time.time()
         while not os.path.exists(done):
             if time.time() - t0 > timeout:
@@ -389,9 +393,10 @@ class Pcb:
         return self.zone(net, layer, [(x0, y0), (x1, y0), (x1, y1), (x0, y1)], priority)
 
     # ---- 自動配線 ---------------------------------------------------------------
-    def autoroute(self, passes=None, timeout=5400, reuse=False, opts=()):
+    def autoroute(self, passes=None, timeout=None, reuse=False, opts=()):
         """reuse=True: 配置が同じ (DSN が前回と同一) なら前回の SES を再利用する."""
         passes = passes or int(os.environ.get("MPB_FR_PASSES", "40"))
+        timeout = timeout or int(os.environ.get("MPB_FR_TIMEOUT", "10800"))
         work = os.path.join(self.dir, "build")
         os.makedirs(work, exist_ok=True)
         dsn = os.path.join(work, self.name + ".dsn")
@@ -722,7 +727,7 @@ class Pcb:
         blocks = re.findall(r"(^\[\w+\]:.*?\n(?:    .*\n)+)", txt, re.M)
         return blocks
 
-    def repair_unrouted(self, maxlen=6.0, skip_nets=()):
+    def repair_unrouted(self, maxlen=6.0, skip_nets=(), ripup=False):
         """自動配線で残った 2 点間の未接続を, 直線 / L 字の短い配線で補う (DRC が増えない時だけ採用)."""
         bad = ("[clearance]", "[shorting_items]", "[tracks_crossing]", "[copper_edge_clearance]", "[hole_clearance]",
                "[hole_near_hole]")
@@ -888,7 +893,7 @@ class Pcb:
                         put_(cx, cy, L)
             return cells
 
-        def maze(net, a, a_layers, e, e_layers, grid=0.1, margin=4.0):
+        def maze(net, a, a_layers, e, e_layers, grid=0.1, margin=4.0, soft=False, dry=False):
             """格子 A* (2 層 + ビア) で a→e を結ぶ。障害物は他ネットのパッド・配線・ビア・穴と基板端."""
             import heapq
             x0, y0 = max(min(a[0], e[0]) - margin, 0.6), max(min(a[1], e[1]) - margin, 0.6)
@@ -896,11 +901,15 @@ class Pcb:
             nx, ny = int((x1 - x0) / grid) + 1, int((y1 - y0) / grid) + 1
             INF = 1e9
             dist = {L: [[INF] * nx for _ in range(ny)] for L in (pcbnew.F_Cu, pcbnew.B_Cu)}
+            full = dist                     # soft=True のとき: dist = 動かせない障害物, full = 配線も含む全障害物
+            if soft:
+                full = {L: [[INF] * nx for _ in range(ny)] for L in (pcbnew.F_Cu, pcbnew.B_Cu)}
+            softs = []                      # 引き剥がせる他ネットの配線 (track, 層, p0, p1, 半幅)
 
-            def stamp(L, bx0, by0, bx1, by1, dfun):
+            def stamp(L, bx0, by0, bx1, by1, dfun, tgt=None):
                 i0, i1 = max(int((bx0 - 0.6 - x0) / grid), 0), min(int((bx1 + 0.6 - x0) / grid) + 1, nx)
                 j0, j1 = max(int((by0 - 0.6 - y0) / grid), 0), min(int((by1 + 0.6 - y0) / grid) + 1, ny)
-                row = dist[L]
+                row = (tgt or dist)[L]
                 for j in range(j0, j1):
                     yy = y0 + j * grid
                     r = row[j]
@@ -935,6 +944,8 @@ class Pcb:
                     for L in (pcbnew.F_Cu, pcbnew.B_Cu):
                         if pad.IsOnLayer(L) or pad.GetDrillSize().x > 0:
                             stamp(L, l - ex, t - ex, r + ex, b_ + ex, rect_d(l - ex, t - ex, r + ex, b_ + ex))
+                            if soft:
+                                stamp(L, l - ex, t - ex, r + ex, b_ + ex, rect_d(l - ex, t - ex, r + ex, b_ + ex), full)
             for tr in self.b.GetTracks():
                 if tr.GetNetname() == net:
                     continue
@@ -945,12 +956,21 @@ class Pcb:
                     if inwin(c[0] - rr, c[1] - rr, c[0] + rr, c[1] + rr):
                         for L in (pcbnew.F_Cu, pcbnew.B_Cu):
                             stamp(L, c[0] - rr, c[1] - rr, c[0] + rr, c[1] + rr, seg_d(c, c, rr))
+                            if soft:
+                                stamp(L, c[0] - rr, c[1] - rr, c[0] + rr, c[1] + rr, seg_d(c, c, rr), full)
                     continue
                 p0, p1 = to_mm(tr.GetStart()), to_mm(tr.GetEnd())
                 hw = pcbnew.ToMM(tr.GetWidth()) / 2 + extra(tr.GetNetname())
                 l, t, r, b_ = min(p0[0], p1[0]) - hw, min(p0[1], p1[1]) - hw, max(p0[0], p1[0]) + hw, max(p0[1], p1[1]) + hw
                 if inwin(l, t, r, b_):
-                    stamp(tr.GetLayer(), l, t, r, b_, seg_d(p0, p1, hw))
+                    movable = soft and tr.GetNetname() not in ("GND", "") and self.assign.get(tr.GetNetname()) != "HiCur"
+                    if movable:
+                        softs.append((tr, tr.GetLayer(), p0, p1, hw))
+                        stamp(tr.GetLayer(), l, t, r, b_, seg_d(p0, p1, hw), full)
+                    else:
+                        stamp(tr.GetLayer(), l, t, r, b_, seg_d(p0, p1, hw))
+                        if soft:
+                            stamp(tr.GetLayer(), l, t, r, b_, seg_d(p0, p1, hw), full)
             clr = 0.13 + 0.015   # 既定クラスの間隙 + 格子誤差の余裕 (大電流クラスは障害物側を太らせてある)
             tr_ok = lambda L, i, j: dist[L][j][i] > 0.075 + clr
             via_ok = lambda i, j: all(dist[L][j][i] > 0.3 + clr for L in dist)
@@ -1012,6 +1032,8 @@ class Pcb:
                     nxt = (ni, nj, NL)
                     if nxt not in goal and (ni, nj) not in start_ok and not tr_ok(NL, ni, nj):
                         continue
+                    if soft and full[NL][nj][ni] <= 0.075 + clr and (ni, nj) not in start_ok:
+                        c += 40                     # 他ネットの配線を横切る (引き剥がし候補) のは高コスト
                     ng = gc + c
                     if ng < g.get(nxt, INF):
                         g[nxt] = ng
@@ -1043,6 +1065,19 @@ class Pcb:
                 pe = (x0 + path[m][0] * grid, y0 + path[m][1] * grid)
                 items.append(seg(net, L, pa, pe))
                 k = m
+            if soft:
+                cells = [(x0 + i * grid, y0 + j * grid, L) for i, j, L in path]
+                hit = set()
+                for idx, (tr, TL, p0, p1, hw) in enumerate(softs):
+                    f_ = seg_d(p0, p1, hw)
+                    isvia = lambda k2: (k2 + 1 < len(path) and path[k2 + 1][2] != path[k2][2]) or \
+                        (k2 > 0 and path[k2 - 1][2] != path[k2][2])
+                    if any((isvia(k2) and f_(x, y) <= 0.3 + clr) or (L == TL and f_(x, y) <= 0.075 + clr)
+                           for k2, (x, y, L) in enumerate(cells)):
+                        hit.add(idx)
+                return items, [softs[i][0] for i in sorted(hit)]
+            if dry:
+                return items
             return commit(items)
 
         def try_paths(net, layer, a, targets):
@@ -1072,6 +1107,70 @@ class Pcb:
                     self.fill()
             return False
 
+        lay_of = lambda d: ([pcbnew.F_Cu, pcbnew.B_Cu] if d.startswith("PTH") else
+                            [pcbnew.B_Cu] if "B.Cu" in d else [pcbnew.F_Cu])
+
+        def pairs_of(blocks, nets):
+            out = []
+            for blk in blocks:
+                if not blk.startswith("[unconnected_items]"):
+                    continue
+                pts = [(float(x), float(y), d + rest, n) for x, y, d, n, rest in
+                       re.findall(r"@\(([-\d.]+) mm, ([-\d.]+) mm\): (.*?) \[(.*?)\](.*)", blk)]
+                if len(pts) == 2 and pts[0][3] in nets and \
+                        all(("pad" in p[2].lower()) or p[2].startswith("Track") for p in pts):
+                    out.append(pts)
+            return out
+
+        def ripup_route(net, a, al, e, el):
+            """他の信号ネットの配線を横切る経路を引き, 横切った配線を外して引き直す。全体の未接続が減った時だけ採用."""
+            r = maze(net, a, al, e, el, soft=True, margin=6.0)
+            if not r or not isinstance(r, tuple):
+                return False
+            items, hits = r
+            if not hits or len(hits) > 8:
+                return False
+            ripped = {t.GetNetname() for t in hits}
+            for t in hits:
+                self.b.Remove(t)
+            added = list(items)
+            for it in items:
+                self.b.Add(it)
+            self.b.BuildConnectivity()
+            for _ in range(3):
+                prs = pairs_of(self._drc_items(), ripped)
+                if not prs:
+                    break
+                progress = False
+                for (xa, ya, da, n_), (xb, yb, db, _m) in prs:
+                    its = maze(n_, (xa, ya), lay_of(da), (xb, yb), lay_of(db), dry=True)
+                    if its:
+                        for it in its:
+                            self.b.Add(it)
+                        added += its
+                        self.b.BuildConnectivity()
+                        progress = True
+                if not progress:
+                    break
+            self.fill()
+            e_, u_ = state()
+            if os.environ.get("MPB_DEBUG"):
+                print("ripup", net, "hits", sorted(ripped), "-> errors", e_, "unconnected", u_, "base", base)
+                if os.environ.get("MPB_DEBUG") == "2":
+                    for blk in self._drc_items():
+                        if blk.startswith(bad):
+                            print("   ", blk.replace("\n", " | ")[:260])
+            if e_ <= base[0] and u_ < base[1]:
+                base[1] = u_
+                return True
+            for it in added:
+                self.b.Remove(it)
+            for t in hits:
+                self.b.Add(t)
+            self.b.BuildConnectivity()
+            self.fill()
+            return False
+
         for (x1, y1, d1, net), (x2, y2, d2, _n) in todo:
             x1, y1, x2, y2 = map(float, (x1, y1, x2, y2))
             layer = pcbnew.B_Cu if ("B.Cu" in d1 and "B.Cu" in d2) else pcbnew.F_Cu
@@ -1079,6 +1178,8 @@ class Pcb:
                 lay = lambda d: ([pcbnew.F_Cu, pcbnew.B_Cu] if d.startswith("PTH") else
                                  [pcbnew.B_Cu] if "B.Cu" in d else [pcbnew.F_Cu])
                 if maze(net, (x1, y1), lay(d1), (x2, y2), lay(d2)):
+                    fixed.append(net)
+                elif ripup and ripup_route(net, (x1, y1), lay(d1), (x2, y2), lay(d2)):
                     fixed.append(net)
                 continue
             if abs(x1 - x2) + abs(y1 - y2) <= maxlen and try_paths(net, layer, (x1, y1), [(x2, y2)]):
@@ -1113,6 +1214,8 @@ class Pcb:
                                  [pcbnew.B_Cu] if "B.Cu" in d else [pcbnew.F_Cu])
                 if maze(net, (x1, y1), lay(d1), (x2, y2), lay(d2)):
                     fixed.append(net)
+            if net not in fixed and ripup and ripup_route(net, (x1, y1), lay_of(d1), (x2, y2), lay_of(d2)):
+                fixed.append(net)
         # ベタの島どうしが未接続: 小さい島のパッドから, 島の外の同じネットの銅へ迷路配線する
         zone_nets = set()
         for blk in self._drc_items():

@@ -380,12 +380,14 @@ def res(sh, ref, val, x, y, n1, n2, rot=90, fp="R1005", **kw):
 #   ブレッドボードに直接挿せる / パワー段子基板のピンソケット (左右対称) に挿せる。
 #   左列 J1 = 電源・アナログ・センサ, 右列 J2 = ゲート駆動・通信。子基板は同じ番号で受ける。
 # ---------------------------------------------------------------------------
-EDGE_L = ["USB_VBUS", "USB_VBUS", "VBUS_SNS", "PD_PWR_EN", "+5V", "+3V3", "SWDIO", "nRST", "VBUS",
+# 並びは QFN の各辺のピン順に合わせ, 引き出し配線が交差しないようにした (上辺の右側 → J2 上部,
+# 上辺の左側 → J1 上部, 右辺のゲート → J2 中央, 下辺の右寄り → J2 下部, 左辺のアナログ → J1 下部)。
+EDGE_L = ["USB_VBUS", "USB_VBUS", "PD_PWR_EN", "GPIO_PC4", "GPIO_PC5", "+3V3", "+5V", "SWDIO", "VBUS",
           "NTC", "BEMF_U", "BEMF_V", "BEMF_W", "HALL_A_IN", "HALL_B_IN", "HALL_C_IN",
           "ISA_SEL", "ISH", "ISB_SEL", "TACH_IN", "GND"]
-EDGE_R = ["GND", "UART_TX", "UART_RX", "GPIO_PC4", "GPIO_PC5",
+EDGE_R = ["GND", "UART_RX", "UART_TX", "nRST",
           "HO3", "SW3", "LO3", "HO2", "SW2", "LO2", "HO1", "SW1", "LO1", "HO0", "SW0", "LO0",
-          "I2C_SDA", "I2C_SCL", "nFAULT_IN", "GND"]
+          "VBUS_SNS", "I2C_SCL", "I2C_SDA", "nFAULT_IN", "GND"]
 assert len(EDGE_L) == 21 and len(EDGE_R) == 21
 PINMAP_L = {str(i + 1): n for i, n in enumerate(EDGE_L)}
 PINMAP_R = {str(i + 1): n for i, n in enumerate(EDGE_R)}
@@ -464,7 +466,7 @@ def build_main():
            fp="SOT236", mpn="ST USBLC6-2SC6 (D+/D- ESD 保護, 基準は +3V3)")
     res(us, "R130", "1M", 120, 110, "USB_SHIELD", "GND")
     cap(us, "C130", C_4N7_100, 120, 122, "USB_SHIELD", "GND")
-    us.text("CC1/CC2 = PA0/PA1 (Rd 5.1kΩ 内蔵)。D+/D- = PB0/PB1。USB_VBUS は J1-1/2 (子基板の PD 給電経路) へ。", 23, 140, 1.3)
+    us.text("CC1/CC2 = PA0/PA1 (Rd 5.1kΩ 内蔵)。D+/D- = PB0/PB1。USB_VBUS はモジュール端子 J1 の 1/2 番 (子基板の PD 給電経路) へ。", 23, 140, 1.3)
     us.text("注意: PD 契約後は USB_VBUS が 9〜15V になる。ブレッドボードでは USB_VBUS ピンに 5V 部品を直結しないこと。", 23, 145, 1.3)
 
     us.box(260, 25, 405, 100, "水晶発振子 (HSE 8MHz)")

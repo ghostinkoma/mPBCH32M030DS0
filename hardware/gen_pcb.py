@@ -112,14 +112,15 @@ def build_main(route=True):
     put_c(b, "U1", MW / 2, 19.6)                          # ゲートピン → 右列 J2, USB/アナログ → 左列 J1
     put(b, "Y1", 7.2, 23.2)
     yj = b.pack(["JP2", "JP3", "JP4", "JP8"], 4.45, 27.0, 7.1, rot=90, row_gap=0.3)
-    yd = b.pack(["D5", "D6", "D4", "F2"], 7.4, 27.4, 13.2, rot=0, row_gap=0.3)
+    # QFN の真下は小物だけ (USER/BOOT と電源 LED) にして, 下辺・左辺の信号が下半分へ抜ける通り道を残す
+    put(b, "SW2", 7.4, 27.4)
+    yl = b.pack(["D7", "R4", "D2", "R3", "D8", "R5", "D3", "R112"], 7.4, b.bbox("SW2")[3] + 0.3, 12.2, rot=90, gap=0.2)
     # ゲート確認 LED は右下 (y ≥ 38) に 3 列。QFN 右辺のゲートピン → J2 の引き出しを塞がない
-    y0 = max(yd, 37.9) + 0.4
     b.pack(["R50", "D10", "R51", "D11", "R52", "D12", "R53", "D13",
-            "R54", "D14", "R55", "D15", "R56", "D16", "R57", "D17"], 12.45, y0, b.bbox("J2")[0] - 0.05,
+            "R54", "D14", "R55", "D15", "R56", "D16", "R57", "D17"], 12.45, 38.3, b.bbox("J2")[0] - 0.05,
            rot=90, gap=0.15, row_gap=0.2)
-    put(b, "SW2", 7.4, y0)
-    b.pack(["D7", "R4", "D2", "R3", "D8", "R5", "D3", "R112"], 7.4, b.bbox("SW2")[3] + 0.3, 12.2, rot=90, gap=0.2)
+    # VHV 保護・USB 給電のダイオードと PTC は下端の帯へ (大電流のベタが中央の通り道を塞がないように)
+    b.pack(["D5", "D6", "D4", "F2"], 7.4, yl + 0.3, 12.2, rot=0, row_gap=0.25)
     # ---- 下面 (高さ ≤2mm の CR) ----
     B = "B"
     # MCU の電源ピン (VHV/VDD8/VDD33) は上辺 → 容量は MCU の上側の裏。裏面パッドのサーマルビア直下は空ける
@@ -127,11 +128,14 @@ def build_main(route=True):
     y = b.pack(["C10", "C12"], 4.45, y + 0.2, 13.3, side=B)
     b.pack(["C14", "C11", "C13", "C15"], 4.45, y + 0.2, 13.3, side=B)
     b.pack(["C21", "C22", "C23", "C24"], 13.45, 12.2, 15.95, rot=90, side=B)              # ブートストラップ
-    b.pack(["R16", "R17", "C19", "R18", "R19", "C20"], 4.45, 17.2, 6.95, rot=90, side=B)  # 電流アンプ入力
-    # QFN 下辺ピンの真下 (y 22〜25) は両面とも空けてビアで引き出せるようにする
-    b.pack(["C131", "C132", "R13", "C17", "R14", "R15", "C18", "C16", "R10"], 7.0, 25.6, 13.4, side=B)
+    # 電流アンプ入力 RC は J1 の ISA_SEL / ISH / ISB_SEL の近く (下側) へ。QFN の周りはビアで引き出せるよう空ける
+    # QFN 下辺ピンの真下 (y 22〜25) は両面とも空けてビアで引き出せるようにする。水晶の負荷容量だけ近くに置く
+    b.pack(["C131", "C132"], 7.0, 25.6, 13.4, side=B)
     b.pack(["R100", "R101", "C100", "R103", "R104", "C101", "R106", "R107", "C102"], 4.45, 34.6, 10.2, rot=90, side=B)
     b.pack(["R123", "C105", "C103", "R110", "R111", "R114", "R115", "R120", "R122"], 10.6, 34.6, 15.9, rot=90, side=B)
+    ya = max(b.bbox(r)[3] for r in ("R100", "C102", "R123", "R122")) + 0.6
+    b.pack(["R16", "R17", "C19", "R18", "R19", "C20"], 4.45, ya, 10.2, rot=90, side=B)         # 電流アンプ入力
+    b.pack(["R13", "C17", "R14", "R15", "C18", "C16", "R10"], 10.6, ya, 15.9, rot=90, side=B)  # IBUS, OCP 基準, VBUS 監視
     pin_labels(b, [("J1", gs.PINMAP_L, +1), ("J2", gs.PINMAP_R, -1)], "B.SilkS", 1.15)
     return finish(b, route, silk=[("mPB CH32M030", MW / 2, MH - 3.4, 0.8, "B.SilkS"),
                                   ("ghostinkoma/mPBCH32M030DS0", MW / 2, MH - 1.8, 0.6, "B.SilkS")],
@@ -143,12 +147,16 @@ def build_main(route=True):
 # ---------------------------------------------------------------------------
 DH_EXT = 18.6                 # モジュール下端より下に伸ばす長さ (電源入力 J3 / モータ出力 J4)
 LEG = {"A": dict(W=MW, H=MH + DH_EXT), "C": dict(W=MW, H=MH + DH_EXT)}
+LEG_PARAMS = {"A": tuple(os.environ.get("MPB_A_PARAMS", "block,1.3,0.7").split(",")), "C": ("rows", "1.4", "0.7")}
+LEG_PARAMS = {k: (v[0], float(v[1]), float(v[2])) for k, v in LEG_PARAMS.items()}
 
 
 def build_daughter(key, route=True):
     import gen_schematic as gs
     if key == "B":
         return build_daughter_b(route)
+    # 配置の調整値 (A と C で別): 相電圧分圧の位置 (rows = レッグ行の左 / block = 下端), レッグ間隔, 上面の行間
+    bemf, legsp, rowgap = LEG_PARAMS[key]
     L = LEG[key]
     W, H = L["W"], L["H"]
     b = Pcb(f"daughter/PWR_{key}", W, H, f"mPBCH32M030DS0 power board {key}", rev="0.4")
@@ -159,11 +167,11 @@ def build_daughter(key, route=True):
     put_c(b, "J4", W / 2, H - 3.3, rot=90)              # モータ出力 2x8 (下端)
     put_c(b, "J3", W / 2, H - 9.9, rot=90)              # 電源入力 2x6
     y = 0.6
-    # 上から: USB-PD 経路・78L05・VBUS 分圧 (J1-1〜5 の USB_VBUS / VBUS_SNS / PD_PWR_EN / +5V の近く)
-    #        → バルク容量 (モジュールの真下, 高さ 6.2mm) → 電源入力 VIN 経路 (下端の J3 の近く)
-    for row in ([["F3", "Q10"], ["D9", "C6", "R6"], ["U5", "R11", "R12"], ["U2", "C3", "C4"]] +
+    # 上から: USB-PD 経路・78L05 (J1 上部の USB_VBUS / PD_PWR_EN / +5V の近く) → バルク容量 (モジュールの真下,
+    #        高さ 6.2mm) → VBUS 分圧 (J2 の VBUS_SNS の近く) → 電源入力 VIN 経路 (下端の J3 の近く)
+    for row in ([["F3", "Q10"], ["D9", "C6", "R6"], ["U5", "C3", "C4"], ["U2"]] +
                 [[r] for r in ("C7", "C8", "C9") if r in b.fps] +
-                [["F1", "C5"], [("D1", 90), "Q9"], ["U4", ("C1", 90)]]):
+                [["R11", "R12"], ["F1", "C5"], [("D1", 90), "Q9"], ["U4", ("C1", 90)]]):
         x = 4.45
         rowb = y
         for it in row:
@@ -172,7 +180,7 @@ def build_daughter(key, route=True):
             l, t, r, bt = b.bbox(ref)
             x = r + 0.25
             rowb = max(rowb, bt)
-        y = rowb + 0.7
+        y = rowb + rowgap
     # ---- 下面 (ヒートシンク側): 4 レッグ + バスシャント + 分圧 ----
     B = "B"
     y = 1.2                        # 上端のゲートパッドへ配線が入れるよう基板端から離す
@@ -182,22 +190,24 @@ def build_daughter(key, route=True):
         put(b, f"R{rb + 4}", 4.45, y + 0.2, side=B)                          # シャント
         put(b, f"C{rb + 1}", b.bbox(f"R{rb + 4}")[2] + 0.25, y + 0.2, rot=90, side=B)
         y = max(b.bbox(f"R{rb + 4}")[3], b.bbox(f"C{rb + 1}")[3])
-        extra = ["TH1"] if i == 1 else []          # NTC は MOSFET の間
+        # 行の左側 (J1 寄り) の空き: NTC と相電圧分圧 (J1 の NTC / BEMF_U〜W の近く)
+        extra = ({2: ["R71", "R72", "C71"], 1: ["TH1", "R74", "R75", "C72"], 0: ["R77", "R78", "C73"]} if bemf == "rows"
+                 else {1: ["TH1"]}).get(i, [])
         # ゲート抵抗 (HO/LO から) は J2 側 (右端) に置く
         row = [f"C{rb}", f"R{rb + 1}", f"R{rb + 3}", f"R{rb + 2}", f"R{rb}"]
         yr = y + 0.3
         y = b.pack(row, 4.45, yr, 15.9, rot=90, side=B)
         shift_right(b, row, 15.9, side=B, rot=90)
-        for r in extra:                            # NTC は左端 (J1-10 の近く)
-            put(b, r, 4.45, yr, rot=90, side=B)
-            y = max(y, b.bbox(r)[3])
-        y += 1.4
+        if extra:
+            y = max(y, b.pack(extra, 4.45, yr, b.bbox(row[0])[0] - 0.2, rot=90, side=B, gap=0.15))
+        y += legsp
     put(b, "R70", 4.45, y, side=B)                                           # バスシャント
     put(b, "JP5", b.bbox("R70")[2] + 0.25, y, rot=90, side=B)
     y = max(b.bbox("R70")[3], b.bbox("JP5")[3]) + 0.2
     put(b, "JP7", 4.45, y, rot=90, side=B)
-    b.pack(["R71", "R72", "C71", "R74", "R75", "C72", "R77", "R78", "C73"], b.bbox("JP7")[2] + 0.25, y, 15.9,
-           rot=90, side=B, gap=0.15, row_gap=0.2)
+    if bemf == "block":
+        b.pack(["R71", "R72", "C71", "R74", "R75", "C72", "R77", "R78", "C73"], b.bbox("JP7")[2] + 0.25, y, 15.9,
+               rot=90, side=B, gap=0.15, row_gap=0.2)
     for ref, txt in (("J3", "VIN / GND"), ("J4", "OUT0  OUT1  OUT2  OUT3")):
         l, t, r, bt = b.bbox(ref)
         b.text(txt, (l + r) / 2, t - 0.6, 0.7)
@@ -207,10 +217,12 @@ def build_daughter(key, route=True):
 
 BW = 40.64                    # 子基板 B の幅 (16 マス)。モジュールは中央 (左右対称)
 BOFF = (BW - MW) / 2
+B_GAP = tuple(float(v) for v in os.environ.get("MPB_B_GAP", "0.9,0.45").split(","))   # 上面の部品間隔 (外側, モジュール下)
 
 
 def build_daughter_b(route=True):
     """TO-263 x8 は下面に 3 列 x 3 段 (ソケット端子列の間を避ける)。ゲート抵抗・シャントは上面の外側."""
+    import gen_schematic as gs
     W, H = BW, MH + 13.6           # 40.64 x 66.94mm (Rev 0.3 の 66 x 66mm から -38%)
     b = Pcb("daughter/PWR_B", W, H, "mPBCH32M030DS0 power board B", rev="0.4")
     hicur_daughter(b)
@@ -236,10 +248,11 @@ def build_daughter_b(route=True):
         return rowb
     # モジュールの真下: バルク容量 → 電源入力 (J3 側)
     y = flow(["C7", "C8", "C9"], x0, x1, 0.6)
-    flow(["F1", "C5", ("D1", 90), "Q9", "U4", ("C1", 90)], x0, x1, y + 0.6)
+    flow(["F1", "C5", ("D1", 90), "Q9", "U4", ("C1", 90)], x0, x1, y + 0.6, gap=B_GAP[1])
     # 左外側 (J1 の USB_VBUS / VBUS_SNS / +5V の近く): USB-PD 経路, 78L05, VBUS 分圧
-    y = flow(["F3", "D9", "Q10", "U5", "C6", "R6", "U2", "C3", "C4", "R11", "R12"], zl0, zr0, 0.6, gap=0.7)
-    # 左外側の下: 各レッグのシャント + VBUS-SRC 容量 (ISH は J1-18 と下面の R70 へ)
+    # LM74700 (U5) は Q10 (ゲート) と C6 (VCAP) の間に置く
+    y = flow(["F3", "Q10", "U5", "C6", "R6", "D9", "U2", "C3", "C4"], zl0, zr0, 0.6, gap=B_GAP[0])
+    # 左外側の下: 各レッグのシャント + VBUS-SRC 容量 (ISH は J1 の ISH と下面の R70 へ)
     y += 0.6
     for i in (3, 2, 1, 0):
         rb = 30 + 10 * i
@@ -249,13 +262,15 @@ def build_daughter_b(route=True):
     # 右外側: ゲート抵抗・プルダウン・0.1µF を J2 の HOx の高さに合わせて並べる
     for i in (3, 2, 1, 0):
         rb = 30 + 10 * i
-        yh = b.pad_xy("J2", str(15 - 3 * i))[1]                             # J2-6 = HO3 … J2-15 = HO0
+        yh = b.pad_xy("J2", str(gs.EDGE_R.index(f"HO{i}") + 1))[1]          # J2 の HOx の高さ
         row = [f"R{rb}", f"R{rb + 2}", f"R{rb + 1}", f"R{rb + 3}", f"C{rb}"]
         b.pack(row, zl1, yh - 1.0, zr1, rot=90)
+    ys = b.pad_xy("J2", str(gs.EDGE_R.index("VBUS_SNS") + 1))[1]
+    b.pack(["R11", "R12"], zl1, ys - 1.0, zr1, rot=90)                      # VBUS 分圧 (OVP) は J2 の VBUS_SNS の横
     # ---- 下面 (ヒートシンク側): MOSFET 3 列 x 3 段 ----
     B = "B"
     cols = (0.3, BOFF + PIN_X[0] + 1.15, BOFF + PIN_X[1] + 1.15)      # 各列の左端
-    # (列, 段): レッグ 3 = 左列, 2 = 右列, 1 = 中央列 (上 2 段), 0 = 最下段の左右 (J2-15〜17 と J4 に近い)
+    # (列, 段): レッグ 3 = 左列, 2 = 右列, 1 = 中央列 (上 2 段), 0 = 最下段の左右 (J2 の HO0/SW0/LO0 と J4 に近い)
     slots = {"Q7": (0, 0), "Q8": (0, 1), "Q5": (2, 0), "Q6": (2, 1),
              "Q3": (1, 0), "Q4": (1, 1), "Q1": (0, 2), "Q2": (2, 2)}
     rows_y = (0.4, 17.9, 35.4)
@@ -302,7 +317,7 @@ def finish(b, route, silk=(), zones_hicur=(), fr_opts=(), outside_ok=()):
             nu2 = sum(x.startswith("[unconnected_items]") for x in b._drc_items())
             print(f"[{b.name}] second pass: unconnected {nu} -> {nu2}")
         # ベタを入れる前 (経路が空いているうち) に残りを補修する。GND は後のベタでつながるので対象外
-        early = b.repair_unrouted(skip_nets=("GND",))
+        early = b.repair_unrouted(skip_nets=("GND",), ripup=bool(os.environ.get("MPB_RIPUP")))
         if early:
             print(f"[{b.name}] repaired before pours: {early}")
         g = b.grow_zones(list(b.assign_hicur()) + list(getattr(b, "grow_extra", [])))
