@@ -11,3 +11,7 @@ hardware/daughter_*.log
 hardware/fab/*/
 hardware/**/logs/
 hardware/logs/
+hardware/**/build/*_pass2.*
+hardware/**/build/*_drctmp.*
+hardware/**/build/*.frreq
+hardware/**/build/*.frdone

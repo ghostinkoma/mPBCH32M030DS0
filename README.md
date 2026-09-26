@@ -1,6 +1,6 @@
 # mPBCH32M030DS0 — CH32M030 ユニバーサル・モータードライバ基板
 
-WCH **CH32M030C8U7 (QFN48)** の主基板と、差し替え式の **パワー段子基板 (MOSFET ×8)** の 2 枚構成です。
+WCH **CH32M030C8U7 (QFN48)** の **DIP-42 MCU モジュール** (ブレッドボード対応) と、差し替え式の **パワー段子基板 (MOSFET ×8)** の 2 枚構成です。
 次のモータを駆動します。
 USB-C から ESP32-C3 / Arduino のように書き込めて、**USB-PD 充電器 (9〜15V) だけでもモーターを回せます**。
 内蔵の電流源・USB-PD・OPA/CMP を使い切る設計です ([内蔵機能の活用検討](docs/advanced_features.md))。
@@ -12,74 +12,110 @@ USB-C から ESP32-C3 / Arduino のように書き込めて、**USB-PD 充電器
 | フルブリッジ DC ×2 | + HB2/HB3 (TIM2) | OUT0-OUT1 と OUT2-OUT3 | 2-3 |
 | バイポーラ・ステッピング | A = HB0/HB1, B = HB2/HB3 | A+=OUT0 A-=OUT1 B+=OUT2 B-=OUT3 | 2-3 |
 
-> **ステータス: Rev 0.3 — 回路図 + 2 層基板レイアウト (未試作)**。無保証です (LICENSE)。
+> **ステータス: Rev 0.4 — 回路図 + 2 層基板レイアウト (未試作。MCU モジュールの配線は作業中)**。無保証です (LICENSE)。
 > モーター駆動は大電流を扱います。電流制限付き電源で段階的に確認してください。
 
-## Rev 0.3: 主基板 + 子基板 (裏面同士を背中合わせ)
+## Rev 0.4: DIP-42 MCU モジュール + パワー段子基板
 
-- 主基板 (60 × 42mm, 2 層) の配置:
-  - **右**: CPU・USB-C・GPIO/I2C 等
-  - **左上**: 電源
-  - **左下**: 基板間コネクタ
-- 子基板は裏面同士を向かい合わせて重ねます (基板間 約5mm)。
-- 操作部品は外側 (TOP 面) にあります。主基板は RESET・USER/BOOT・センシング選択、子基板は電流チャネル選択 JP5/JP7 です。
-- 基板の間に置く部品 (BOTTOM 面) は小型の CR だけです。
-- コネクタは USB-C 以外すべて 2.54mm ピンヘッダ、コンデンサは 1005/1608 が基本です
-  (50V/10µF のみ 2012)。構成と品番の詳細は **[docs/stacking.md](docs/stacking.md)** にあります。
+- **MCU モジュール** (20.32 × 53.34mm = 2.54mm ピッチで **8 × 21 マス**, 2 層):
+  - 左右の端に 1x21 ピンヘッダ ×2 (列間 15.24mm = 0.6in)。**ブレッドボード (82 × 52mm 等) にそのまま挿せます**。
+  - ピンヘッダは表・裏どちらからでも挿せます (上向き = ブレッドボードやソケットに挿す、下向き = ジャンパワイヤで使う等)。
+    信号名は裏面シルクに印字しています。
+  - USB-C は上端。RESET / USER・BOOT ボタン、センシング選択ジャンパ、**LED (電源 ×3・状態・ゲート ON ×8) はすべてモジュール上面**です。
+  - 電圧に依存する部品 (TVS・VBUS 分圧・バルク容量・相電圧分圧) は子基板側にあり、モジュールは共通です。
+- **パワー段子基板** A / B / C: 上面の 1x21 ピンソケット ×2 (モジュールと同じ位置・同じピン番号) にモジュールを上から挿します。
+  - 左右 2 列のピンで支えるので、嵌合は**左右対称**です (Rev 0.3 の片寄った基板間コネクタによる傾き・接触不良を解消)。
+  - MOSFET・シャントなどは子基板の下面 (ヒートシンク側)。LED は置いていません。
+  - 下端に電源入力 J3 (2x6) とモータ出力 J4 (2x8)。
+- 基板面積は Rev 0.3 (60 × 42mm = 2520mm²) に対し、モジュール 1084mm² (**−57%**)、子基板 A/C 1462mm² (**−42%**)、
+  子基板 B 2720mm² (Rev 0.3 の 66 × 66mm から **−38%**)。
+- Rev 0.3 の子基板 D (ピン引き出し) は廃止しました。モジュール単体をブレッドボードに挿せば、全信号にアクセスできます。
+- コネクタは USB-C 以外すべて 2.54mm ピンヘッダ、コンデンサは入手性を確認した量産品 (1005〜1206) です。
+  構成・寸法・品番の詳細は **[docs/stacking.md](docs/stacking.md)** にあります。
 
-| 子基板 | MOSFET | 用途 |
+| 子基板 | MOSFET | 寸法 | 用途 |
+|---|---|---|---|
+| **A** | TPN1R603PL ×8 (30V 1.6mΩ) | 20.32 × 71.94mm | 標準。8〜16V, 約 10A |
+| **B** | TKR74F04PB ×8 (40V 0.74mΩ, TO-220SM(W)) | 40.64 × 66.94mm | **24V 系**。`make POWER_STAGE=B` |
+| **C** | MTN2306AN3 ×8 (30V SOT-23) | 20.32 × 71.94mm | 廉価版。約 3A |
+
+| モジュール TOP | モジュール BOTTOM (裏から見た図) | 子基板 A TOP | 子基板 A BOTTOM |
+|---|---|---|---|
+| ![](docs/pcb/mPBCH32M030DS0_top.png) | ![](docs/pcb/mPBCH32M030DS0_bottom.png) | ![](docs/pcb/mPBCH32M030DS0_PWR_A_top.png) | ![](docs/pcb/mPBCH32M030DS0_PWR_A_bottom.png) |
+
+### モジュールのピン配置 (上面から見て USB-C が上, 子基板のソケット J1/J2 も同じ)
+
+| ピン | J1 (左列) | J2 (右列) |
 |---|---|---|
-| **A** | TPN1R603PL ×8 (30V 1.6mΩ) | 標準。Rev 0.2 と同じパワー段。8〜16V, 約 10A |
-| **B** | TKR74F04PB ×8 (40V 0.74mΩ, TO-220SM(W)) | **24V 系**。66×66mm。主基板の D1/R11 を 24V 用に変更し `make POWER_STAGE=B` |
-| **C** | MTN2306AN3 ×8 (30V SOT-23) | 廉価版。約 3A |
-| **D** | なし | 全信号をピンヘッダに引き出し、ユーザーが任意のパワー段を接続 |
+| 1 | USB_VBUS | GND |
+| 2 | USB_VBUS | UART_TX |
+| 3 | VBUS_SNS | UART_RX |
+| 4 | PD_PWR_EN | GPIO_PC4 |
+| 5 | +5V | GPIO_PC5 |
+| 6 | +3V3 | HO3 |
+| 7 | SWDIO | SW3 |
+| 8 | nRST | LO3 |
+| 9 | VBUS | HO2 |
+| 10 | NTC | SW2 |
+| 11 | BEMF_U | LO2 |
+| 12 | BEMF_V | HO1 |
+| 13 | BEMF_W | SW1 |
+| 14 | HALL_A_IN | LO1 |
+| 15 | HALL_B_IN | HO0 |
+| 16 | HALL_C_IN | SW0 |
+| 17 | ISA_SEL | LO0 |
+| 18 | ISH | I2C_SDA |
+| 19 | ISB_SEL | I2C_SCL |
+| 20 | TACH_IN | nFAULT_IN |
+| 21 | GND | GND |
 
-| 主基板 TOP | 主基板 BOTTOM (裏から見た図) | 子基板 A TOP |
-|---|---|---|
-| ![](docs/pcb/mPBCH32M030DS0_top.png) | ![](docs/pcb/mPBCH32M030DS0_bottom.png) | ![](docs/pcb/mPBCH32M030DS0_PWR_A_top.png) |
+- **ブレッドボード単体で使う場合**: USB-C から給電すると MCU・書き込み・USB は動作します (VHV ≈ 4.5V)。
+  モータを回すときは VBUS ピン (≥ 8V) に外部電源と、HO/LO/SW に外付けのパワー段をつなぎます。
+  VBUS_SNS (VBUS 監視) には外付けで分圧 (≤ 3.3V) を入れてください (子基板では R11/R12)。
+- +5V ピンは子基板の 78L05 から供給されます (ホールセンサ用)。単体で使うときは必要に応じて外部から 5V を入れます。
+- HOx / LOx はゲート駆動出力 (VB/VDD8 振幅)、SWx は各相出力でブートストラップの帰路 (VSx) を兼ねます。
 
 ## リポジトリ構成
 
 | パス | 内容 |
 |---|---|
-| `hardware/mPBCH32M030DS0.kicad_sch` / `.kicad_pcb` | **主基板**: KiCad 回路図 (電源 / USB・水晶・リセット / MCU / 基板間コネクタ / I/O) と 2 層基板 |
-| `hardware/daughter/PWR_A〜D/` | **子基板 A〜D**: 各 KiCad プロジェクト (回路図・基板・部品表) |
+| `hardware/mPBCH32M030DS0.kicad_sch` / `.kicad_pcb` | **MCU モジュール**: KiCad 回路図 (電源 / USB・水晶・リセット / MCU / I/O) と 2 層基板 |
+| `hardware/daughter/PWR_A〜C/` | **パワー段子基板 A〜C**: 各 KiCad プロジェクト (回路図・基板・部品表) |
 | `hardware/lib/` | フットプリント (`CH32M030DS0_QFN48`: 作業途中データから抽出, `mPB`: NANO2 ヒューズ) とシンボル `mdrv.kicad_sym` |
 | `hardware/gen_schematic.py` | 回路図の生成元 (回路の正)。`verify_netlist.py` で KiCad の解釈と照合 |
-| `hardware/gen_pcb.py` + `pcblib.py` | 基板の生成元 (部品配置・ベタ・Freerouting 自動配線・残り配線の補修・DRC)。`tools/` に KiCad 8→7 フットプリント変換・PNG 出力・Freerouting 取得スクリプト |
-| `hardware/fab/*.zip` | 製造データ (ガーバー, ドリル, 両面の部品座標) — 5 基板分 |
+| `hardware/gen_pcb.py` + `pcblib.py` | 基板の生成元 (部品配置・ベタ・Freerouting 自動配線・残り配線の補修・DRC)。`tools/` に PNG 出力・Freerouting 取得・中継スクリプト |
+| `hardware/fab/*.zip` | 製造データ (ガーバー, ドリル, 両面の部品座標) — 4 基板分 |
 | `hardware/bom.csv`, `hardware/daughter/*/bom.csv` | 部品表 (品番付き) |
 | `hardware/wip/` | 作業途中の元データ (KiCad 8)。レビュー結果は [docs/design.md §3](docs/design.md#3-作業途中データ-hardwarewip-のレビュー結果) |
-| `docs/schematic.pdf`, `docs/schematic_PWR_A〜D.pdf` | 回路図 PDF |
+| `docs/schematic.pdf`, `docs/schematic_PWR_A〜C.pdf` | 回路図 PDF |
 | `docs/pcb/` | 基板図 (TOP / BOTTOM, SVG・PNG) と DRC 結果 |
-| `docs/stacking.md` | **子基板構成・基板間ピン配置・レイアウト・コンデンサ品番** |
+| `docs/stacking.md` | **モジュールと子基板の構成・寸法・レイアウト・コンデンサ品番** |
 | `docs/design.md` | **部品選定の妥当性と設計根拠** (データシート値) |
 | `docs/advanced_features.md` | 内蔵機能 (電流源/シンク・USB-PD・OPA/CMP 全モード) の活用検討 |
 | `firmware/bootloader/` | USB/UART ブートローダ (WCH IAP 互換, 20KB) |
 | `firmware/app_template/` | Arduino 風テンプレート (`setup()` / `loop()`) + ボード支援ライブラリ `mpb.h` |
 | `tools/mpb_upload.py` | 書き込みツール (USB / UART, Windows・macOS・Linux) |
 
-KiCad ファイルは KiCad 7 形式で生成しています (KiCad 8 でそのまま開けます)。再生成の手順:
+KiCad ファイルは **KiCad 8 形式** (回路図 20231120, 基板は pcbnew 8.0 で生成) です。再生成の手順 (KiCad 8.0.x の Python が必要):
 
 ```bash
 cd hardware
-python3 gen_schematic.py                       # 回路図 5 プロジェクト + parts.json
-export KICAD7_FOOTPRINT_DIR=~/kicad-footprints # KiCad 7.0.x の標準フットプリント
+python3 gen_schematic.py                       # 回路図 4 プロジェクト + parts.json
 python3 gen_pcb.py all                         # 配置 → Freerouting → ベタ → 補修 → DRC (配置が同じなら前回の配線 build/*.ses を再利用)
 python3 gen_pcb.py fab                         # 製造データ hardware/fab/*.zip
 ```
 
 ## 仕様
 
-- 入力: **J1 (2x4 ピンヘッダ) 8〜16V (公称 12V, 子基板 B は 24V 系)** / **USB-C PD 9〜15V (≤5A)**。
+- 入力: **子基板 J3 (2x6 ピンヘッダ) 8〜16V (公称 12V, 子基板 B は 24V 系)** / **USB-C PD 9〜15V (≤5A)**。
   理想ダイオード OR なので同時接続しても安全です。USB 5V のみでも MCU と書き込みは動作します
-- 出力: 4 ハーフブリッジ (子基板), 約 10A 連続 (ピンヘッダ律速), PWM 16〜20kHz
+- 出力: 4 ハーフブリッジ (子基板 J4, 各 4 ピン並列), 約 10A 連続 (ピンヘッダ律速), PWM 16〜20kHz
 - MCU: CH32M030C8U7, RISC-V 72MHz, 8MHz 水晶
 - 保護:
   - 逆接続・逆流 (理想ダイオード), 10A ヒューズ, TVS
   - ハードウェア過電流遮断 (25.4A / DAC 可変), 過電圧リセット (18V / 24V 系 28.5V)
   - VHV 27V クランプ, 過熱, 結線自己診断
-- インターフェース: USB-C (USB2.0 FS + PD シンク), I2C, UART, 1 線 SDI, GPIO ×2 + タコ入力 + nFAULT, ホール ×3 (すべてピンヘッダ)
+- インターフェース: USB-C (USB2.0 FS + PD シンク), I2C, UART, 1 線 SDI, GPIO ×2 + タコ入力 + nFAULT, ホール ×3 (すべてモジュールの DIP ピン)
 - センシング: 電流 3ch, センサレス BEMF (CMP3 + 内部仮想中性点), ホール XOR (TIM2), タコ / 電流リップル (QII1 → TIM3), NTC (子基板)
 
 ## 結線まとめ (ご要望の項目)
@@ -103,35 +139,32 @@ python3 gen_pcb.py fab                         # 製造データ hardware/fab/*.
 | SW1 RESET | PC0 (RST) — 10k プルアップ + 0.1µF | RST ピンはオプションバイトで有効化 (RST_PIN_SEL=0) |
 | SW2 USER/BOOT | PC4 — 10k プルアップ | 押しながらリセット → ブートローダ。**状態 LED D3 と共用** (PC4 Low で点灯) |
 
-### 電源供給端子・ピンヘッダの配置 (Rev 0.3)
+### 電源供給端子・ピンヘッダの配置 (Rev 0.4)
 
 | 端子 | 基板 / 位置 | 内容 |
 |---|---|---|
-| **J1** PWR IN (2x4 ピンヘッダ) | 主基板 **左上** | 奇数ピン VIN / 偶数ピン GND (4 本並列) → F1 10A → Q9/U4 理想ダイオード → VBUS |
-| J8 USB-C (PD 9〜15V) | 主基板 右辺 | PD 給電は F3 → U5+Q10 → VBUS (左上の電源エリアへ) |
-| J9 / J10 (2x5 / 2x11) | 主基板 **左下 BOTTOM 面** | 子基板へ VBUS/GND とゲート・センス信号 ([ピン配置](docs/stacking.md#基板間コネクタのピン配置-主基板-j9j10--子基板-j1j3-同じ番号同士が嵌合)) |
-| J6 GPIO (1x8) | 主基板 右辺 | GND / 3V3 / PC4 / PC5 / TACH_IN / nFAULT / 5V / GND |
-| J5 UART / J7 SDI (1x4) | 主基板 上辺 | GND/3V3/TX/RX, 3V3/SWIO/RST/GND |
-| J3 HALL (1x5) / J4 I2C (1x4) | 主基板 下辺 | +5V/GND/A/B/C, GND/3V3/SDA/SCL |
-| J2 / J4 / J5 / J6 (1x2 ×4) | 子基板 各レッグの横 | OUT0〜OUT3 (各 2 ピン並列) |
+| **J3** PWR IN (2x6) | 子基板 下端 | 1〜6 VIN / 7〜12 GND (6 本並列) → F1 10A → Q9/U4 理想ダイオード → VBUS |
+| **J4** MOTOR OUT (2x8) | 子基板 最下端 | 1〜4 OUT0, 5〜8 OUT1, 9〜12 OUT2, 13〜16 OUT3 (各 4 本並列) |
+| J8 USB-C (PD 9〜15V) | モジュール 上端 | USB_VBUS (J1-1/2) → 子基板の F3 → U5+Q10 → VBUS (PD 契約後に PD_PWR_EN で許可) |
+| J1 / J2 (1x21 ×2) | モジュール 左右端 | 全信号 ([ピン配置](#モジュールのピン配置-上面から見て-usb-c-が上-子基板のソケット-j1j2-も同じ))。UART / SDI (SWDIO, nRST) / I2C / ホール / GPIO もここから |
 
-### 電源確認 LED / ゲート確認 LED
+### 電源確認 LED / ゲート確認 LED (すべてモジュール上面)
 
 | LED | 接続 | 意味 |
 |---|---|---|
 | D7 赤 | VBUS – 15k | モータ電源あり |
-| D2 緑 | +5V – 2.2k | 5V (78L05) |
+| D2 緑 | +5V – 2.2k | 5V (子基板の 78L05) |
 | **D8 緑** | **+3V3 (VDD33) – 1.5k** | **MCU 電源 (内蔵 LDO 出力)** |
 | D3 緑 | +3V3 – LED – 1k – PC4 (Low で点灯) | 状態 (ブートローダ中は高速点滅, PD 給電中も速い点滅) |
-| **D10〜D17 (子基板)** | 各 HB の **GHx–SWx (赤, H)** / **GLx–SRCx (緑, L)** – 22k | **ゲート ON 表示** (PWM デューティで明るさが変わる)。子基板の外側 (TOP 面) から見える |
+| **D10〜D17** (1005) | 各 HB の **HOx–SWx (H)** / **LOx–GND (L)** – 22k | **ゲート ON 表示** (PWM デューティで明るさが変わる)。子基板はヒートシンクで隠れるため、Rev 0.4 でモジュール側へ移動 |
 
 ### シャント抵抗による電流測定 (内蔵 ADC)
 
 | チャネル | シャント | 経路 → ADC |
 |---|---|---|
-| IA | R34 10mΩ (HB0, 子基板) | JP7 (子基板) → J10-8 ISA_SEL → ISP1/ISN1 → OPA3 (差動, ゲイン 4/8/16/55) → **ADC IN9** |
-| IB | R44 (HB1) / R54 (HB2) を子基板の JP5 で選択 | J10-16 ISB_SEL → ISP2/ISN2 → OPA4 → **ADC IN10** |
-| IBUS | R70 10mΩ (全レッグの帰路, 子基板) | J10-17 ISH → R13/C17 → PB3 → **ADC IN1** (直接) + CMP3 → TIM1 ブレーキ |
+| IA | R34 10mΩ (HB0, 子基板) | JP7 (子基板) → J1-17 ISA_SEL → ISP1/ISN1 → OPA3 (差動, ゲイン 4/8/16/55) → **ADC IN9** |
+| IB | R44 (HB1) / R54 (HB2) を子基板の JP5 で選択 | J1-19 ISB_SEL → ISP2/ISN2 → OPA4 → **ADC IN10** |
+| IBUS | R70 10mΩ (全レッグの帰路, 子基板) | J1-18 ISH → R13/C17 → PB3 → **ADC IN1** (直接) + CMP3 → TIM1 ブレーキ |
 
 電圧: VBUS (PB4, IN17), USB VBUS (PA2, IN15), 相電圧 U/V (PA5/PA7), 温度 NTC (PA4, ISOURCE1, NTC 本体は子基板の MOSFET 近傍)。
 IA は JP7 で HB0 レッグ / バス電流を切り替えられ、CMP2 + 内蔵 DAC でサイクル毎の電流制限にも使えます。詳細は [docs/design.md §2.3](docs/design.md#23-電流電圧の計測-内蔵-adc)。
@@ -140,14 +173,14 @@ IA は JP7 で HB0 レッグ / バス電流を切り替えられ、CMP2 + 内蔵
 
 Y1 8MHz (3225, CL=20pF) — **PB5 (XI) / PB6 (XO)**, 30pF ×2 → GND。帰還抵抗は内蔵。
 
-### 残りの GPIO の引き出し (J6)
+### 残りの GPIO の引き出し (モジュール J2)
 
 | ピン | 機能 |
 |---|---|
-| PC4 | GPIO / TIM1_CH2_3 / SPI_MISO (USER/BOOT ボタン + 状態 LED 兼用, 例: DIR) |
-| PC5 | **HV I/O** (VHV 系, 入力耐圧 VHV+6V) — 12V 系の EN / リミットスイッチに |
-| TACH_IN | R123 → JP8 → C105 → PA12 (QII1: OPA1 → CMP1 → TIM3 CH1)。ファン FG / VR センサ等の周期計測 |
-| nFAULT | PA13 = TIM1_BKIN_1 (Low で全ゲート OFF) |
+| PC4 (J2-4) | GPIO / TIM1_CH2_3 / SPI_MISO (USER/BOOT ボタン + 状態 LED 兼用, 例: DIR) |
+| PC5 (J2-5) | **HV I/O** (VHV 系, 入力耐圧 VHV+6V) — 12V 系の EN / リミットスイッチに |
+| TACH_IN (J1-20) | R123 → JP8 → C105 → PA12 (QII1: OPA1 → CMP1 → TIM3 CH1)。ファン FG / VR センサ等の周期計測 |
+| nFAULT (J2-20) | PA13 = TIM1_BKIN_1 (Low で全ゲート OFF) |
 
 Rev 0.2 では PC3 (PD 給電許可) と PA6 (W 相センシング) を内蔵機能に割り当てたため、引き出し GPIO は減っています
 (理由は [docs/advanced_features.md](docs/advanced_features.md))。ジャンパを外せば、JP2〜JP4 の中央ピン (PA5/PA6/PA7) も使えます。
@@ -162,8 +195,8 @@ Rev 0.2 では PC3 (PD 給電許可) と PA6 (W 相センシング) を内蔵機
 | 4 | PA15 | I2C SCL (リマップ2) | 28 | PC1 | UART TX |
 | 5 | PB2 | OCP_REF (CMP3_N3) | 29 | PC2 | UART RX (リマップ1) |
 | 6 | PB3 | IBUS (CMP3_P3, ADC1) | 30 | PC3 | PD_PWR_EN (USB 給電許可) |
-| 7 | PB4 | VBUS 監視 / OVP | 31 | PC4 | USER/BOOT + 状態 LED, GPIO (J6) |
-| 8 | PB5 | XI | 32 | PC5 | HV I/O (J6) |
+| 7 | PB4 | VBUS 監視 / OVP | 31 | PC4 | USER/BOOT + 状態 LED, GPIO (J2-4) |
+| 8 | PB5 | XI | 32 | PC5 | HV I/O (J2-5) |
 | 9 | PB6 | XO | 33 | VDD33 | 4.7µF+0.1µF |
 | 10 | PB8 | LO0 (TIM1_CH1N) | 34 | VHV | 10µF+0.1µF |
 | 11/12 | VS0/VB0 | HB0 ブート | 35 | PA0 | USB CC1 |
@@ -214,8 +247,8 @@ cd firmware && ./sdk/fetch_sdk.sh
 make -C bootloader          # → bootloader/build/mpb_bootloader.hex
 make -C app_template        # → app_template/build/app.bin
 
-# 2) 【初回のみ】ブートローダを WCH-LinkE (J7: 1 線 SDI = SWIO/RST/GND) で書き込む
-#    J1 に 12V を給電 (SWD には VHV ≥ 5V が必要)。WCH-Link から 3.3V は供給しない。
+# 2) 【初回のみ】ブートローダを WCH-LinkE (1 線 SDI: J1-7 SWDIO / J1-8 nRST / GND) で書き込む
+#    子基板 J3 (またはモジュールの VBUS ピン) に 12V を給電 (SWD には VHV ≥ 5V が必要)。WCH-Link から 3.3V は供給しない。
 #    WCH-LinkUtility (Windows) か MounRiver Studio で mpb_bootloader.hex を 0x08000000 へ
 #    (wlink が CH32M030 に対応していれば: make -C bootloader flash)
 
@@ -227,17 +260,17 @@ make -C app_template upload
 - スケッチは `firmware/app_template/src/sketch.c` の `setup()` / `loop()` に書く (Arduino の .ino 相当)。
 - `main.c` が USB/UART の書き込み要求を常に受け付けるので、「Upload」だけで書き換わる (ESP32 / Arduino の自動リセット相当)。
 - アプリが暴走して応答しない時は **SW2 (USER/BOOT) を押しながら SW1 (RESET)** → 状態 LED が高速点滅 → 書き込み可能。
-- USB だけの給電でも MCU とブートローダは動作する (VHV ≈ 4.5V)。モーター駆動には J1 の 12V か、PD 充電器 (9〜15V) が必要。
+- USB だけの給電でも MCU とブートローダは動作する (VHV ≈ 4.5V)。モーター駆動には子基板 J3 の 12V か、PD 充電器 (9〜15V) が必要。
 - Windows: pyusb 用に Zadig で WinUSB を 1A86:55E0 に割り当てる。WCH 純正の `WCHMcuIAP_WinAPP.exe` も同じプロトコルで使える。
-- UART 書き込み: `python3 tools/mpb_upload.py --uart COM3 app.bin` (J5, 460800bps, 先に BOOT ボタンでブートローダを起動)。
+- UART 書き込み: `python3 tools/mpb_upload.py --uart COM3 app.bin` (J2-2 TX / J2-3 RX, 460800bps, 先に BOOT ボタンでブートローダを起動)。
 
 ### 検証状況
 
 | 項目 | 状態 |
 |---|---|
-| 回路図の接続 | `kicad-cli` のネットリストと設計値が一致 (`verify_netlist.py`): **主基板 82/82, 子基板 A/B/C 41/41, D 21/21** |
-| 基板間コネクタ | 主基板 J9/J10 と子基板 J1/J3 の全 32 ピンが、背中合わせで同じ位置・同じネットになることを座標で検証 |
-| 基板 (2 層) | 5 基板とも **未接続 0 / 電気的 DRC エラー 0** (シルクの重なり等の警告のみ)。[docs/pcb/drc_summary.md](docs/pcb/drc_summary.md)。製造データ (ガーバー・ドリル・部品座標) は `hardware/fab/*.zip` |
+| 回路図の接続 | `kicad-cli` のネットリストと設計値が一致 (`verify_netlist.py`): **モジュール 83/83, 子基板 A/B/C 58/58** (KiCad 8.0.9) |
+| モジュールと子基板の嵌合 | モジュール J1/J2 と子基板 J1/J2 は同じ座標・同じピン番号・同じネット名 (回路図生成時に同じピン表から作成) |
+| 基板 (2 層) | **子基板 A/B/C: 未接続 0 / 電気的 DRC エラー 0** (シルクの重なり等の警告のみ)。**MCU モジュール: 自動配線で未接続が残っています (作業中, 本数は [docs/pcb/drc_summary.md](docs/pcb/drc_summary.md))**。製造データ (ガーバー・ドリル・部品座標) は `hardware/fab/*.zip` (モジュールは配線完了まで発注不可) |
 | ブートローダ / アプリ | GCC 13 (riscv64-unknown-elf + picolibc) で**警告 0 でビルド** (5.7KB / 10.5KB)。`POWER_STAGE=A/B` の両方を確認 |
 | 書き込みツール | ブートローダのプロトコル処理を Python で再現したシミュレータで**書込・検証が一致** (`tools/test_mpb_upload.py`) |
 | 実機 | **未確認** (基板未製作) |
@@ -248,7 +281,7 @@ make -C app_template upload
 - デッドタイム初期値 0.5µs, PWM 16〜20kHz から始め、ゲート確認 LED とオシロで確認する。
 - 過電流: CMP3 (IBUS) / CMP2 (OPA3+DAC) → TIM1 BKIN。BKIN の無い TIM2 は `OPA_IRQHandler` (mpb_analog.c) が停止し、HB2/HB3 のゲートを Low に固定する。
 - VDD8 は `PWR_VDD8_Config()` で VIN に合わせて選択 (VIN ≥ 12V → 10V)。
-- パワー段 (子基板) に合わせて `make POWER_STAGE=A|B|C|D` でビルドする (B は VBUS 分圧比 1/19)。子基板 B は Qg が大きいので
+- パワー段 (子基板) に合わせて `make POWER_STAGE=A|B|C` でビルドする (B は VBUS 分圧比 1/19)。子基板 B は Qg が大きいので
   `8 × Qg × fPWM + MCU ≤ 35mA` (VDD8 LDO) を満たす PWM 周波数にする。
 - ゲートを駆動する前に VBUS ≥ 8V を ADC で確認する (USB のみ給電時は駆動しない)。
 - `loop()` は Delay で止めない (USB-PD の処理は 1ms 周期で `Mpb_PD_Task()` を呼ぶ必要がある)。

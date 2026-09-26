@@ -27,8 +27,10 @@
 #define MPB_ADC_QII       ADC_Channel_19   /* OPA1 出力 (内部) */
 
 /* ---- パワー段 (子基板) の選択: make POWER_STAGE=B のように指定 (既定 A) -------------
- *  'A' TPN1R603PL (12V 系)   'B' TKR74F04PB (24V 系: 主基板 R11=180k, D1=SMBJ24A に変更)
- *  'C' MTN2306AN3 (廉価, ≤3A) 'D' MOSFET なし (外付けパワー段, シャントは 10mΩ 相当を推奨)   */
+ *  'A' TPN1R603PL (12V 系)   'B' TKR74F04PB (24V 系: 子基板 B の R11=180k, D1=SMBJ24A)
+ *  'C' MTN2306AN3 (廉価, ≤3A)
+ *  VBUS 分圧 (R11/R12) は Rev 0.4 から子基板側。モジュール単体で外付けパワー段を使うときは
+ *  VBUS_SNS ピンへ 110k/10k (A 相当) か 180k/10k (B 相当) の分圧を入れ、同じ文字で指定する。    */
 #ifndef MPB_POWER_STAGE
 #define MPB_POWER_STAGE   'A'
 #endif

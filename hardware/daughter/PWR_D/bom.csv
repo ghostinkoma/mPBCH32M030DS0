@@ -1,7 +1,0 @@
-Qty,References,Value,Footprint,MPN / 備考,DNP
-1,C1,220uF/25V,Capacitor_THT:CP_Radial_D6.3mm_P2.50mm,任意: 外付けパワー段が遠い場合のバルク容量,DNP
-3,H1 H2 H3,M2,MountingHole:MountingHole_2.2mm_M2,M2 取付穴 (主基板と共通位置),
-1,J1,B2B_PWR,Connector_PinSocket_2.54mm:PinSocket_2x05_P2.54mm_Vertical,2.54mm 2x5 低背ピンソケット (裏面実装),
-1,J2,PWR_OUT,Connector_PinHeader_2.54mm:PinHeader_2x05_P2.54mm_Vertical,"2.54mm 2x5 ピンヘッダ (TOP 面, 奇数=VBUS / 偶数=GND)",
-1,J3,B2B_SIG,Connector_PinSocket_2.54mm:PinSocket_2x11_P2.54mm_Vertical,2.54mm 2x11 低背ピンソケット (裏面実装),
-1,J4,GATE_SENSE,Connector_PinHeader_2.54mm:PinHeader_2x11_P2.54mm_Vertical,"2.54mm 2x11 ピンヘッダ (TOP 面, 主基板 J10 と同じ並び)",

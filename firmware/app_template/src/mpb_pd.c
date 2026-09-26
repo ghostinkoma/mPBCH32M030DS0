@@ -6,7 +6,7 @@
  *  2. PS_RDY 受信後、USB_VBUS_SNS (PA2) で契約電圧 ±10% を確認してから PD_PWR_EN (PC3) = High。
  *  3. USB VBUS が 3.5V 未満 (抜去) / 契約電圧から外れたら即 OFF。
  *     MCU リセット (PB4 OVP を含む) 中は R6 プルダウンで OFF。
- *  4. J1 と同時接続時は理想ダイオード OR により電圧の高い側が供給する (逆流なし)。
+ *  4. 子基板 J3 (VIN) と同時接続時は理想ダイオード OR により電圧の高い側が供給する (逆流なし)。
  */
 #include <string.h>
 #include "mpb.h"

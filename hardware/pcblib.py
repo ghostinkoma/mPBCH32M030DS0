@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
-基板生成の共通処理 (KiCad 7 pcbnew Python + Freerouting)。gen_pcb.py から使う。
+基板生成の共通処理 (KiCad 8 pcbnew Python + Freerouting)。gen_pcb.py から使う。
+KiCad 8 の Python (pcbnew 8.0.x) で動かす。KiCad 7 でも動くが出力は 7 形式になる。
 
   - parts.json (gen_schematic.py の出力) から部品とネットを読み込み, フットプリントを配置
   - 外形・取付穴・シルク・GND ベタ (両面)・大電流ネットのベタを生成
   - Specctra DSN を書き出して Freerouting で自動配線し, SES を読み戻す
   - ベタ塗り → GND スティッチングビア → DRC レポート
 
-フットプリントは KiCad 7 標準ライブラリ (環境変数 KICAD7_FOOTPRINT_DIR) と hardware/lib を使う。
+フットプリントは KiCad 標準ライブラリ (環境変数 KICAD8_FOOTPRINT_DIR, 既定 /usr/share/kicad/footprints) と hardware/lib を使う。
 """
 import json
 import math
@@ -19,7 +20,8 @@ import tempfile
 import pcbnew
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-STD_FP = os.environ.get("KICAD7_FOOTPRINT_DIR", "/usr/share/kicad/footprints")
+STD_FP = os.environ.get("KICAD8_FOOTPRINT_DIR", os.environ.get("KICAD7_FOOTPRINT_DIR", "/usr/share/kicad/footprints"))
+KICAD7 = pcbnew.Version().startswith("7")
 FREEROUTING = os.environ.get("FREEROUTING_JAR", os.path.join(HERE, "tools", "freerouting-1.9.0.jar"))
 MM = pcbnew.FromMM
 
@@ -43,6 +45,29 @@ def to_mm(v):
 _fp_cache_dir = None
 
 
+def run_freerouting(dsn, ses, passes, opts=(), log=None, timeout=3600):
+    """Freerouting を実行する。MPB_FR_BRIDGE=1 (KiCad 8 の chroot 内) ではホスト側の tools/fr_bridge.sh に依頼する."""
+    import time
+    if os.environ.get("MPB_FR_BRIDGE"):
+        done = ses + ".frdone"
+        for f in (ses, done):
+            if os.path.exists(f):
+                os.remove(f)
+        with open(dsn + ".frreq", "w") as f:
+            f.write(" ".join([os.path.basename(dsn), os.path.basename(ses), str(passes)] + list(opts)))
+        t0 = time.time()
+        while not os.path.exists(done):
+            if time.time() - t0 > timeout:
+                raise TimeoutError("freerouting bridge timeout")
+            time.sleep(3)
+        os.remove(done)
+        return
+    cmd = ["xvfb-run", "-a", "java", "-Djava.awt.headless=false", "-jar", FREEROUTING,
+           "-de", dsn, "-do", ses, "-mp", str(passes)] + list(opts)
+    with open(log or dsn + ".frlog", "w") as lf:
+        subprocess.run(cmd, stdout=lf, stderr=subprocess.STDOUT, timeout=timeout)
+
+
 def _local_lib(nick):
     """hardware/lib の KiCad 8 形式ライブラリは一時ディレクトリで KiCad 7 形式に変換して読む."""
     global _fp_cache_dir
@@ -50,7 +75,7 @@ def _local_lib(nick):
     head = ""
     for f in os.listdir(src):
         head += open(os.path.join(src, f), encoding="utf-8").read(200)
-    if "20240108" not in head:
+    if "20240108" not in head or not KICAD7:   # KiCad 8 はそのまま読める
         return src
     if _fp_cache_dir is None:
         _fp_cache_dir = tempfile.mkdtemp(prefix="mpb_fp7_")
@@ -257,7 +282,7 @@ class Pcb:
         t.SetPosition(P(x, y))
         t.SetLayer(LAYER[layer])
         t.SetTextSize(pcbnew.VECTOR2I(MM(size), MM(size)))
-        t.SetTextThickness(MM(size * (0.2 if bold else 0.14)))
+        t.SetTextThickness(MM(max(0.1, size * (0.2 if bold else 0.14))))
         t.SetTextAngleDegrees(rot)
         if layer.startswith("B."):
             t.SetMirrored(True)
@@ -337,11 +362,16 @@ class Pcb:
                             add([(x1 + nx, y1 + ny), (x2 + nx, y2 + ny), (x2 - nx, y2 - ny), (x1 - nx, y1 - ny)])
                         octa(x1, y1, hw)
                         octa(x2, y2, hw)
+                # 配線が来ているパッドだけを太らせる (未配線のパッドを孤立したベタで覆うと, 補修で見つけられない)
+                ends = [to_mm(p) for t in self.b.GetTracks() if t.GetNetname() == net
+                        for p in ((t.GetStart(), t.GetEnd()) if t.GetClass() != "PCB_VIA" else (t.GetPosition(),))]
                 for fp in self.b.GetFootprints():
                     for pad in fp.Pads():
                         if pad.GetNetname() == net and pad.IsOnLayer(layer):
                             bb = pad.GetBoundingBox()
                             l, t_, r, b_ = (pcbnew.ToMM(v) for v in (bb.GetLeft(), bb.GetTop(), bb.GetRight(), bb.GetBottom()))
+                            if not any(l - 0.05 <= x <= r + 0.05 and t_ - 0.05 <= y <= b_ + 0.05 for x, y in ends):
+                                continue
                             add([(l - grow, t_ - grow), (r + grow, t_ - grow), (r + grow, b_ + grow), (l - grow, b_ + grow)])
                 if poly.OutlineCount() == 0:
                     continue
@@ -359,8 +389,9 @@ class Pcb:
         return self.zone(net, layer, [(x0, y0), (x1, y0), (x1, y1), (x0, y1)], priority)
 
     # ---- 自動配線 ---------------------------------------------------------------
-    def autoroute(self, passes=40, timeout=3600, reuse=False, opts=()):
+    def autoroute(self, passes=None, timeout=5400, reuse=False, opts=()):
         """reuse=True: 配置が同じ (DSN が前回と同一) なら前回の SES を再利用する."""
+        passes = passes or int(os.environ.get("MPB_FR_PASSES", "40"))
         work = os.path.join(self.dir, "build")
         os.makedirs(work, exist_ok=True)
         dsn = os.path.join(work, self.name + ".dsn")
@@ -369,15 +400,13 @@ class Pcb:
         assert pcbnew.ExportSpecctraDSN(self.b, dsn), "DSN export failed"
         self._dsn_classes(dsn)
         # KiCad は keepout やネットのピン順を毎回違う順で書き出すので, 字句の集合として比較する
-        strip = lambda t: sorted(re.findall(r"[^\s()]+", re.sub(r"\(pcb [^\n]*|\(host_version[^\n]*", "", t or "")))
+        strip = lambda t: (sorted(re.findall(r"[^\s()]+", re.sub(r"\(pcb [^\n]*|\(host_version[^\n]*", "", t or ""))),
+                           sorted(re.findall(r"\(class [^\n]*", t or "")))       # ネットクラスの所属も比較
         if reuse and os.path.exists(ses) and strip(old) == strip(open(dsn, encoding="utf-8").read()):
             return self.import_ses(ses)
         if os.path.exists(ses):
             os.remove(ses)
-        cmd = ["xvfb-run", "-a", "java", "-Djava.awt.headless=false", "-jar", FREEROUTING,
-               "-de", dsn, "-do", ses, "-mp", str(passes)] + list(opts)
-        log = open(os.path.join(work, "freerouting.log"), "w")
-        subprocess.run(cmd, stdout=log, stderr=subprocess.STDOUT, timeout=timeout)
+        run_freerouting(dsn, ses, passes, opts, os.path.join(work, "freerouting.log"), timeout)
         assert os.path.exists(ses), "freerouting produced no SES (see build/freerouting.log)"
         return self.import_ses(ses)
 
@@ -407,10 +436,7 @@ class Pcb:
         self._dsn_classes(dsn)
         if os.path.exists(ses):
             os.remove(ses)
-        cmd = ["xvfb-run", "-a", "java", "-Djava.awt.headless=false", "-jar", FREEROUTING,
-               "-de", dsn, "-do", ses, "-mp", str(passes)] + list(opts)
-        with open(os.path.join(work, "freerouting_pass2.log"), "w") as log:
-            subprocess.run(cmd, stdout=log, stderr=subprocess.STDOUT, timeout=3600)
+        run_freerouting(dsn, ses, passes, opts, os.path.join(work, "freerouting_pass2.log"))
         for z in zones:
             self.b.Add(z)
         if not os.path.exists(ses):
@@ -660,10 +686,28 @@ class Pcb:
                         n += 1
         return n
 
+    def _write_drc(self, rpt):
+        """DRC レポートを書く。pcbnew の WriteDRCReport は取り込み直後のボードで稀に異常終了するため,
+        一時ファイルに保存して kicad-cli (別プロセス) で実行する。失敗したら 1 回だけ再試行する."""
+        import shutil
+        tmp = os.path.join(self.dir, "build", self.name + "_drctmp.kicad_pcb")
+        assert pcbnew.SaveBoard(tmp, self.b)
+        pro = os.path.join(self.dir, self.name + ".kicad_pro")
+        if os.path.exists(pro):
+            shutil.copy(pro, tmp[:-len(".kicad_pcb")] + ".kicad_pro")   # ネットクラスの割当はプロジェクト側
+        for _ in range(2):
+            if os.path.exists(rpt):
+                os.remove(rpt)
+            subprocess.run(["kicad-cli", "pcb", "drc", "--units", "mm", "--severity-all", "-o", rpt, tmp],
+                           capture_output=True)
+            if os.path.exists(rpt):
+                return
+        raise RuntimeError("kicad-cli pcb drc failed")
+
     def drc(self):
         os.makedirs(os.path.join(self.dir, "build"), exist_ok=True)
         rpt = os.path.join(self.dir, "build", self.name + "_drc.rpt")
-        pcbnew.WriteDRCReport(self.b, rpt, pcbnew.EDA_UNITS_MILLIMETRES, True)
+        self._write_drc(rpt)
         txt = open(rpt, encoding="utf-8").read()
         kinds = {}
         for m in re.finditer(r"^\[(\w+)\]:", txt, re.M):
@@ -673,14 +717,15 @@ class Pcb:
 
     def _drc_items(self):
         rpt = os.path.join(self.dir, "build", self.name + "_repair.rpt")
-        pcbnew.WriteDRCReport(self.b, rpt, pcbnew.EDA_UNITS_MILLIMETRES, True)
+        self._write_drc(rpt)
         txt = open(rpt, encoding="utf-8").read()
         blocks = re.findall(r"(^\[\w+\]:.*?\n(?:    .*\n)+)", txt, re.M)
         return blocks
 
-    def repair_unrouted(self, maxlen=6.0):
+    def repair_unrouted(self, maxlen=6.0, skip_nets=()):
         """自動配線で残った 2 点間の未接続を, 直線 / L 字の短い配線で補う (DRC が増えない時だけ採用)."""
-        bad = ("[clearance]", "[shorting_items]", "[tracks_crossing]", "[copper_edge_clearance]", "[hole_clearance]")
+        bad = ("[clearance]", "[shorting_items]", "[tracks_crossing]", "[copper_edge_clearance]", "[hole_clearance]",
+               "[hole_near_hole]")
 
         def state():
             blk = self._drc_items()
@@ -693,7 +738,21 @@ class Pcb:
                 continue
             pts = [(x, y, d + rest, n) for x, y, d, n, rest in
                    re.findall(r"@\(([-\d.]+) mm, ([-\d.]+) mm\): (.*?) \[(.*?)\](.*)", blk)]
-            if len(pts) == 2 and all(("pad" in p[2].lower()) or p[2].startswith("Track") for p in pts):
+            if pts and pts[0][3] in skip_nets:
+                continue
+            if len(pts) == 2 and sum(p[2].startswith("Zone") for p in pts) == 1 and \
+                    any("pad" in p[2].lower() for p in pts):
+                # パッド ↔ ベタ: ベタ側は報告座標が代表点なので, 同じネットの最寄りの別パッドを目標にする
+                pd = next(p for p in pts if "pad" in p[2].lower())
+                zl = "B.Cu" if "B.Cu" in next(p for p in pts if p[2].startswith("Zone"))[2] else "F.Cu"
+                px, py = float(pd[0]), float(pd[1])
+                cands = sorted((math.hypot(x - px, y - py), x, y) for x, y in
+                               (to_mm(q.GetPosition()) for f in self.b.GetFootprints() for q in f.Pads()
+                                if q.GetNetname() == pd[3] and q.IsOnLayer(LAYER[zl]))
+                               if math.hypot(x - px, y - py) > 0.3)
+                if cands:
+                    todo.append([pd, ("%.4f" % cands[0][1], "%.4f" % cands[0][2], "Track (zone) on " + zl, pd[3])])
+            elif len(pts) == 2 and all(("pad" in p[2].lower()) or p[2].startswith("Track") for p in pts):
                 todo.append(pts)
         fixed = []
 
@@ -754,6 +813,80 @@ class Pcb:
                         if commit(items):
                             return True
             return False
+
+        def island(net, pt):
+            """pt にある同ネットの銅につながる配線・ビア・パッドの集合 (端点の一致・パッド/ビアへの着地で判定)."""
+            segs, vias, pads = [], [], []
+            for t in self.b.GetTracks():
+                if t.GetNetname() != net:
+                    continue
+                if t.GetClass() == "PCB_VIA":
+                    vias.append(("v", ("v",) + tuple(round(v, 3) for v in to_mm(t.GetPosition())),
+                                 to_mm(t.GetPosition()), pcbnew.ToMM(t.GetWidth()) / 2))
+                else:
+                    segs.append(("s", ("s", t.GetLayer()) + tuple(round(v, 3) for v in to_mm(t.GetStart()) + to_mm(t.GetEnd())),
+                                 to_mm(t.GetStart()), to_mm(t.GetEnd()), t.GetLayer(),
+                                 pcbnew.ToMM(t.GetWidth()) / 2))
+            for f in self.b.GetFootprints():
+                for q in f.Pads():
+                    if q.GetNetname() == net:
+                        bb = q.GetBoundingBox()
+                        box = tuple(pcbnew.ToMM(v) for v in (bb.GetLeft(), bb.GetTop(), bb.GetRight(), bb.GetBottom()))
+                        lays = {L for L in (pcbnew.F_Cu, pcbnew.B_Cu) if q.IsOnLayer(L)}
+                        pads.append(("p", ("p",) + tuple(round(v, 3) for v in box), box, lays))
+            inbox = lambda b_, x, y, m=0.0: b_[0] - m <= x <= b_[2] + m and b_[1] - m <= y <= b_[3] + m
+
+            def touch(u, w):
+                if u[0] == "s" and w[0] == "s":
+                    return u[4] == w[4] and any(math.hypot(p[0] - q[0], p[1] - q[1]) < 0.02
+                                                for p in (u[2], u[3]) for q in (w[2], w[3]))
+                if u[0] == "s" and w[0] == "v":
+                    return any(math.hypot(p[0] - w[2][0], p[1] - w[2][1]) < w[3] for p in (u[2], u[3]))
+                if u[0] == "s" and w[0] == "p":
+                    return u[4] in w[3] and any(inbox(w[2], *p) for p in (u[2], u[3]))
+                if u[0] == "v" and w[0] == "p":
+                    return inbox(w[2], *u[2])
+                if u[0] == "v" and w[0] == "v":
+                    return math.hypot(u[2][0] - w[2][0], u[2][1] - w[2][1]) < 0.02
+                if u[0] == "p" and w[0] == "p":
+                    return False
+                return touch(w, u)
+            items = segs + vias + pads
+            seed = [it for it in items if
+                    (it[0] == "p" and inbox(it[2], *pt, 0.02)) or
+                    (it[0] == "v" and math.hypot(it[2][0] - pt[0], it[2][1] - pt[1]) < it[3] + 0.02) or
+                    (it[0] == "s" and min(math.hypot(q[0] - pt[0], q[1] - pt[1]) for q in (it[2], it[3])) < it[5] + 0.02)]
+            if not seed:
+                return set()
+            seen = {it[1]: it for it in seed}
+            todo_ = list(seed)
+            while todo_:
+                u = todo_.pop()
+                for w in items:
+                    if w[1] not in seen and touch(u, w):
+                        seen[w[1]] = w
+                        todo_.append(w)
+            return {tuple(v if not isinstance(v, set) else frozenset(v) for v in it) for it in seen.values()}
+
+        def island_cells(isl, x0, y0, nx, ny, grid):
+            cells = set()
+            put_ = lambda x, y, L: cells.add((int(round((x - x0) / grid)), int(round((y - y0) / grid)), L)) \
+                if 0 <= round((x - x0) / grid) < nx and 0 <= round((y - y0) / grid) < ny else None
+            for it in isl:
+                if it[0] == "s":
+                    (ax, ay), (bx, by) = it[2], it[3]
+                    n_ = max(int(math.hypot(bx - ax, by - ay) / grid), 1)
+                    for k in range(n_ + 1):
+                        put_(ax + (bx - ax) * k / n_, ay + (by - ay) * k / n_, it[4])
+                elif it[0] == "v":
+                    for L in (pcbnew.F_Cu, pcbnew.B_Cu):
+                        put_(it[2][0], it[2][1], L)
+                else:
+                    b_ = it[2]
+                    cx, cy = (b_[0] + b_[2]) / 2, (b_[1] + b_[3]) / 2
+                    for L in it[3]:
+                        put_(cx, cy, L)
+            return cells
 
         def maze(net, a, a_layers, e, e_layers, grid=0.1, margin=4.0):
             """格子 A* (2 層 + ビア) で a→e を結ぶ。障害物は他ネットのパッド・配線・ビア・穴と基板端."""
@@ -842,15 +975,22 @@ class Pcb:
                             cells.add((i, j))
                 return cells or {cell(pt)}
             a_cells, e_cells = pad_cells(a), pad_cells(e)
-            # 始点・終点のパッド上は通行可 (パッド自身は同じネットなので障害物に入っていない)
+            a_st = {(ci, cj, L) for L in a_layers for (ci, cj) in a_cells}
+            e_st = {(ci, cj, L) for L in e_layers for (ci, cj) in e_cells}
+            # 始点・終点の「島」(同じネットでつながっている配線・ビア・パッド) 全体を始点・終点にする
+            ia, ie = island(net, a), island(net, e)
+            if ia and ie and ia & ie:
+                return False
+            a_st |= island_cells(ia, x0, y0, nx, ny, grid)
+            e_st |= island_cells(ie, x0, y0, nx, ny, grid)
             pq, came, g = [], {}, {}
-            for L in a_layers:
-                for (ci, cj) in a_cells:
-                    st = (ci, cj, L)
-                    g[st] = 0
-                    heapq.heappush(pq, (0, st))
-            goal = {(ci, cj, L) for L in e_layers for (ci, cj) in e_cells}
-            start_ok = {(ci, cj) for (ci, cj) in a_cells}
+            for st in a_st:
+                g[st] = 0
+                heapq.heappush(pq, (0, st))
+            goal = e_st - a_st
+            if not goal:
+                return False
+            start_ok = {(ci, cj) for (ci, cj, _L) in a_st} | {(ci, cj) for (ci, cj, _L) in goal}
             h = lambda i, j: math.hypot(i - ei, j - ej)
             steps = [(1, 0, 1), (-1, 0, 1), (0, 1, 1), (0, -1, 1), (1, 1, 1.414), (1, -1, 1.414), (-1, 1, 1.414), (-1, -1, 1.414)]
             found = None
