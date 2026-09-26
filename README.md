@@ -83,7 +83,6 @@ USB-C から ESP32-C3 / Arduino のように書き込めて、**USB-PD 充電器
 | `hardware/daughter/PWR_A〜C/` | **パワー段子基板 A〜C**: 各 KiCad プロジェクト (回路図・基板・部品表) |
 | `hardware/lib/` | フットプリント (`CH32M030DS0_QFN48`: 作業途中データから抽出, `mPB`: NANO2 ヒューズ) とシンボル `mdrv.kicad_sym` |
 | `hardware/gen_schematic.py` | 回路図の生成元 (回路の正)。`verify_netlist.py` で KiCad の解釈と照合 |
-| `hardware/gen_pcb.py` + `pcblib.py` | 基板の生成元 (部品配置・ベタ・Freerouting 自動配線・残り配線の補修・DRC)。`tools/` に PNG 出力・Freerouting 取得・中継スクリプト |
 | `hardware/fab/*.zip` | 製造データ (ガーバー, ドリル, 両面の部品座標) — 4 基板分 |
 | `hardware/bom.csv`, `hardware/daughter/*/bom.csv` | 部品表 (品番付き) |
 | `hardware/wip/` | 作業途中の元データ (KiCad 8)。レビュー結果は [docs/design.md §3](docs/design.md#3-作業途中データ-hardwarewip-のレビュー結果) |
@@ -173,7 +172,7 @@ IA は JP7 で HB0 レッグ / バス電流を切り替えられ、CMP2 + 内蔵
 
 Y1 8MHz (3225, CL=20pF) — **PB5 (XI) / PB6 (XO)**, 30pF ×2 → GND。帰還抵抗は内蔵。
 
-### 残りの GPIO の引き出し (モジュール J1/J2)
+
 
 | ピン | 機能 |
 |---|---|
