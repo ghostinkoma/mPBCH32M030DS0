@@ -131,5 +131,18 @@ DC バイアスで実効容量が下がる箇所 (VHV 24V, ブートストラッ
 |---|---|
 | 回路図 (4 プロジェクト, KiCad 8.0.9) | `verify_netlist.py`: モジュール 83/83, 子基板 A/B/C 58/58 ネット一致 |
 | 部品の重なり | courtyard 干渉なし (同一面) / 反対面の THT 穴との干渉なし / 基板外へのはみ出しなし |
-| DRC | 子基板 A/B/C: 未接続 0・電気的エラー 0。MCU モジュール: 未接続が残っており配線作業中 ([pcb/drc_summary.md](pcb/drc_summary.md)) |
+| DRC | 子基板 A/B/C: 未接続 0・電気的エラー 0。**MCU モジュール: 自動配線で 22 か所が未接続** (下記) ([pcb/drc_summary.md](pcb/drc_summary.md)) |
 | 製造データ | `hardware/fab/<基板名>.zip` (ガーバー, ドリル + 図, 両面の部品座標 CSV) |
+
+## MCU モジュールの残作業 (手配線)
+
+自動配線 (Freerouting 1.9 / 2.1、配置を変えた複数の試行、引き剥がし付きの補修) では、20.32mm 幅の中で
+QFN48 (0.35mm ピッチ) と 42 本の端子列の間を 2 層・0.127mm ルールで配線しきれず、**22 か所が未接続**のまま残っています。
+KiCad 8 で `hardware/mPBCH32M030DS0.kicad_pcb` を開き、DRC の「未接続」を順に手配線してから発注してください。
+
+- 未接続のネット: +5V, HALL_B_IN, HO1, HO3, I2C_SCL, I2C_SDA, IA_N, IA_P, IBUS_F, IB_P, LO2, OCP_REF, QII_IN,
+  SENS_V, SENS_W, SW2, USB_CC2, USB_VBUS_SNS, VBUS, VBUS_SNS, XI, nFAULT
+- 多くは QFN の下辺・左辺から、下半分の部品 (電流アンプ入力 RC、JP2〜JP4、I2C 直列抵抗、QII) へ向かう配線です。
+  下面の下半分には空きがあるので、QFN の近くでビアを打って下面へ逃がすと通せます。
+- 参考: モジュール幅を 9 マス (22.86mm、端子列 0.7in) に広げた試作では未接続が 10 か所まで減りました。
+  子基板 A/C も同じ幅になり、面積削減は約 −40% ぎりぎりになります。
