@@ -127,7 +127,7 @@ def build_main(route=True):
     b.classes["HiCur"].SetClearance(pcblib.MM(0.15))
     b.netclass("HiCur", HICUR_MAIN)
     dflt = b.b.GetDesignSettings().m_NetSettings.m_DefaultNetClass
-    # 8 マス版は 0.127mm では通りきらないため 0.10mm / ビア 0.5 (穴 0.25) に詰める (JLCPCB 等の 2 層で製造可能な範囲)
+    # 8 マス版は 0.127mm では通りきらないため 0.10mm / ビア 0.5 (穴 0.25) に詰める (JLCPCB の 2 層標準 0.127mm を下回る → 2 層では発注不可, 4 層なら可)
     rule = float(os.environ.get("MPB_RULE", "0.127" if W9 else "0.1"))
     via = [float(v) for v in os.environ.get("MPB_VIA", "0.6,0.3" if W9 else "0.5,0.25").split(",")]
     ds = b.b.GetDesignSettings()
@@ -521,7 +521,7 @@ def summarize():
     out = os.path.join(pcblib.HERE, "..", "docs", "pcb", VAR, "drc_summary.md")
     with open(out, "w", encoding="utf-8") as f:
         f.write("# DRC 結果 (KiCad 8 pcbnew, gen_pcb.py 実行時に自動生成)\n\n"
-                "ルール: 2 層 / 最小線幅・間隙 0.127mm / ビア 0.6mm (穴 0.3mm, 大電流 0.8mm, QFN サーマルビア 0.2mm) / 基板端 0.25mm。" + ("" if W9 else "8 マス版の MCU モジュールのみ最小線幅・間隙 0.10mm / ビア 0.5mm (穴 0.25mm)。") + "\n"
+                "ルール: 2 層 / 最小線幅・間隙 0.127mm / ビア 0.6mm (穴 0.3mm, 大電流 0.8mm, QFN サーマルビア 0.2mm) / 基板端 0.25mm。" + ("" if W9 else "8 マス版の MCU モジュールのみ最小線幅・間隙 0.10mm / ビア 0.5mm (穴 0.25mm) (JLCPCB の 2 層標準外)。") + "\n"
                 "「lib_footprint_issues」(ライブラリ照合) はスクリプト生成のため対象外。\n\n"
                 "| 基板 | 電気的エラー (配線・間隙・未接続など) | 警告 (シルク等, 製造時にクリップされるもの) |\n|---|---|---|\n")
         f.write("\n".join(rows) + "\n")
