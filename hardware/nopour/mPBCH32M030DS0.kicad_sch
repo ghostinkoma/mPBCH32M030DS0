@@ -5,7 +5,7 @@
 (lib_symbols)
 (text "mPBCH32M030DS0 Rev 0.4 MCU モジュール — CH32M030C8U7 (QFN48), ブレッドボード対応 DIP-42 (列間 0.6in)" (exclude_from_sim no) (at 20 30 0) (effects (font (size 2 2)) (justify left bottom)) (uuid "5ea1547e-2287-51a1-bdb5-31f290489414"))
 (text "" (exclude_from_sim no) (at 20 37 0) (effects (font (size 2 2)) (justify left bottom)) (uuid "fa5c65be-74bb-5c58-833f-bc48168b6ac0"))
-(text "・2 層 20.32 x 53.34mm (2.54mm 格子で 8 x 21 マス)。左右 21 ピン x 2 列, 列間 15.24mm" (exclude_from_sim no) (at 20 44 0) (effects (font (size 2 2)) (justify left bottom)) (uuid "32ad8ced-daed-5175-ba36-aa2a072f77a1"))
+(text "・2 層 22.86 x 53.34mm (2.54mm 格子で 9 x 21 マス)。左右 21 ピン x 2 列, 列間 17.78mm" (exclude_from_sim no) (at 20 44 0) (effects (font (size 2 2)) (justify left bottom)) (uuid "32ad8ced-daed-5175-ba36-aa2a072f77a1"))
 (text "  ピンヘッダは裏から (ブレッドボード / 子基板用) でも表から (ジャンパワイヤ用) でも実装できる" (exclude_from_sim no) (at 20 51 0) (effects (font (size 2 2)) (justify left bottom)) (uuid "e0812cfd-2427-5a3d-a17e-7c7dfad20ab9"))
 (text "・左列 J1: USB VBUS / 電源 / SDI / センサ (相電圧・ホール・電流・NTC)。右列 J2: ゲート駆動 x12 / UART / I2C / GPIO" (exclude_from_sim no) (at 20 58 0) (effects (font (size 2 2)) (justify left bottom)) (uuid "75197a66-145b-503d-84d1-00dbee7d8991"))
 (text "・LED はすべてモジュール上 (子基板の部品面はヒートシンク側のため): 電源 x3, 状態, ゲート確認 x8" (exclude_from_sim no) (at 20 65 0) (effects (font (size 2 2)) (justify left bottom)) (uuid "46b00ef9-bd84-58d3-a1e0-02cf20d05316"))

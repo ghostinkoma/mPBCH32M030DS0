@@ -53,7 +53,7 @@
 )
 )
 (rectangle (start 15 20) (end 150 285) (stroke (width 0.2) (type dash)) (fill (type none)) (uuid "0f4ed19c-6d11-51db-9f05-be990a16e2e1"))
-(text "DIP 端子 (2.54mm, 21 ピン x 2 列, 列間 15.24mm)" (exclude_from_sim no) (at 17 25 0) (effects (font (size 2 2) (thickness 0.3) (bold yes)) (justify left bottom)) (uuid "6daa4034-7814-566c-9a30-18b8014d63f3"))
+(text "DIP 端子 (2.54mm, 21 ピン x 2 列, 列間 17.78mm)" (exclude_from_sim no) (at 17 25 0) (effects (font (size 2 2) (thickness 0.3) (bold yes)) (justify left bottom)) (uuid "6daa4034-7814-566c-9a30-18b8014d63f3"))
 (rectangle (start 160 20) (end 405 110) (stroke (width 0.2) (type dash)) (fill (type none)) (uuid "6c108141-5df8-5bb6-b07a-0d7bc0bea00b"))
 (text "ゲート確認 LED (モジュール上面に 8 個: 子基板の部品面はヒートシンク側で見えないため)" (exclude_from_sim no) (at 162 25 0) (effects (font (size 2 2) (thickness 0.3) (bold yes)) (justify left bottom)) (uuid "5397a98d-cf3f-59e0-bffa-fd7d14a67bb6"))
 (rectangle (start 160 120) (end 405 190) (stroke (width 0.2) (type dash)) (fill (type none)) (uuid "86423328-572a-522c-97d1-1df4b8e3a120"))

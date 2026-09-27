@@ -6,7 +6,7 @@
 (text "mPBCH32M030DS0 Rev 0.4 子基板 C: MTN2306AN3 (廉価版)" (exclude_from_sim no) (at 20 30 0) (effects (font (size 2 2)) (justify left bottom)) (uuid "77e8934c-7204-57a0-9e65-2fc167fcacd0"))
 (text "" (exclude_from_sim no) (at 20 37 0) (effects (font (size 2 2)) (justify left bottom)) (uuid "fe46182f-42b3-5500-8020-a18d3c01a4fd"))
 (text "・MOSFET: MTN2306AN3 x8 (4 ハーフブリッジ)   入力電圧: 8〜16V (公称 12V)   出力電流の目安: 約 3A" (exclude_from_sim no) (at 20 44 0) (effects (font (size 2 2)) (justify left bottom)) (uuid "ddf15ec1-9e25-521f-b50f-81226f1ba7d3"))
-(text "・上面: MCU モジュールを挿す 1x21 ピンソケット x2 (左右対称, 列間 15.24mm), 電源入力 J3, モータ出力 J4, バルク容量" (exclude_from_sim no) (at 20 51 0) (effects (font (size 2 2)) (justify left bottom)) (uuid "4e4d3033-cfaa-532b-8cae-c797d98cfeb3"))
+(text "・上面: MCU モジュールを挿す 1x21 ピンソケット x2 (左右対称, 列間 17.78mm), 電源入力 J3, モータ出力 J4, バルク容量" (exclude_from_sim no) (at 20 51 0) (effects (font (size 2 2)) (justify left bottom)) (uuid "4e4d3033-cfaa-532b-8cae-c797d98cfeb3"))
 (text "・下面 (ヒートシンク側): MOSFET, シャント, ゲート抵抗, 理想ダイオード, TVS, 78L05 など。LED は置かない (モジュール側)" (exclude_from_sim no) (at 20 58 0) (effects (font (size 2 2)) (justify left bottom)) (uuid "a8d9edbf-5bcd-5c2d-b62a-b4d35ff8bf4e"))
 (text "・電圧系に依存する部品 (TVS, VBUS 分圧 = OVP, バルク容量, 相電圧分圧) はこの基板で決める" (exclude_from_sim no) (at 20 65 0) (effects (font (size 2 2)) (justify left bottom)) (uuid "c9125712-5ae8-56cb-95a9-6085f4a5b9bd"))
 (text "" (exclude_from_sim no) (at 20 72 0) (effects (font (size 2 2)) (justify left bottom)) (uuid "70b0e681-20b2-5e61-b628-ca9bc8863b01"))

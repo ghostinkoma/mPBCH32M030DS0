@@ -6,9 +6,10 @@ mPBCH32M030DS0 Rev 0.4 の基板 (2 層) を生成する。KiCad 8 (pcbnew 8.0.x
   python3 gen_pcb.py [main|A|B|C|all] [--no-route] [--reroute]
   python3 gen_pcb.py fab                   # 製造データ (hardware/fab/*.zip)
   python3 gen_pcb.py summary               # docs/pcb/drc_summary.md を更新
+  python3 gen_pcb.py nopour                # ベタなし版 (hardware/nopour/)
 
 構成 (上から見た座標, 原点 = 左上):
-  MCU モジュール  20.32 x 53.34mm (8 x 21 マス)。左右端に 21 ピン x 2 列 (x = 2.54 / 17.78, 列間 15.24mm)
+  MCU モジュール  22.86 x 53.34mm (9 x 21 マス)。左右端に 21 ピン x 2 列 (x = 2.54 / 20.32, 列間 17.78mm)
                   → ブレッドボードに直接挿せる。USB-C は上端。LED・スイッチ・ジャンパは上面。
   パワー段子基板  モジュールと同じ位置に 1x21 ピンソケット x2 (上面, 左右対称)。モジュールは上から挿す。
                   MOSFET・シャント等は下面 (ヒートシンク側)。電源入力 J3 / モータ出力 J4 は下端。
@@ -24,13 +25,12 @@ from pcblib import Pcb
 REUSE = True
 FR_OPTS_MAIN = tuple(os.environ.get("MPB_FR_OPTS", "-us hybrid -hr 1:1").split())   # Freerouting の追加オプション
 FR_OPTS = tuple(os.environ.get("MPB_FR_OPTS_D", "").split())                           # 子基板 (試行で hybrid より良好)
-# 幅の系統: 8 マス (20.32mm, 端子列 0.6in, 既定) / 9 マス (22.86mm, 端子列 0.7in, MPB_W9=1)。
-# 9 マス版は hardware/w9/ (子基板は hardware/w9/daughter/) に出力する。
-W9 = os.environ.get("MPB_W9") == "1"
-VAR = "w9/" if W9 else ""
-MW, MH = (22.86 if W9 else 20.32), 53.34          # モジュール外形
+# 幅は 9 マス (22.86mm, 端子列 0.7in = Pico と同じ列間隔)。
+# (旧 8 マス版 20.32mm は 2 層標準 0.127mm で配線しきれず廃止。部品配置の座標は 20.32mm 幅基準で書き, 横に比例して広げる)
+VAR = ""
+MW, MH = 22.86, 53.34          # モジュール外形
 PIN_X = (2.54, MW - 2.54)      # DIP 端子列の x
-XL, XR = PIN_X[0] + 1.91, PIN_X[1] - 1.88         # 端子列の内側で部品を置ける範囲 (8 マスで 4.45〜15.9)
+XL, XR = PIN_X[0] + 1.91, PIN_X[1] - 1.88         # 端子列の内側で部品を置ける範囲
 PIN_Y0 = 1.27                  # 1 番ピンの y
 
 
@@ -47,8 +47,8 @@ def hicur_daughter(b):
 
 
 def prj(prjdir):
-    """出力先のプロジェクトフォルダ。9 マス版は回路図一式を w9/ 側へ写し, ライブラリの相対パスを直す."""
-    if not W9:
+    """出力先のプロジェクトフォルダ。VAR があれば回路図一式をその下へ写し, ライブラリの相対パスを直す."""
+    if not VAR:
         return prjdir
     import glob
     import shutil
@@ -127,9 +127,9 @@ def build_main(route=True):
     b.classes["HiCur"].SetClearance(pcblib.MM(0.15))
     b.netclass("HiCur", HICUR_MAIN)
     dflt = b.b.GetDesignSettings().m_NetSettings.m_DefaultNetClass
-    # 8 マス版は 0.127mm では通りきらないため 0.10mm / ビア 0.5 (穴 0.25) に詰める (JLCPCB の 2 層標準 0.127mm を下回る → 2 層では発注不可, 4 層なら可)
-    rule = float(os.environ.get("MPB_RULE", "0.127" if W9 else "0.1"))
-    via = [float(v) for v in os.environ.get("MPB_VIA", "0.6,0.3" if W9 else "0.5,0.25").split(",")]
+    # JLCPCB の 2 層標準の最小値 (線幅・間隙 0.127mm, ビア 0.6/0.3)。試行用に MPB_RULE / MPB_VIA で変えられる
+    rule = float(os.environ.get("MPB_RULE", "0.127"))
+    via = [float(v) for v in os.environ.get("MPB_VIA", "0.6,0.3").split(",")]
     ds = b.b.GetDesignSettings()
     ds.m_TrackMinWidth = ds.m_MinClearance = pcblib.MM(rule)
     dflt.SetTrackWidth(pcblib.MM(rule))
@@ -151,7 +151,7 @@ def build_main(route=True):
     # ゲート確認 LED は右下 (y ≥ 38) に 3 列。QFN 右辺のゲートピン → J2 の引き出しを塞がない
     b.pack(["R50", "D10", "R51", "D11", "R52", "D12", "R53", "D13",
             "R54", "D14", "R55", "D15", "R56", "D16", "R57", "D17"],
-           12.45 if not W9 else b.bbox("J2")[0] - 0.05 - 3.85, 38.3, b.bbox("J2")[0] - 0.05,
+           b.bbox("J2")[0] - 0.05 - 3.85, 38.3, b.bbox("J2")[0] - 0.05,
            rot=90, gap=0.15, row_gap=0.2)
     # VHV 保護・USB 給電のダイオードと PTC は下端の帯へ (大電流のベタが中央の通り道を塞がないように)
     b.pack(["D5", "D6", "D4", "F2"], 7.4, yl + 0.3, 12.2, rot=0, row_gap=0.25)
@@ -170,7 +170,7 @@ def build_main(route=True):
     ya = max(b.bbox(r)[3] for r in ("R100", "C102", "R123", "R122")) + 0.6
     b.pack(["R16", "R17", "C19", "R18", "R19", "C20"], 4.45, ya, 10.2, rot=90, side=B)         # 電流アンプ入力
     b.pack(["R13", "C17", "R14", "R15", "C18", "C16", "R10"], 10.6, ya, 15.9, rot=90, side=B)  # IBUS, OCP 基準, VBUS 監視
-    if W9:   # 9 マス: 8 マスの配置を横方向に比例して広げる (ゲート確認 LED 群は J2 に寄せて置いてある)
+    if True:   # 20.32mm 幅基準の配置を横方向に比例して広げる (ゲート確認 LED 群は J2 に寄せて置いてある)
         k = float(os.environ.get("MPB_W9K", MW / 20.32))              # 横方向の倍率 (試行用に変えられる)
         off = pcblib.MM(float(os.environ.get("MPB_W9OFF", "0")))         # 横方向のずらし量 (mm)
         gl = {f"R{50 + i}" for i in range(8)} | {f"D{10 + i}" for i in range(8)}
@@ -190,12 +190,12 @@ def build_main(route=True):
 
 
 # ---------------------------------------------------------------------------
-# パワー段子基板 A / C (幅 = モジュールと同じ 20.32mm)
+# パワー段子基板 A / C (幅 = モジュールと同じ 22.86mm)
 # ---------------------------------------------------------------------------
-DH_EXT = 17.4 if W9 else 18.6  # モジュール下端より下に伸ばす長さ (電源入力 J3 / モータ出力 J4)
+DH_EXT = 17.4  # モジュール下端より下に伸ばす長さ (電源入力 J3 / モータ出力 J4)
 LEG = {"A": dict(W=MW, H=MH + DH_EXT), "C": dict(W=MW, H=MH + DH_EXT)}
-LEG_PARAMS = {"A": tuple(os.environ.get("MPB_A_PARAMS", "block,0.9,0.7" if W9 else "block,1.3,0.7").split(",")),
-              "C": tuple(os.environ.get("MPB_C_PARAMS", "rows,1.0,0.7" if W9 else "rows,1.4,0.7").split(","))}
+LEG_PARAMS = {"A": tuple(os.environ.get("MPB_A_PARAMS", "block,0.9,0.7").split(",")),
+              "C": tuple(os.environ.get("MPB_C_PARAMS", "rows,1.0,0.7").split(","))}
 LEG_PARAMS = {k: (v[0], float(v[1]), float(v[2])) for k, v in LEG_PARAMS.items()}
 
 
@@ -264,7 +264,7 @@ def build_daughter(key, route=True):
                   outside_ok={"J4", "J1", "J2"}, fr_opts=FR_OPTS)
 
 
-BW = 43.18 if W9 else 40.64   # 子基板 B の幅 (8 マス版 16 マス / 9 マス版 17 マス)。モジュールは中央 (左右対称)
+BW = 43.18   # 子基板 B の幅 (17 マス)。モジュールは中央 (左右対称)
 BOFF = (BW - MW) / 2
 B_GAP = tuple(float(v) for v in os.environ.get("MPB_B_GAP", "0.9,0.45").split(","))   # 上面の部品間隔 (外側, モジュール下)
 
@@ -272,7 +272,7 @@ B_GAP = tuple(float(v) for v in os.environ.get("MPB_B_GAP", "0.9,0.45").split(",
 def build_daughter_b(route=True):
     """TO-263 x8 は下面に 3 列 x 3 段 (ソケット端子列の間を避ける)。ゲート抵抗・シャントは上面の外側."""
     import gen_schematic as gs
-    W, H = BW, MH + 13.6           # 40.64 x 66.94mm (Rev 0.3 の 66 x 66mm から -38%), 9 マス版 43.18 x 66.94mm
+    W, H = BW, MH + 13.6           # 43.18 x 66.94mm (Rev 0.3 の 66 x 66mm から -34%)
     b = Pcb(prj("daughter/PWR_B"), W, H, "mPBCH32M030DS0 power board B", rev="0.4")
     hicur_daughter(b)
     b.place("J1", BOFF + PIN_X[0], PIN_Y0)
@@ -450,18 +450,18 @@ def fab():
 
 
 def nopour():
-    """手配線用: 仕上げた MCU モジュールからベタ (GND・大電流の太らせ) を全部外した版を <VAR>_nopour/ に作る。
+    """手直し用: 仕上げた MCU モジュールからベタ (GND・大電流の太らせ) を全部外した版を nopour/ に作る。
     配線とビアは残し, ベタへ落とすだけのビア (スティッチング) は外す。"""
     import glob
     import shutil
     src = os.path.join(pcblib.HERE, VAR or ".")
-    dst = os.path.join(pcblib.HERE, (VAR.rstrip("/") or "w8") + "_nopour")
+    dst = os.path.join(pcblib.HERE, (VAR.rstrip("/") + "_" if VAR else "") + "nopour")
     os.makedirs(dst, exist_ok=True)
     for f in glob.glob(os.path.join(src, "*.kicad_sch")) + [os.path.join(src, n) for n in (
             "mPBCH32M030DS0.kicad_pro", "parts.json", "expected_nets.txt", "bom.csv", "fp-lib-table", "sym-lib-table")]:
         if os.path.exists(f):
             shutil.copy(f, dst)
-    if not VAR:   # 8 マス版はライブラリの相対パスが 1 段浅い
+    if not VAR:   # nopour/ は 1 段深いのでライブラリの相対パスを直す
         for n in ("fp-lib-table", "sym-lib-table"):
             t = open(os.path.join(dst, n), encoding="utf-8").read().replace("${KIPRJMOD}/", "${KIPRJMOD}/../")
             open(os.path.join(dst, n), "w", encoding="utf-8").write(t)
@@ -521,7 +521,7 @@ def summarize():
     out = os.path.join(pcblib.HERE, "..", "docs", "pcb", VAR, "drc_summary.md")
     with open(out, "w", encoding="utf-8") as f:
         f.write("# DRC 結果 (KiCad 8 pcbnew, gen_pcb.py 実行時に自動生成)\n\n"
-                "ルール: 2 層 / 最小線幅・間隙 0.127mm / ビア 0.6mm (穴 0.3mm, 大電流 0.8mm, QFN サーマルビア 0.2mm) / 基板端 0.25mm。" + ("" if W9 else "8 マス版の MCU モジュールのみ最小線幅・間隙 0.10mm / ビア 0.5mm (穴 0.25mm) (JLCPCB の 2 層標準外)。") + "\n"
+                "ルール: 2 層 / 最小線幅・間隙 0.127mm / ビア 0.6mm (穴 0.3mm, 大電流 0.8mm, QFN サーマルビア 0.2mm) / 基板端 0.25mm。" + "\n"
                 "「lib_footprint_issues」(ライブラリ照合) はスクリプト生成のため対象外。\n\n"
                 "| 基板 | 電気的エラー (配線・間隙・未接続など) | 警告 (シルク等, 製造時にクリップされるもの) |\n|---|---|---|\n")
         f.write("\n".join(rows) + "\n")

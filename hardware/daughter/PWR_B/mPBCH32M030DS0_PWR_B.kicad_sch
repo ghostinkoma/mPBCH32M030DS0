@@ -6,7 +6,7 @@
 (text "mPBCH32M030DS0 Rev 0.4 子基板 B: TKR74F04PB (24V 系)" (exclude_from_sim no) (at 20 30 0) (effects (font (size 2 2)) (justify left bottom)) (uuid "4210477c-0490-5066-9ce7-1ecfffc6f9e5"))
 (text "" (exclude_from_sim no) (at 20 37 0) (effects (font (size 2 2)) (justify left bottom)) (uuid "07f419ed-6003-505d-b1e4-ff4c8c28c8f2"))
 (text "・MOSFET: TKR74F04PB x8 (4 ハーフブリッジ)   入力電圧: 12〜24V (上限 26V, 安定化電源)   出力電流の目安: 約 10A (ピンヘッダ律速)" (exclude_from_sim no) (at 20 44 0) (effects (font (size 2 2)) (justify left bottom)) (uuid "011067a6-ee36-5cef-b223-ad2408f42deb"))
-(text "・上面: MCU モジュールを挿す 1x21 ピンソケット x2 (左右対称, 列間 15.24mm), 電源入力 J3, モータ出力 J4, バルク容量" (exclude_from_sim no) (at 20 51 0) (effects (font (size 2 2)) (justify left bottom)) (uuid "8a1fc8b9-04a3-5f9c-80e4-beb19d1adda5"))
+(text "・上面: MCU モジュールを挿す 1x21 ピンソケット x2 (左右対称, 列間 17.78mm), 電源入力 J3, モータ出力 J4, バルク容量" (exclude_from_sim no) (at 20 51 0) (effects (font (size 2 2)) (justify left bottom)) (uuid "8a1fc8b9-04a3-5f9c-80e4-beb19d1adda5"))
 (text "・下面 (ヒートシンク側): MOSFET, シャント, ゲート抵抗, 理想ダイオード, TVS, 78L05 など。LED は置かない (モジュール側)" (exclude_from_sim no) (at 20 58 0) (effects (font (size 2 2)) (justify left bottom)) (uuid "84916475-01cf-5d68-abaf-9438247f2416"))
 (text "・電圧系に依存する部品 (TVS, VBUS 分圧 = OVP, バルク容量, 相電圧分圧) はこの基板で決める" (exclude_from_sim no) (at 20 65 0) (effects (font (size 2 2)) (justify left bottom)) (uuid "1dc0b314-e0d9-5302-af5c-649d31b413a4"))
 (text "" (exclude_from_sim no) (at 20 72 0) (effects (font (size 2 2)) (justify left bottom)) (uuid "cae59f5e-ca23-5566-b795-cb2f8fea0eca"))
