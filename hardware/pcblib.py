@@ -24,6 +24,7 @@ STD_FP = os.environ.get("KICAD8_FOOTPRINT_DIR", os.environ.get("KICAD7_FOOTPRINT
 KICAD7 = pcbnew.Version().startswith("7")
 FREEROUTING = os.environ.get("FREEROUTING_JAR", os.path.join(HERE, "tools", "freerouting-1.9.0.jar"))
 MM = pcbnew.FromMM
+ZONE_EDGE = float(os.environ.get("MPB_ZONE_EDGE", "1.0"))   # ベタを基板端から離す距離 (mm)。ミシン目・V カットで割っても銅が出ないように
 
 
 def P(x, y):
@@ -383,7 +384,8 @@ class Pcb:
                 for i in range(poly.OutlineCount()):
                     ch = poly.Outline(i)
                     pts = [pcblib_pt(ch.CPoint(k)) for k in range(ch.PointCount())]
-                    pts = [(min(max(x, 0.3), self.W - 0.3), min(max(y, 0.3), self.H - 0.3)) for x, y in pts]
+                    e = ZONE_EDGE
+                    pts = [(min(max(x, e), self.W - e), min(max(y, e), self.H - e)) for x, y in pts]
                     if len(pts) >= 3:
                         self.zone(net, lname, pts, priority=priority, name=f"{net}_{lname}_grow{i}")
                         n += 1

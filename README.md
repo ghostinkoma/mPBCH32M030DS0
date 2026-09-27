@@ -84,6 +84,8 @@ USB-C から ESP32-C3 / Arduino のように書き込めて、**USB-PD 充電器
 - 全基板 2 層・線幅・間隙 0.127mm / ビア 0.6mm (穴 0.3mm) で**未接続 0 / 電気的 DRC エラー 0**。
 - `hardware/nopour/` は、モジュールの配線とビアを残して GND ベタ・大電流の太らせたベタ (とベタへ落とすだけの
   スティッチングビア) を外した手直し用です。手直ししたら KiCad でベタ (GND 両面) を引き直してください。
+- ベタは全基板で基板端から 1.0mm 離しています (ミシン目で割っても銅が出ないように)。
+- **発注用パネル**: モジュール + 子基板 A / B / C を 1 枚 (97.9 × 95.6mm) にミシン目で面付けしたデータ `hardware/fab/mPBCH32M030DS0_panel.zip` (生成 `python3 gen_panel.py`, 詳細は [docs/stacking.md](docs/stacking.md#発注用パネル-ミシン目-4-種-1-枚))。
 - 再生成: `python3 gen_pcb.py all` (配線まで)、`python3 gen_pcb.py nopour` / `fab` / `summary`。
 
 ## リポジトリ構成

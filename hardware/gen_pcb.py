@@ -7,6 +7,7 @@ mPBCH32M030DS0 Rev 0.4 の基板 (2 層) を生成する。KiCad 8 (pcbnew 8.0.x
   python3 gen_pcb.py fab                   # 製造データ (hardware/fab/*.zip)
   python3 gen_pcb.py summary               # docs/pcb/drc_summary.md を更新
   python3 gen_pcb.py nopour                # ベタなし版 (hardware/nopour/)
+  python3 gen_pcb.py zone_edge             # 配線済みの基板のベタだけを基板端から 1.0mm 離して塗り直す
 
 構成 (上から見た座標, 原点 = 左上):
   MCU モジュール  22.86 x 53.34mm (9 x 21 マス)。左右端に 21 ピン x 2 列 (x = 2.54 / 20.32, 列間 17.78mm)
@@ -373,7 +374,8 @@ def finish(b, route, silk=(), zones_hicur=(), fr_opts=(), outside_ok=()):
         print(f"[{b.name}] grown power zones: {g}")
     for net, layer, pts in zones_hicur:
         b.zone(net, layer, pts, priority=2)
-    ol = [(0.3, 0.3), (b.W - 0.3, 0.3), (b.W - 0.3, b.H - 0.3), (0.3, b.H - 0.3)]
+    e = pcblib.ZONE_EDGE
+    ol = [(e, e), (b.W - e, e), (b.W - e, b.H - e), (e, b.H - e)]
     b.zone("GND", "F.Cu", ol, priority=0)
     b.zone("GND", "B.Cu", ol, priority=0)
     b.reload()
@@ -449,6 +451,32 @@ def fab():
         print("fab:", os.path.relpath(out + ".zip", pcblib.HERE))
 
 
+def zone_edge():
+    """配線済みの基板のベタだけを基板端から ZONE_EDGE (既定 1.0mm) 離して塗り直す (配線はそのまま)。
+    塗り直しでできた浮島・不要な孤立片・宙に浮いたビアを除き, DRC と図を更新する."""
+    for d, name in BOARDS:
+        path = os.path.join(pcblib.HERE, d, name + ".kicad_pcb")
+        b = Pcb.__new__(Pcb)
+        b.dir, b.name = os.path.join(pcblib.HERE, d), name
+        b.b = pcblib.pcbnew.LoadBoard(path)
+        eb = b.b.GetBoardEdgesBoundingBox()
+        b.W, b.H = (round(pcblib.pcbnew.ToMM(v) - 0.05, 2) for v in (eb.GetRight(), eb.GetBottom()))   # 原点 = 左上, 外形線幅 0.1mm
+        e, F = pcblib.ZONE_EDGE, pcblib.MM
+        for z in b.b.Zones():
+            ol = z.Outline()
+            for i in range(ol.OutlineCount()):
+                ch = ol.Outline(i)
+                for k in range(ch.PointCount()):
+                    x, y = (pcblib.pcbnew.ToMM(v) for v in (ch.CPoint(k).x, ch.CPoint(k).y))
+                    ch.SetPoint(k, pcblib.pcbnew.VECTOR2I(F(min(max(x, e), b.W - e)), F(min(max(y, e), b.H - e))))
+        pcblib.pcbnew.ZONE_FILLER(b.b).Fill(b.b.Zones())
+        nd, npr, ndv = b.drop_floating_islands(), b.prune_isolated_pieces(), b.remove_dangling_vias()
+        assert pcblib.pcbnew.SaveBoard(path, b.b)
+        kinds, unconn, rpt = b.drc()
+        print(f"[{name}] zone edge {e}mm: islands {nd}, pieces {npr}, dangling vias {ndv}; DRC: {kinds} unconnected={unconn}")
+        render(path, b)
+
+
 def nopour():
     """手直し用: 仕上げた MCU モジュールからベタ (GND・大電流の太らせ) を全部外した版を nopour/ に作る。
     配線とビアは残し, ベタへ落とすだけのビア (スティッチング) は外す。"""
@@ -521,7 +549,7 @@ def summarize():
     out = os.path.join(pcblib.HERE, "..", "docs", "pcb", VAR, "drc_summary.md")
     with open(out, "w", encoding="utf-8") as f:
         f.write("# DRC 結果 (KiCad 8 pcbnew, gen_pcb.py 実行時に自動生成)\n\n"
-                "ルール: 2 層 / 最小線幅・間隙 0.127mm / ビア 0.6mm (穴 0.3mm, 大電流 0.8mm, QFN サーマルビア 0.2mm) / 基板端 0.25mm。" + "\n"
+                "ルール: 2 層 / 最小線幅・間隙 0.127mm / ビア 0.6mm (穴 0.3mm, 大電流 0.8mm, QFN サーマルビア 0.2mm) / 基板端 0.25mm (ベタは 1.0mm)。" + "\n"
                 "「lib_footprint_issues」(ライブラリ照合) はスクリプト生成のため対象外。\n\n"
                 "| 基板 | 電気的エラー (配線・間隙・未接続など) | 警告 (シルク等, 製造時にクリップされるもの) |\n|---|---|---|\n")
         f.write("\n".join(rows) + "\n")
@@ -530,8 +558,8 @@ def summarize():
 
 if __name__ == "__main__":
     what = sys.argv[1] if len(sys.argv) > 1 else "main"
-    if what in ("fab", "summary", "nopour"):
-        {"fab": fab, "summary": lambda: print(summarize()), "nopour": nopour}[what]()
+    if what in ("fab", "summary", "nopour", "zone_edge"):
+        {"fab": fab, "summary": lambda: print(summarize()), "nopour": nopour, "zone_edge": zone_edge}[what]()
         sys.exit(0)
     route = "--no-route" not in sys.argv
     REUSE = "--reroute" not in sys.argv   # 配置が変わっていなければ前回の配線結果 (build/*.ses) を使う
