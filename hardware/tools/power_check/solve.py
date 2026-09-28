@@ -7,6 +7,7 @@ import json
 import math
 import sys
 
+import os
 import numpy as np
 import pyamg
 import scipy.sparse as sp
@@ -16,6 +17,10 @@ H = 0.05                      # 格子 (mm)
 RHO = 1.72e-8                 # 銅 (Ω·m, 20°C)
 T_CU = 35e-6                  # 1oz
 RSQ = RHO / T_CU              # シート抵抗 (Ω/□)
+# レジスト開口に盛ったはんだ (MPB_SOLDER_T mm, 既定 0 = 無し)。Sn63Pb37 14.5µΩ·cm として銅の厚みに換算
+T_SOLDER = float(os.environ.get("MPB_SOLDER_T", "0")) * 1e-3
+RHO_SOLDER = float(os.environ.get("MPB_SOLDER_RHO", "14.5e-8"))
+K_SOLDER = 1.0 + (T_SOLDER / RHO_SOLDER) / (T_CU / RHO)
 T_PLATE = 20e-6               # スルーホールめっき厚 (JLCPCB 公称 ≥18µm)
 BOARD_T = 1.6e-3
 
@@ -159,6 +164,14 @@ def solve(board, case):
             links.append((pm["F"] & pm["B"], g, f'{p["ref"]}.{p["num"]}', None))
     for L in cu:
         cu[L] &= ~holes
+    # 層ごとの厚み倍率 (はんだを盛った所は K_SOLDER)
+    km = {L: np.ones(shape) for L in ("F", "B")}
+    if K_SOLDER > 1.0:
+        for L in ("F", "B"):
+            mk = np.zeros(shape, bool)
+            for poly in board.get("mask", {}).get(L, []):
+                mk |= raster_poly_xor(shape, poly, x0, y0)
+            km[L][mk & cu[L]] = K_SOLDER
     # ---- ノード番号 ----
     idx = {}
     n = 0
@@ -172,12 +185,14 @@ def solve(board, case):
     g0 = 1.0 / RSQ
     for L in ("F", "B"):
         a = idx[L]
-        for (da, db) in ((a[:, :-1], a[:, 1:]), (a[:-1, :], a[1:, :])):
+        k = km[L]
+        for (da, db, ka, kb) in ((a[:, :-1], a[:, 1:], k[:, :-1], k[:, 1:]), (a[:-1, :], a[1:, :], k[:-1, :], k[1:, :])):
             m = (da >= 0) & (db >= 0)
             i, j = da[m], db[m]
+            ge = g0 * 2 * ka[m] * kb[m] / (ka[m] + kb[m])       # 半セルずつの直列
             rows += [i, j]
             cols += [j, i]
-            vals += [np.full(i.size, -g0), np.full(i.size, -g0)]
+            vals += [-ge, -ge]
     link_edges = []
     for ring, g, label, drill in links:
         fi, bi = idx["F"][ring], idx["B"][ring]
@@ -260,14 +275,17 @@ def solve(board, case):
         VV[a >= 0] = Vs[a[a >= 0]]
         ex = np.zeros(shape)
         ey = np.zeros(shape)
-        dxv = (VV[:, :-1] - VV[:, 1:]) * g0          # 右向きの辺電流 (A)
+        kL = km[L]
+        gx = g0 * 2 * kL[:, :-1] * kL[:, 1:] / (kL[:, :-1] + kL[:, 1:])
+        gy = g0 * 2 * kL[:-1, :] * kL[1:, :] / (kL[:-1, :] + kL[1:, :])
+        dxv = (VV[:, :-1] - VV[:, 1:]) * gx          # 右向きの辺電流 (A)
         dxv = np.nan_to_num(dxv)
-        dyv = np.nan_to_num((VV[:-1, :] - VV[1:, :]) * g0)
+        dyv = np.nan_to_num((VV[:-1, :] - VV[1:, :]) * gy)
         ex[:, :-1] += dxv / 2
         ex[:, 1:] += dxv / 2
         ey[:-1, :] += dyv / 2
         ey[1:, :] += dyv / 2
-        j = np.hypot(ex, ey) / H                      # A/mm
+        j = np.hypot(ex, ey) / H / kL                 # A/mm (はんだ込みの厚みを 1oz 銅の幅に換算)
         # パッド (部品・はんだで覆われる) とその 0.1mm 周囲は除外
         pm = padmask[L]
         dil = pm.copy()

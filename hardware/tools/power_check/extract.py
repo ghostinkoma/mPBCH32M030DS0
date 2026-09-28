@@ -42,6 +42,10 @@ for n in nets:
                     pd["poly"][k] = polys(ps); d[k] += polys(ps)
             d["pads"].append(pd)
     data[n] = d
+mask = {"F": [], "B": []}      # はんだを盛るレジスト開口 (PCB_SHAPE の多角形)
+for d in b.GetDrawings():
+    if d.GetLayer() in (pcbnew.F_Mask, pcbnew.B_Mask) and d.GetClass() == "PCB_SHAPE" and d.GetShape() == pcbnew.SHAPE_T_POLY:
+        mask["F" if d.GetLayer() == pcbnew.F_Mask else "B"] += polys(d.GetPolyShape())
 eb = b.GetBoardEdgesBoundingBox()
-json.dump({"W": T(eb.GetRight()), "H": T(eb.GetBottom()), "nets": data}, open(out, "w"))
+json.dump({"W": T(eb.GetRight()), "H": T(eb.GetBottom()), "nets": data, "mask": mask}, open(out, "w"))
 print("wrote", out, {n: (len(v["F"]), len(v["B"]), len(v["vias"]), len(v["pads"])) for n, v in data.items()})

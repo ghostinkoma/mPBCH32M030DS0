@@ -345,7 +345,7 @@ def build_daughter_a(route=True, key="A"):
     put_c(b, "TH1", 6.1, 46.6, rot=90)                      # NTC は上面 (レッグ 0 の下, GND ベタの中)
     # 電流チャネル選択 (はんだジャンパ) は上面の J1 の横。SRC / ISH は下面のベタからビアで上げる
     put_c(b, "JP7", 6.0, A_LSY[0] + 2.4, rot=-90)   # 1 (SRC0) が上
-    put_c(b, "JP5", 6.0, (A_LSY[1] + A_LSY[2]) / 2 + 0.3, rot=-90)   # 1 (SRC1) が下
+    put_c(b, "JP5", 6.0, (A_LSY[1] + A_LSY[2]) / 2 + 0.3, rot=90)    # 1 (SRC1) が下 (レッグ 1 側)
     # ---- 下面の下部 (レッグ 0 の下, 部品置き場 x 6.2〜11.0) ----
     put_c(b, "R70", 4.75, 49.0, rot=90, side=B)            # ISH (上) → GND (下)
     if key == "A":                                           # VBUS 分圧 (横置き, 相電圧分圧の列の上)
@@ -391,9 +391,11 @@ def build_daughter_a(route=True, key="A"):
         Z("VBUS", "B.Cu", 6.0, ly + 2.3, 11.65, hy + 1.2)               # 10µF/0.1µF の下 + HS ドレイン
         Z(f"SW{i}", "B.Cu", 10.95, ly - 1.2, 13.7, ly + 1.2)            # LS ドレイン
         Z(f"SW{i}", "B.Cu", 12.1, ly + 1.2, 13.7, hy + 0.55)            # → HS ピン 1-3
+        Z(f"SW{i}", "B.Cu", 11.9, ly + 1.2, 13.7, ly + 2.05)            # HS ピンの上のビア置き場
         Z(f"SW{i}", "B.Cu", 13.6, hy - 0.85, 14.4, hy - 0.1)            # GH-SW 20k の SW 側
         x0, x1 = A_SW_LANE[i]
         Z(f"SW{i}", "F.Cu", 11.3, ly - 1.2, x1, ly + 1.2)               # 上面: ビアから自分の帯へ
+        Z(f"SW{i}", "F.Cu", 11.3, ly + 1.2, 13.05, hy + 0.55)           # HS 側のビアの上 (上面の帯へ逃がす)
     Z("ISH", "B.Cu", 3.5, 7.4, 5.9, 48.1)                               # ISH の背骨 (下面)
     Z("ISH", "F.Cu", 4.5, 5.0, 5.6, 8.4)                                # C7 (−) → 背骨 (J1 1-3 番の下面を空ける)
     Z("ISH", "B.Cu", 1.6, 43.6, 3.6, 45.3)                              # → J1 18 番 (ISH)
@@ -421,6 +423,9 @@ def build_daughter_a(route=True, key="A"):
     Z("SW0", "B.Cu", 12.6, 51.3, 15.2, 73.9)
     Z("SW0", "B.Cu", 11.3, 69.7, 21.86, 73.9)
     fixed_zones(b, zs)
+    # 大電流のベタはレジストを開けてはんだを盛る (ハンダレベラー)。下面の MOSFET の範囲 (ヒートシンク) も開けるが,
+    # そこは盛りを 0.3〜0.5mm 以下に抑える (MOSFET の高さ 1.0mm + 放熱シートより低く)
+    b.solder_nets = {"VBUS", "ISH", "VIN", "VIN_F", "GND"} | {f"SW{i}" for i in range(4)} | {f"SRC{i}" for i in range(4)}
     # 自動配線に空ける縁の帯 (同ネットが外から取り付く所)。ISH の背骨と上面の SW 帯は外から来る同ネットが無いので 0
     b.ko_band = lambda net, layer: 0.0 if (net == "ISH" and layer == "B.Cu") or (net.startswith("SW") and layer == "F.Cu") else 0.3
     # ビア (上下の銅箔をつなぐ。0.6/0.3)
@@ -434,6 +439,7 @@ def build_daughter_a(route=True, key="A"):
         ly, hy = A_LSY[i], A_LSY[i] + A_DY
         vias += [("VBUS", x, hy + dy) for x in (9.75, 10.55) for dy in (-0.8, 0, 0.8)]      # HS ドレイン
         vias += [(f"SW{i}", x, ly + dy) for x in (11.75, 12.6) for dy in (-0.8, 0, 0.8)]   # LS ドレイン
+        vias += [(f"SW{i}", x, ly + 1.62) for x in (12.15, 12.75)]                          # HS ソース側
     vias += [("SW0", x, y) for x in (11.75, 12.6) for y in (51.8, 52.5)]
     dyb = 0.0 if key == "A" else 1.8
     vias += [("SW0", 12.68, 46.75 + dyb), ("SW1", 14.68, 47.85 + dyb), ("SW2", 16.78, 48.95 + dyb)]   # 相電圧分圧のタップ
@@ -680,6 +686,9 @@ def finish(b, route, silk=(), zones_hicur=(), fr_opts=(), outside_ok=()):
     ndv = b.remove_dangling_vias()
     if ndv:
         print(f"[{b.name}] removed dangling vias: {ndv}")
+    if getattr(b, "solder_nets", None):     # 電源のベタのレジストを開けてはんだで厚くする
+        ns = b.solder_openings(b.solder_nets, exclude_b=getattr(b, "solder_exclude_b", None))
+        print(f"[{b.name}] solder-mask openings on power copper: {ns}")
     pcblib.set_custom_models(b.b, b.dir)
     path = b.save()
     kinds, unconn, rpt = b.drc()

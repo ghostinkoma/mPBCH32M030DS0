@@ -447,6 +447,40 @@ class Pcb:
                         ol.Append(x, y)
             self._saved_outlines = []
 
+    def solder_openings(self, nets, inset=0.25, exclude_b=None, min_area=0.5):
+        """電源のベタ (配線前に置いた _fixed) の上のレジストを開ける (はんだを盛って厚みを稼ぐ)。
+        開口はベタの実際の塗り (他ネットとの間隙を除いた形) を inset mm 内側へ縮めた形なので,
+        銅の縁と他ネットとの間はレジストが残る (ブリッジ防止)。exclude_b: 下面で開けない範囲 (x0, y0, x1, y1)."""
+        n = 0
+        for z in self.b.Zones():
+            if "_fixed" not in z.GetZoneName() or z.GetNetname() not in nets:
+                continue
+            L = z.GetLayer()
+            ps = pcbnew.SHAPE_POLY_SET(z.GetFilledPolysList(L))
+            ps.Deflate(MM(inset), pcbnew.CORNER_STRATEGY_CHAMFER_ALL_CORNERS, MM(0.005))
+            if L == pcbnew.B_Cu and exclude_b:
+                for x0, y0, x1, y1 in exclude_b:
+                    ex = pcbnew.SHAPE_POLY_SET()
+                    ex.NewOutline()
+                    for x, y in ((x0, y0), (x1, y0), (x1, y1), (x0, y1)):
+                        ex.Append(MM(x), MM(y))
+                    ps.BooleanSubtract(ex, pcbnew.SHAPE_POLY_SET.PM_FAST)
+            ps.Fracture(pcbnew.SHAPE_POLY_SET.PM_FAST)
+            for i in range(ps.OutlineCount()):
+                one = pcbnew.SHAPE_POLY_SET()
+                one.AddOutline(ps.Outline(i))
+                if one.Area() < MM(1) * MM(1) * min_area:
+                    continue
+                sh = pcbnew.PCB_SHAPE(self.b)
+                sh.SetShape(pcbnew.SHAPE_T_POLY)
+                sh.SetPolyShape(one)
+                sh.SetFilled(True)
+                sh.SetWidth(0)
+                sh.SetLayer(pcbnew.F_Mask if L == pcbnew.F_Cu else pcbnew.B_Mask)
+                self.b.Add(sh)
+                n += 1
+        return n
+
     def rect_zone(self, net, layer, x0, y0, x1, y1, priority=0):
         return self.zone(net, layer, [(x0, y0), (x1, y0), (x1, y1), (x0, y1)], priority)
 
