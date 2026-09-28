@@ -358,6 +358,8 @@ C_2U2 = ("2.2uF/25V", "C1608", "Murata GRM188R61E225KA12D (X5R 1608)")
 C_4U7 = ("4.7uF/16V", "C1608", "Samsung CL10A475KO8NNNC (X5R 1608)")
 C_10U25 = ("10uF/25V", "C2012", "Murata GRM21BR61E106KA73L (X5R 2012)")
 C_10U50 = ("10uF/50V", "C1206", "Murata GRM31CR61H106KA12L (X5R 1206)")
+# レッグの VBUS-SRC 容量 (子基板の下面, MOSFET の横)。A/C は MOSFET より低い 0.85mm 厚にして, ヒートシンクが FET に当たるようにする
+C_10U25_LP = ("10uF/25V", "C2012", "Murata GRM219R61E106KA12D (X5R 0805, 厚さ 0.85mm)")
 C_10N = ("10nF/50V", "C1005", "Murata GRM155R71H103KA88D (X7R 1005)")
 C_1N = ("1nF/50V", "C1005", "Murata GRM155R71H102KA01D (X7R 1005)")
 C_1N_C0G = ("1nF C0G", "C1005", "Murata GRM1555C1H102JA01D (C0G 1005)")
@@ -594,6 +596,9 @@ def build_main():
     res(io, "R115", "4.7k", 380, 215, "+3V3", "I2C_SCL", rot=0, dnp=True)
     res(io, "R120", "470R", 350, 240, "nFAULT_IN", "nFAULT", rot=0)
     res(io, "R122", "10k", 380, 240, "+3V3", "nFAULT", rot=0)
+    # nFAULT は TIM1 BKIN (Low で全ゲート OFF)。モジュール内でスイッチング系の近くを通るため, 誤停止しないよう MCU 側で 1nF
+    # (470Ω との時定数 0.47µs, 解除側は 10k で 10µs)。ファームでも BKIN のデジタルフィルタを入れる
+    cap(io, "C120", C_1N, 398, 252, "nFAULT", "GND")
     cap(io, "C103", C_100N, 350, 262, "NTC", "GND", rot=0)
     res(io, "R110", "10k", 380, 262, "+3V3", "NTC", rot=0, dnp=True)
     io.text("NTC 本体は子基板 (MOSFET 近傍)。PA4 の ISOURCE1 で駆動。I2C プルアップ R114/R115 は必要時のみ。", 163, 280, 1.2)
@@ -728,7 +733,7 @@ def build_daughter(key):
         br.wire((cx, yL + 12.7), (cx + 10.16, yL + 12.7))
         br.label(f"SRC{i}", cx + 10.16, yL + 12.7, 0)
         cap(br, f"C{rb + 0}", C_100N, cx + 22.86, ys, "VBUS", f"SRC{i}", rot=0)
-        cap(br, f"C{rb + 1}", C_10U50, cx + 35.56, ys, "VBUS", f"SRC{i}", rot=0)
+        cap(br, f"C{rb + 1}", v.get("legcap", C_10U50), cx + 35.56, ys, "VBUS", f"SRC{i}", rot=0)
     br.text(f"ゲート: {v['rg']} 直列 + {v['rpd']} G-S プルダウン。ゲート確認 LED はモジュール側 (HOx-SWx / LOx-GND)。", 18, 126, 1.3)
 
     br.box(15, 140, 200, 285, "バスシャント / 電流チャネル選択 (はんだジャンパ) / モータ出力 J4")

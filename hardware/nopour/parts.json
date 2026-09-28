@@ -992,6 +992,16 @@
    }
   },
   {
+   "ref": "C120",
+   "fp": "Capacitor_SMD:C_0402_1005Metric",
+   "value": "1nF/50V",
+   "dnp": false,
+   "nets": {
+    "1": "nFAULT",
+    "2": "GND"
+   }
+  },
+  {
    "ref": "C103",
    "fp": "Capacitor_SMD:C_0402_1005Metric",
    "value": "0.1uF/50V",

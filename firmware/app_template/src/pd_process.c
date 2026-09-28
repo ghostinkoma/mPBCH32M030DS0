@@ -533,6 +533,15 @@ void PDO_Request( UINT8 pdo_index )
     else
     {
         memcpy( &PD_Rx_Buf[ 2 ], &Adapter_SrcCap[ 4*(pdo_index-1) + 1 ], 4 );
+        {   /* 要求電流 (BIT9-0, 10mA 単位) を基板の上限・ポリシーで頭打ちにする (Mpb_PD_CurrentLimit_mA) */
+            UINT16 cur10 = (UINT16)PD_Rx_Buf[ 2 ] | ( (UINT16)( PD_Rx_Buf[ 3 ] & 0x03 ) << 8 );
+            UINT16 lim10 = Mpb_PD_CurrentLimit_mA( ) / 10;
+            if( cur10 > lim10 )
+            {
+                PD_Rx_Buf[ 2 ] = (UINT8)( lim10 & 0xFF );
+                PD_Rx_Buf[ 3 ] = (UINT8)( ( PD_Rx_Buf[ 3 ] & 0xFC ) | ( ( lim10 >> 8 ) & 0x03 ) );
+            }
+        }
         PD_PDO_Analyse( 1, &PD_Rx_Buf[ 2 ], &Current, &Voltage );
         PD_LOG("Request:\r\nCurrent:%d mA\r\nVoltage:%d mV\r\n",Current,Voltage);
 

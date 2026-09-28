@@ -619,7 +619,7 @@
 			(net 44 "USB_VBUS_P")
 			(uuid "71041731-b91e-46a5-8228-5e6c8e56c718")
 		)
-		(model "${KICAD8_3DMODEL_DIR}/Fuse.3dshapes/Fuse_1812_4532Metric.wrl"
+		(model "${KIPRJMOD}/../../lib/mPB.3dshapes/Fuse_1812_4532Metric.wrl"
 			(offset
 				(xyz 0 0 0)
 			)
@@ -3957,7 +3957,7 @@
 			)
 			(uuid "d5afe358-efa7-472d-8f94-e6b2c173aa29")
 		)
-		(model "${KICAD8_3DMODEL_DIR}/Package_SO.3dshapes/Vishay_PowerPAK_1212-8_Single.wrl"
+		(model "${KIPRJMOD}/../../lib/mPB.3dshapes/TSON_Advance_3.3x3.3mm.wrl"
 			(offset
 				(xyz 0 0 0)
 			)
@@ -7906,7 +7906,7 @@
 			)
 			(uuid "935e674e-20d3-46ba-b45b-5b1489d2d871")
 		)
-		(model "${KICAD8_3DMODEL_DIR}/Package_SO.3dshapes/Vishay_PowerPAK_1212-8_Single.wrl"
+		(model "${KIPRJMOD}/../../lib/mPB.3dshapes/TSON_Advance_3.3x3.3mm.wrl"
 			(offset
 				(xyz 0 0 0)
 			)
@@ -13087,6 +13087,17 @@
 			(roundrect_rratio 0.125)
 			(net 41 "VIN_F")
 			(uuid "13cdfc88-833d-4cbe-8917-c7ebe6dc90b8")
+		)
+		(model "${KIPRJMOD}/../../lib/mPB.3dshapes/Fuse_Littelfuse_NANO2_2410.wrl"
+			(offset
+				(xyz 0 0 0)
+			)
+			(scale
+				(xyz 1 1 1)
+			)
+			(rotate
+				(xyz 0 0 0)
+			)
 		)
 	)
 	(footprint "R_0402_1005Metric"
@@ -28960,9 +28971,8 @@
 				(xy 11.725 28.494999) (xy 11.725 32.044998) (xy 7.524999 32.044998) (xy 7.524999 29.973122) (xy 6.986799 29.434922)
 				(xy 6.986799 28.9068) (xy 6.986799 25.850623) (xy 3.115 29.722422) (xy 3.115 31.008977) (xy 6.400023 34.294)
 				(xy 6.71822 34.294) (xy 7.5969 35.172679) (xy 7.5969 36.41532) (xy 6.71822 37.294) (xy 5.475579 37.294)
-				(xy 4.5969 36.41532) (xy 4.5969 36.097123) (xy 2.739777 34.24) (xy 1 34.24) (xy 1 28.49) (xy 1 28.49)
-				(xy 5.782338 23.448838) (xy 6.155777 23.0754) (xy 7.212022 23.0754) (xy 7.314579 23.0754) (xy 7.557479 22.8325)
-				(xy 8.80012 22.8325)
+				(xy 4.5969 36.41532) (xy 4.5969 36.097123) (xy 2.739777 34.24) (xy 1 34.24) (xy 1 28.49) (xy 5.782338 23.448838)
+				(xy 6.155777 23.0754) (xy 7.212022 23.0754) (xy 7.314579 23.0754) (xy 7.557479 22.8325) (xy 8.80012 22.8325)
 			)
 		)
 		(filled_polygon
@@ -30873,7 +30883,7 @@
 		)
 		(polygon
 			(pts
-				(xy 1 1) (xy 42.18 1) (xy 42.18 1) (xy 1 1)
+				(xy 1 1) (xy 42.18 1)
 			)
 		)
 	)
@@ -30901,7 +30911,7 @@
 		)
 		(polygon
 			(pts
-				(xy 1 65.94) (xy 42.18 65.94) (xy 42.18 65.94) (xy 1 65.94)
+				(xy 1 65.94) (xy 42.18 65.94)
 			)
 		)
 	)
@@ -30929,7 +30939,7 @@
 		)
 		(polygon
 			(pts
-				(xy 1 1) (xy 1 1) (xy 1 65.94) (xy 1 65.94)
+				(xy 1 1) (xy 1 65.94)
 			)
 		)
 	)
@@ -30957,7 +30967,7 @@
 		)
 		(polygon
 			(pts
-				(xy 42.18 1) (xy 42.18 1) (xy 42.18 65.94) (xy 42.18 65.94)
+				(xy 42.18 1) (xy 42.18 65.94)
 			)
 		)
 	)

@@ -184,6 +184,8 @@ def build_main(route=True):
         put_c(b, "Y1", x89 - 0.45, 24.5, rot=90, side="B")
         yb = b.bbox("Y1")[3] + 0.25
         b.pack(["C131", "C132"], b.bbox("Y1")[0], yb, b.bbox("Y1")[2] + 0.4, side="B", gap=0.25)
+    # nFAULT (TIM1 BKIN) のノイズ対策 1nF: nFAULT の配線沿いで空いている裏面の位置 (MCU の 2 番ピンから 5mm)
+    put_c(b, "C120", 10.15, 26.93, rot=90, side="B")
     pin_labels(b, [("J1", gs.PINMAP_L, +1), ("J2", gs.PINMAP_R, -1)], "B.SilkS", 1.15)
     return finish(b, route, silk=[("mPB CH32M030", MW / 2, MH - 3.4, 0.8, "B.SilkS"),
                                   ("ghostinkoma/mPBCH32M030DS0", MW / 2, MH - 1.8, 0.6, "B.SilkS")],
@@ -403,6 +405,7 @@ def finish(b, route, silk=(), zones_hicur=(), fr_opts=(), outside_ok=()):
     ndv = b.remove_dangling_vias()
     if ndv:
         print(f"[{b.name}] removed dangling vias: {ndv}")
+    pcblib.set_custom_models(b.b, b.dir)
     path = b.save()
     kinds, unconn, rpt = b.drc()
     print(f"[{b.name}] DRC: {kinds} unconnected={unconn} ({os.path.relpath(rpt, pcblib.HERE)})")
@@ -475,6 +478,16 @@ def zone_edge():
         kinds, unconn, rpt = b.drc()
         print(f"[{name}] zone edge {e}mm: islands {nd}, pieces {npr}, dangling vias {ndv}; DRC: {kinds} unconnected={unconn}")
         render(path, b)
+
+
+def models():
+    """確定済みの基板に自作 3D モデルのパスを設定する (配線などは変えない)."""
+    for d, name in BOARDS:
+        path = os.path.join(pcblib.HERE, d, name + ".kicad_pcb")
+        b = pcblib.pcbnew.LoadBoard(path)
+        n = pcblib.set_custom_models(b, os.path.dirname(path))
+        assert pcblib.pcbnew.SaveBoard(path, b)
+        print(f"[{name}] custom 3D models: {n}")
 
 
 def nopour():
@@ -558,8 +571,9 @@ def summarize():
 
 if __name__ == "__main__":
     what = sys.argv[1] if len(sys.argv) > 1 else "main"
-    if what in ("fab", "summary", "nopour", "zone_edge"):
-        {"fab": fab, "summary": lambda: print(summarize()), "nopour": nopour, "zone_edge": zone_edge}[what]()
+    if what in ("fab", "summary", "nopour", "zone_edge", "models"):
+        {"fab": fab, "summary": lambda: print(summarize()), "nopour": nopour, "zone_edge": zone_edge,
+         "models": models}[what]()
         sys.exit(0)
     route = "--no-route" not in sys.argv
     REUSE = "--reroute" not in sys.argv   # 配置が変わっていなければ前回の配線結果 (build/*.ses) を使う

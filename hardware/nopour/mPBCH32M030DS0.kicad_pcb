@@ -10300,7 +10300,7 @@
 			(zone_connect 2)
 			(uuid "37144175-fe19-44d0-baba-f67e5f63153d")
 		)
-		(model "${KICAD8_3DMODEL_DIR}/Package_DFN_QFN.3dshapes/QFN-48-1EP_5x5mm_P0.35mm_EP3.7x3.7mm.wrl"
+		(model "${KIPRJMOD}/lib/mPB.3dshapes/QFN-48-1EP_5x5mm_P0.35mm_EP3.7x3.7mm.wrl"
 			(offset
 				(xyz 0 0 0)
 			)
@@ -21766,6 +21766,220 @@
 			)
 		)
 	)
+	(footprint "C_0402_1005Metric"
+		(layer "B.Cu")
+		(uuid "f41bbfd9-ce0e-4d61-909d-6b0edd10ef0c")
+		(at 10.15 26.93 -90)
+		(descr "Capacitor SMD 0402 (1005 Metric), square (rectangular) end terminal, IPC_7351 nominal, (Body size source: IPC-SM-782 page 76, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf), generated with kicad-footprint-generator")
+		(tags "capacitor")
+		(property "Reference" "C120"
+			(at 0 1.16 90)
+			(layer "B.SilkS")
+			(uuid "cb63f2b3-559d-44e7-846c-1526e8644a48")
+			(effects
+				(font
+					(size 0.7 0.7)
+					(thickness 0.1)
+				)
+				(justify mirror)
+			)
+		)
+		(property "Value" "1nF/50V"
+			(at 0 -1.16 90)
+			(layer "B.Fab")
+			(hide yes)
+			(uuid "1d231cd0-cf68-4b73-b582-c894eff5e97b")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.15)
+				)
+				(justify mirror)
+			)
+		)
+		(property "Footprint" ""
+			(at 0 0 90)
+			(unlocked yes)
+			(layer "B.Fab")
+			(hide yes)
+			(uuid "f7b263b4-9050-4970-ab37-4d4df4ed108a")
+			(effects
+				(font
+					(size 1.27 1.27)
+					(thickness 0.15)
+				)
+				(justify mirror)
+			)
+		)
+		(property "Datasheet" ""
+			(at 0 0 90)
+			(unlocked yes)
+			(layer "B.Fab")
+			(hide yes)
+			(uuid "c8d3da45-84bb-4335-b9ee-01951568ed1c")
+			(effects
+				(font
+					(size 1.27 1.27)
+					(thickness 0.15)
+				)
+				(justify mirror)
+			)
+		)
+		(property "Description" ""
+			(at 0 0 90)
+			(unlocked yes)
+			(layer "B.Fab")
+			(hide yes)
+			(uuid "1c26e0c8-5507-4038-b6e0-cd22afa24941")
+			(effects
+				(font
+					(size 1.27 1.27)
+					(thickness 0.15)
+				)
+				(justify mirror)
+			)
+		)
+		(attr smd)
+		(fp_line
+			(start 0.107836 0.36)
+			(end -0.107836 0.36)
+			(stroke
+				(width 0.12)
+				(type solid)
+			)
+			(layer "B.SilkS")
+			(uuid "fc723080-7fba-45e4-9a1e-5fdb62e03669")
+		)
+		(fp_line
+			(start 0.107836 -0.36)
+			(end -0.107836 -0.36)
+			(stroke
+				(width 0.12)
+				(type solid)
+			)
+			(layer "B.SilkS")
+			(uuid "e878bce4-a94b-4fb2-b637-fc3f39aa4dde")
+		)
+		(fp_line
+			(start -0.91 0.46)
+			(end -0.91 -0.46)
+			(stroke
+				(width 0.05)
+				(type solid)
+			)
+			(layer "B.CrtYd")
+			(uuid "48c17f11-becc-4127-9a87-6be751194c38")
+		)
+		(fp_line
+			(start 0.91 0.46)
+			(end -0.91 0.46)
+			(stroke
+				(width 0.05)
+				(type solid)
+			)
+			(layer "B.CrtYd")
+			(uuid "a82efb8a-7f60-4549-8885-1883f1c2d4c5")
+		)
+		(fp_line
+			(start -0.91 -0.46)
+			(end 0.91 -0.46)
+			(stroke
+				(width 0.05)
+				(type solid)
+			)
+			(layer "B.CrtYd")
+			(uuid "a152d819-528f-491a-a7bb-69da7e561642")
+		)
+		(fp_line
+			(start 0.91 -0.46)
+			(end 0.91 0.46)
+			(stroke
+				(width 0.05)
+				(type solid)
+			)
+			(layer "B.CrtYd")
+			(uuid "80dd45c2-601d-46db-9d8a-7c4c6779f19a")
+		)
+		(fp_line
+			(start -0.5 0.25)
+			(end -0.5 -0.25)
+			(stroke
+				(width 0.1)
+				(type solid)
+			)
+			(layer "B.Fab")
+			(uuid "5207db5c-463e-44a9-808f-d71ec25c8cab")
+		)
+		(fp_line
+			(start 0.5 0.25)
+			(end -0.5 0.25)
+			(stroke
+				(width 0.1)
+				(type solid)
+			)
+			(layer "B.Fab")
+			(uuid "5b46a0ea-544f-49df-b5e9-5e9b8b47e453")
+		)
+		(fp_line
+			(start -0.5 -0.25)
+			(end 0.5 -0.25)
+			(stroke
+				(width 0.1)
+				(type solid)
+			)
+			(layer "B.Fab")
+			(uuid "537fb306-2013-4992-85b2-97e10bccf98f")
+		)
+		(fp_line
+			(start 0.5 -0.25)
+			(end 0.5 0.25)
+			(stroke
+				(width 0.1)
+				(type solid)
+			)
+			(layer "B.Fab")
+			(uuid "804b989e-d2d7-4547-aa21-adf2885b0966")
+		)
+		(fp_text user "${REFERENCE}"
+			(at 0 0 90)
+			(layer "B.Fab")
+			(uuid "40e57cb7-5805-47dd-b9ca-f84889fbba85")
+			(effects
+				(font
+					(size 0.25 0.25)
+					(thickness 0.04)
+				)
+				(justify mirror)
+			)
+		)
+		(pad "1" smd roundrect
+			(at -0.48 0 270)
+			(size 0.56 0.62)
+			(layers "B.Cu" "B.Paste" "B.Mask")
+			(roundrect_rratio 0.25)
+			(net 22 "nFAULT")
+			(uuid "72530d8a-e2a6-42bc-abe6-a8f7e14c8851")
+		)
+		(pad "2" smd roundrect
+			(at 0.48 0 270)
+			(size 0.56 0.62)
+			(layers "B.Cu" "B.Paste" "B.Mask")
+			(roundrect_rratio 0.25)
+			(net 5 "GND")
+			(uuid "449f52ec-79a1-4bb2-973c-adfb6f5f8aa2")
+		)
+		(model "${KICAD8_3DMODEL_DIR}/Capacitor_SMD.3dshapes/C_0402_1005Metric.wrl"
+			(offset
+				(xyz 0 0 0)
+			)
+			(scale
+				(xyz 1 1 1)
+			)
+			(rotate
+				(xyz 0 0 0)
+			)
+		)
+	)
 	(footprint "R_0402_1005Metric"
 		(layer "B.Cu")
 		(uuid "f7166781-ee46-459c-9b01-75e97cbbd50d")
@@ -23273,6 +23487,14 @@
 		(uuid "303ae688-337a-45c1-8dad-5cc749e8fc3e")
 	)
 	(segment
+		(start 16.059999 7.39)
+		(end 16.059999 8.57)
+		(width 0.4)
+		(layer "F.Cu")
+		(net 5)
+		(uuid "3661b915-488a-4275-b780-e03ef5afb829")
+	)
+	(segment
 		(start 18.7649 30.3927)
 		(end 18.5283 30.1561)
 		(width 0.127)
@@ -23767,6 +23989,14 @@
 		(layers "F.Cu" "B.Cu")
 		(net 5)
 		(uuid "9bf2aac8-9db2-4d60-af5c-9e988f233e2d")
+	)
+	(via
+		(at 16.059999 8.57)
+		(size 0.6)
+		(drill 0.3)
+		(layers "F.Cu" "B.Cu")
+		(net 5)
+		(uuid "a2919965-b042-4c16-9bdc-394ba37c5bfb")
 	)
 	(via
 		(at 10.1247 12.9685)
@@ -27633,6 +27863,14 @@
 		(uuid "27fbf5c4-ef67-4c15-a4be-9e4c22d60898")
 	)
 	(segment
+		(start 10.75 27.05)
+		(end 10.75 27.35)
+		(width 0.15)
+		(layer "B.Cu")
+		(net 22)
+		(uuid "367c71ec-533e-4ebe-b626-757e3e5cee3b")
+	)
+	(segment
 		(start 17.5632 37.6462)
 		(end 16.8244 38.385)
 		(width 0.127)
@@ -27647,6 +27885,22 @@
 		(layer "B.Cu")
 		(net 22)
 		(uuid "92c10ed0-2074-4362-9967-b64c7a7563dc")
+	)
+	(segment
+		(start 10.35 26.65)
+		(end 10.75 27.05)
+		(width 0.15)
+		(layer "B.Cu")
+		(net 22)
+		(uuid "99158053-dd84-478f-8c23-d896a6d77b0a")
+	)
+	(segment
+		(start 10.75 27.35)
+		(end 10.95 27.55)
+		(width 0.15)
+		(layer "B.Cu")
+		(net 22)
+		(uuid "abde7c85-f3b6-4a0b-a051-84a95197a499")
 	)
 	(segment
 		(start 12.4501 29.8019)

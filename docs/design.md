@@ -124,7 +124,7 @@ WCH 公式 EVT (`openwch/ch32m030`) と東芝 TPN1R603PL データシートで�
 | 過電流 | CMP3 (IBUS vs 25.4A) → TIM1 BKIN、CMP2 (IA) → TIM1 BKIN、TIM2 は CMP3 割込みで停止。F1 15A |
 | 過電圧 | PB4 OVP: VBUS 18.0V で MCU リセット (全ゲート OFF)。TVS SMBJ16A |
 | 過熱 | NTC (FW) + チップ OTP |
-| 外部非常停止 | nFAULT (モジュール J2-20, PA13 = TIM1_BKIN_1) |
+| 外部非常停止 | nFAULT (モジュール J2-20, PA13 = TIM1_BKIN_1)。470Ω + 1nF (C120, 0.47µs) で雑音を除去。CH32M030 の TIM1 には BKIN のデジタルフィルタ (BKF) が無いため、ハードの RC が唯一のフィルタ。誤停止からの自動復帰が必要なら BDTR の AOE を使う |
 | 起動時 / ブートローダ中 | HO は Low 出力、LO は内部プルダウン (解除不可) + 外部 20k → 全 FET OFF |
 
 ### 2.6 ゲート確認 LED

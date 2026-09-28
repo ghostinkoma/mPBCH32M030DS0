@@ -102,6 +102,30 @@ def load_fp(libid):
     return fp
 
 
+# KiCad 8 の標準ライブラリに無い 3D モデル (tools/gen_3dmodels.py で作成) の割当: フットプリント名 → モデル名
+CUSTOM_MODELS = {"CH32M030DS0_QFN48": "QFN-48-1EP_5x5mm_P0.35mm_EP3.7x3.7mm",
+                 "Vishay_PowerPAK_1212-8_Single": "TSON_Advance_3.3x3.3mm",
+                 "Fuse_1812_4532Metric": "Fuse_1812_4532Metric",
+                 "Fuse_Littelfuse_NANO2_2410": "Fuse_Littelfuse_NANO2_2410"}
+
+
+def set_custom_models(board, board_dir):
+    """自作モデルのパスを ${KIPRJMOD} 基準の相対パスで設定する (どのプロジェクト階層からでも開ける)."""
+    rel = os.path.relpath(os.path.join(HERE, "lib", "mPB.3dshapes"), board_dir).replace(os.sep, "/")
+    n = 0
+    for fp in board.GetFootprints():
+        name = CUSTOM_MODELS.get(str(fp.GetFPID().GetLibItemName()))
+        if not name:
+            continue
+        path = "${KIPRJMOD}/" + rel + "/" + name + ".wrl"
+        m = pcbnew.FP_3DMODEL()       # 要素の書き換えは Python 側の複製に効くだけなので, 入れ替える
+        m.m_Filename = path
+        fp.Models().clear()
+        fp.Models().append(m)
+        n += 1
+    return n
+
+
 class Pcb:
     def __init__(self, prjdir, W, H, title, rev="0.3"):
         self.dir = os.path.join(HERE, prjdir)
@@ -395,8 +419,39 @@ class Pcb:
         return self.zone(net, layer, [(x0, y0), (x1, y0), (x1, y1), (x0, y1)], priority)
 
     # ---- 自動配線 ---------------------------------------------------------------
-    def autoroute(self, passes=None, timeout=None, reuse=False, opts=()):
-        """reuse=True: 配置が同じ (DSN が前回と同一) なら前回の SES を再利用する."""
+    def power_first(self, main, width=1.5, clearance=0.25, passes=40, opts=()):
+        """大電流の主経路だけを先に太く配線する。main = {ネット: [部品 or 部品-ピン, ...]}。
+        DSN のネットを主経路のピンだけに絞り (他のネットは外して障害物にする), 1 つのクラス (幅 width) で配線する."""
+        work = os.path.join(self.dir, "build")
+        os.makedirs(work, exist_ok=True)
+        dsn = os.path.join(work, self.name + "_power.dsn")
+        ses = os.path.join(work, self.name + "_power.ses")
+        assert pcbnew.ExportSpecctraDSN(self.b, dsn)
+        txt = open(dsn, encoding="utf-8").read()
+        i0, i1 = txt.index("  (network"), txt.index("  (wiring")
+        nets = []
+        for m in re.finditer(r'\(net ("[^"]+"|[^\s()]+)\s*\(pins([^)]*)\)\s*\)', txt[i0:i1]):
+            name = m.group(1).strip('"')
+            if name not in main:
+                continue
+            keep = [p for p in m.group(2).split() if p.rsplit("-", 1)[0] in main[name] or p in main[name]]
+            if len(keep) >= 2:
+                nets.append((m.group(1), keep))
+        body = "".join("    (net %s\n      (pins %s)\n    )\n" % (n, " ".join(ps)) for n, ps in nets)
+        body += ("    (class PWR %s\n      (circuit\n        (use_via \"Via[0-1]_800:400_um\")\n      )\n"
+                 "      (rule\n        (width %d)\n        (clearance %d)\n      )\n    )\n"
+                 % (" ".join(n for n, _ in nets), round(width * 1000), round(clearance * 1000)))
+        txt = txt[:i0] + "  (network\n" + body + "  )\n" + txt[i1:]
+        open(dsn, "w", encoding="utf-8").write(txt)
+        if os.path.exists(ses):
+            os.remove(ses)
+        run_freerouting(dsn, ses, passes, opts, os.path.join(work, "freerouting_power.log"))
+        assert os.path.exists(ses), "freerouting (power) produced no SES"
+        return self.import_ses(ses)
+
+    def autoroute(self, passes=None, timeout=None, reuse=False, opts=(), protect=False):
+        """reuse=True: 配置が同じ (DSN が前回と同一) なら前回の SES を再利用する。
+        protect=True: 既にある配線 (power_first の主経路) を固定したまま残りを配線する."""
         passes = passes or int(os.environ.get("MPB_FR_PASSES", "40"))
         timeout = timeout or int(os.environ.get("MPB_FR_TIMEOUT", "10800"))
         work = os.path.join(self.dir, "build")
@@ -406,6 +461,10 @@ class Pcb:
         old = open(dsn, encoding="utf-8").read() if os.path.exists(dsn) else None
         assert pcbnew.ExportSpecctraDSN(self.b, dsn), "DSN export failed"
         self._dsn_classes(dsn)
+        if protect:
+            t = open(dsn, encoding="utf-8").read().replace("(type route)", "(type protect)")
+            open(dsn, "w", encoding="utf-8").write(t)
+            reuse = False
         # KiCad は keepout やネットのピン順を毎回違う順で書き出すので, 字句の集合として比較する
         strip = lambda t: (sorted(re.findall(r"[^\s()]+", re.sub(r"\(pcb [^\n]*|\(host_version[^\n]*", "", t or ""))),
                            sorted(re.findall(r"\(class [^\n]*", t or "")))       # ネットクラスの所属も比較
@@ -441,6 +500,11 @@ class Pcb:
             self.b.Remove(z)
         assert pcbnew.ExportSpecctraDSN(self.b, dsn)
         self._dsn_classes(dsn)
+        # 先に通した太い主経路 (power_first) は引き剥がさせない
+        t = open(dsn, encoding="utf-8").read()
+        t = re.sub(r"(\(wire\s+\(path\s+\S+\s+(\d+)[^\n]*?(?:\n[^\n]*?)*?\(type )route\)",
+                   lambda m: m.group(1) + ("protect)" if int(m.group(2)) >= 1400 else "route)"), t)
+        open(dsn, "w", encoding="utf-8").write(t)
         if os.path.exists(ses):
             os.remove(ses)
         run_freerouting(dsn, ses, passes, opts, os.path.join(work, "freerouting_pass2.log"))

@@ -17,6 +17,13 @@ static Mpb_PdStatus s_st;
 static uint16_t s_req_mV, s_req_mA;
 static uint32_t s_last_ms;
 
+/* 要求する電流の上限: ポリシー (want_mA) と基板の上限 (MPB_PD_HW_MAX_MA) の小さい方 */
+uint16_t Mpb_PD_CurrentLimit_mA(void)
+{
+    uint16_t lim = s_pol.want_mA ? s_pol.want_mA : MPB_PD_HW_MAX_MA;
+    return (lim < MPB_PD_HW_MAX_MA) ? lim : MPB_PD_HW_MAX_MA;
+}
+
 void Mpb_PD_PowerEnable(uint8_t on)
 {
     GPIO_WriteBit(MPB_PDEN_PORT, MPB_PDEN_PIN, on ? Bit_SET : Bit_RESET);
@@ -80,7 +87,7 @@ uint8_t Mpb_PD_SelectPdo(const uint8_t *srccap, uint8_t pdo_len)
         best = 1;
     }
     s_req_mV = best_mV;
-    s_req_mA = best_mA;
+    s_req_mA = (best_mA < Mpb_PD_CurrentLimit_mA()) ? best_mA : Mpb_PD_CurrentLimit_mA();
     s_st.attached = 1;
     return best;
 }

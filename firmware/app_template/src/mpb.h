@@ -103,6 +103,10 @@ void     Mpb_PD_Init(const Mpb_PdPolicy *policy);   /* NULL で既定値 */
 void     Mpb_PD_Task(void);                         /* loop() から 1ms 以上の頻度で呼ぶ */
 const Mpb_PdStatus *Mpb_PD_Status(void);
 void     Mpb_PD_PowerEnable(uint8_t on);             /* 手動制御 (通常は自動) */
+/* 基板が連続で流せる USB-PD 電流の上限。モジュールの USB-C (J8) の VBUS パッド口元と
+ * 子基板 F3 までの銅の幅で決まる (docs/stacking.md の電流容量)。PD ソースが 5A を出せても 3A で要求する */
+#define  MPB_PD_HW_MAX_MA   3000u
+uint16_t Mpb_PD_CurrentLimit_mA(void);             /* 要求電流の上限 = min(want_mA, MPB_PD_HW_MAX_MA) */
 
 /* PD スタック (pd_process.c) から呼ばれるフック */
 uint8_t  Mpb_PD_SelectPdo(const uint8_t *srccap, uint8_t pdo_len);
