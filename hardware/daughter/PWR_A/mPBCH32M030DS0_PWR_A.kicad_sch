@@ -5,7 +5,7 @@
 (lib_symbols)
 (text "mPBCH32M030DS0 Rev 0.4 子基板 A: TPN1R603PL (12V 系)" (exclude_from_sim no) (at 20 30 0) (effects (font (size 2 2)) (justify left bottom)) (uuid "d36fdd28-bfc4-53ed-a16c-3c3923cab42a"))
 (text "" (exclude_from_sim no) (at 20 37 0) (effects (font (size 2 2)) (justify left bottom)) (uuid "09d89bf2-952c-5aec-b0ed-2a80353eb5e7"))
-(text "・MOSFET: TPN1R603PL x8 (4 ハーフブリッジ)   入力電圧: 8〜16V (公称 12V)   出力電流の目安: 約 10A (ピンヘッダ律速)" (exclude_from_sim no) (at 20 44 0) (effects (font (size 2 2)) (justify left bottom)) (uuid "38b7681e-970e-5bfe-a2bc-76c1426d2028"))
+(text "・MOSFET: TPN1R603PL x8 (4 ハーフブリッジ)   入力電圧: 8〜16V (公称 12V)   出力電流の目安: 約 5A (銅箔幅律速, IPC-2221 ΔT20°C)" (exclude_from_sim no) (at 20 44 0) (effects (font (size 2 2)) (justify left bottom)) (uuid "38b7681e-970e-5bfe-a2bc-76c1426d2028"))
 (text "・上面: MCU モジュールを挿す 1x21 ピンソケット x2 (左右対称, 列間 17.78mm), 電源入力 J3, モータ出力 J4, バルク容量" (exclude_from_sim no) (at 20 51 0) (effects (font (size 2 2)) (justify left bottom)) (uuid "2af80c45-8109-57a9-96fb-825835211961"))
 (text "・下面 (ヒートシンク側): MOSFET, シャント, ゲート抵抗, 理想ダイオード, TVS, 78L05 など。LED は置かない (モジュール側)" (exclude_from_sim no) (at 20 58 0) (effects (font (size 2 2)) (justify left bottom)) (uuid "cb603077-3c28-53fd-872f-f54aa7246f02"))
 (text "・電圧系に依存する部品 (TVS, VBUS 分圧 = OVP, バルク容量, 相電圧分圧) はこの基板で決める" (exclude_from_sim no) (at 20 65 0) (effects (font (size 2 2)) (justify left bottom)) (uuid "725ffad9-d4eb-5349-bf39-5b42418d39b1"))

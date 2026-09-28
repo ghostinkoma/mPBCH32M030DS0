@@ -82,7 +82,7 @@
   {
    "ref": "F1",
    "fp": "mPB:Fuse_Littelfuse_NANO2_2410",
-   "value": "10A",
+   "value": "7A",
    "dnp": false,
    "nets": {
     "1": "VIN",
@@ -149,21 +149,11 @@
   {
    "ref": "C7",
    "fp": "Capacitor_SMD:CP_Elec_8x6.2",
-   "value": "100uF/25V",
+   "value": "150uF/25V",
    "dnp": false,
    "nets": {
     "1": "VBUS",
-    "2": "GND"
-   }
-  },
-  {
-   "ref": "C8",
-   "fp": "Capacitor_SMD:CP_Elec_8x6.2",
-   "value": "100uF/25V",
-   "dnp": false,
-   "nets": {
-    "1": "VBUS",
-    "2": "GND"
+    "2": "ISH"
    }
   },
   {
@@ -174,16 +164,6 @@
    "nets": {
     "1": "USB_VBUS",
     "2": "USB_VBUS_P"
-   }
-  },
-  {
-   "ref": "D9",
-   "fp": "Diode_SMD:D_SMA",
-   "value": "SMAJ20A",
-   "dnp": false,
-   "nets": {
-    "1": "USB_VBUS_P",
-    "2": "GND"
    }
   },
   {
@@ -299,7 +279,7 @@
   },
   {
    "ref": "R30",
-   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "fp": "Resistor_SMD:R_0805_2012Metric",
    "value": "47R",
    "dnp": false,
    "nets": {
@@ -332,7 +312,7 @@
   },
   {
    "ref": "R32",
-   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "fp": "Resistor_SMD:R_0805_2012Metric",
    "value": "47R",
    "dnp": false,
    "nets": {
@@ -352,8 +332,8 @@
   },
   {
    "ref": "R34",
-   "fp": "Resistor_SMD:R_2512_6332Metric",
-   "value": "10mR 1% 2W",
+   "fp": "Resistor_SMD:R_1206_3216Metric",
+   "value": "10mR 1% 0.5W",
    "dnp": false,
    "nets": {
     "1": "SRC0",
@@ -372,8 +352,8 @@
   },
   {
    "ref": "C31",
-   "fp": "Capacitor_SMD:C_1206_3216Metric",
-   "value": "10uF/50V",
+   "fp": "Capacitor_SMD:C_0805_2012Metric",
+   "value": "10uF/25V",
    "dnp": false,
    "nets": {
     "1": "VBUS",
@@ -395,7 +375,7 @@
   },
   {
    "ref": "R40",
-   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "fp": "Resistor_SMD:R_0805_2012Metric",
    "value": "47R",
    "dnp": false,
    "nets": {
@@ -428,7 +408,7 @@
   },
   {
    "ref": "R42",
-   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "fp": "Resistor_SMD:R_0805_2012Metric",
    "value": "47R",
    "dnp": false,
    "nets": {
@@ -448,8 +428,8 @@
   },
   {
    "ref": "R44",
-   "fp": "Resistor_SMD:R_2512_6332Metric",
-   "value": "10mR 1% 2W",
+   "fp": "Resistor_SMD:R_1206_3216Metric",
+   "value": "10mR 1% 0.5W",
    "dnp": false,
    "nets": {
     "1": "SRC1",
@@ -468,8 +448,8 @@
   },
   {
    "ref": "C41",
-   "fp": "Capacitor_SMD:C_1206_3216Metric",
-   "value": "10uF/50V",
+   "fp": "Capacitor_SMD:C_0805_2012Metric",
+   "value": "10uF/25V",
    "dnp": false,
    "nets": {
     "1": "VBUS",
@@ -491,7 +471,7 @@
   },
   {
    "ref": "R50",
-   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "fp": "Resistor_SMD:R_0805_2012Metric",
    "value": "47R",
    "dnp": false,
    "nets": {
@@ -524,7 +504,7 @@
   },
   {
    "ref": "R52",
-   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "fp": "Resistor_SMD:R_0805_2012Metric",
    "value": "47R",
    "dnp": false,
    "nets": {
@@ -544,8 +524,8 @@
   },
   {
    "ref": "R54",
-   "fp": "Resistor_SMD:R_2512_6332Metric",
-   "value": "10mR 1% 2W",
+   "fp": "Resistor_SMD:R_1206_3216Metric",
+   "value": "10mR 1% 0.5W",
    "dnp": false,
    "nets": {
     "1": "SRC2",
@@ -564,8 +544,8 @@
   },
   {
    "ref": "C51",
-   "fp": "Capacitor_SMD:C_1206_3216Metric",
-   "value": "10uF/50V",
+   "fp": "Capacitor_SMD:C_0805_2012Metric",
+   "value": "10uF/25V",
    "dnp": false,
    "nets": {
     "1": "VBUS",
@@ -587,7 +567,7 @@
   },
   {
    "ref": "R60",
-   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "fp": "Resistor_SMD:R_0805_2012Metric",
    "value": "47R",
    "dnp": false,
    "nets": {
@@ -620,7 +600,7 @@
   },
   {
    "ref": "R62",
-   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "fp": "Resistor_SMD:R_0805_2012Metric",
    "value": "47R",
    "dnp": false,
    "nets": {
@@ -640,8 +620,8 @@
   },
   {
    "ref": "R64",
-   "fp": "Resistor_SMD:R_2512_6332Metric",
-   "value": "10mR 1% 2W",
+   "fp": "Resistor_SMD:R_1206_3216Metric",
+   "value": "10mR 1% 0.5W",
    "dnp": false,
    "nets": {
     "1": "SRC3",
@@ -660,8 +640,8 @@
   },
   {
    "ref": "C61",
-   "fp": "Capacitor_SMD:C_1206_3216Metric",
-   "value": "10uF/50V",
+   "fp": "Capacitor_SMD:C_0805_2012Metric",
+   "value": "10uF/25V",
    "dnp": false,
    "nets": {
     "1": "VBUS",
@@ -670,8 +650,8 @@
   },
   {
    "ref": "R70",
-   "fp": "Resistor_SMD:R_2512_6332Metric",
-   "value": "10mR 1% 2W",
+   "fp": "Resistor_SMD:R_1206_3216Metric",
+   "value": "10mR 1% 0.5W",
    "dnp": false,
    "nets": {
     "1": "ISH",

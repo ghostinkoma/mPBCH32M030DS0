@@ -415,6 +415,38 @@ class Pcb:
                         n += 1
         return n
 
+    def via(self, net, x, y, dia=0.6, drill=0.3):
+        v = pcbnew.PCB_VIA(self.b)
+        v.SetPosition(P(x, y))
+        v.SetWidth(MM(dia))
+        v.SetDrill(MM(drill))
+        v.SetNet(self.net(net))
+        self.b.Add(v)
+        return v
+
+    def _dsn_inflate(self, on, amount=0.0):
+        """配線前に置いたベタ (名前に _fixed) を DSN 書き出しの間だけ amount mm 太らせる。
+        Freerouting はベタ (plane) の縁に間隙をほとんど取らないので, 塗った後にベタが細らないようにする."""
+        # (ZONE.SetOutline は多角形の所有権を取るので Python 側の多角形を渡さず, その場で膨らませて点列で戻す)
+        if on:
+            self._saved_outlines = []
+            for z in self.b.Zones():
+                if "_fixed" in z.GetZoneName():
+                    ol = z.Outline()
+                    pts = [[(ol.Outline(k).CPoint(j).x, ol.Outline(k).CPoint(j).y) for j in range(ol.Outline(k).PointCount())]
+                           for k in range(ol.OutlineCount())]
+                    ol.Inflate(MM(amount), pcbnew.CORNER_STRATEGY_CHAMFER_ALL_CORNERS, MM(0.005))
+                    self._saved_outlines.append((z, pts))
+        else:
+            for z, pts in getattr(self, "_saved_outlines", []):
+                ol = z.Outline()
+                ol.RemoveAllContours()
+                for ring in pts:
+                    ol.NewOutline()
+                    for x, y in ring:
+                        ol.Append(x, y)
+            self._saved_outlines = []
+
     def rect_zone(self, net, layer, x0, y0, x1, y1, priority=0):
         return self.zone(net, layer, [(x0, y0), (x1, y0), (x1, y1), (x0, y1)], priority)
 
@@ -426,7 +458,10 @@ class Pcb:
         os.makedirs(work, exist_ok=True)
         dsn = os.path.join(work, self.name + "_power.dsn")
         ses = os.path.join(work, self.name + "_power.ses")
-        assert pcbnew.ExportSpecctraDSN(self.b, dsn)
+        self._dsn_inflate(True)
+        ok = pcbnew.ExportSpecctraDSN(self.b, dsn)
+        self._dsn_inflate(False)
+        assert ok
         txt = open(dsn, encoding="utf-8").read()
         i0, i1 = txt.index("  (network"), txt.index("  (wiring")
         nets = []
@@ -459,7 +494,10 @@ class Pcb:
         dsn = os.path.join(work, self.name + ".dsn")
         ses = os.path.join(work, self.name + ".ses")
         old = open(dsn, encoding="utf-8").read() if os.path.exists(dsn) else None
-        assert pcbnew.ExportSpecctraDSN(self.b, dsn), "DSN export failed"
+        self._dsn_inflate(True)
+        ok = pcbnew.ExportSpecctraDSN(self.b, dsn)
+        self._dsn_inflate(False)
+        assert ok, "DSN export failed"
         self._dsn_classes(dsn)
         if protect:
             t = open(dsn, encoding="utf-8").read().replace("(type route)", "(type protect)")
@@ -488,17 +526,59 @@ class Pcb:
             nets = [n for n, c in sorted(self.assign.items()) if c == cname]
             txt = re.sub(r"\(class %s\b[^\n(]*" % re.escape(cname),
                          "(class %s %s\n      " % (cname, " ".join(nets)), txt, count=1)
+        # 配線前に置いたベタ (fixed_rects) の内側 0.3mm を keepout にする。Freerouting は他ネットの plane を
+        # 障害物として扱わず中を通してしまうため。縁の帯は同じネットの配線がベタへ取り付くのに使う
+        ko = []
+        for _net, lname, (X0, Y0, X1, Y1) in getattr(self, "fixed_rects", []):
+            poly = lambda a, b, c, d: "  ".join("%g %g" % (x * 1000, -y * 1000) for x, y in ((a, b), (c, b), (c, d), (a, d), (a, b)))
+            sh = getattr(self, "_ko_shrink", None)       # 縁の帯 (同ネットの配線がベタに取り付く所)
+            if sh is None:
+                sh = getattr(self, "ko_band", lambda n, l: 0.3)(_net, lname)
+            x0, y0, x1, y1 = X0 + sh, Y0 + sh, X1 - sh, Y1 - sh
+            if x1 - x0 > 0.2 and y1 - y0 > 0.2:
+                ko.append('    (keepout "" (polygon %s 0 %s))\n' % (lname, poly(x0, y0, x1, y1)))
+            ko.append('    (via_keepout "" (polygon %s 0 %s))\n' % (lname, poly(X0 - 0.1, Y0 - 0.1, X1 + 0.1, Y1 + 0.1)))
+        if ko:
+            i = txt.index("    (keepout") if "    (keepout" in txt else txt.index("    (via")
+            txt = txt[:i] + "".join(ko) + txt[i:]
+        only = getattr(self, "_dsn_only", None)
+        if only:      # 指定したネットだけを配線対象にする (他は障害物として残る)
+            i0, i1 = txt.index("  (network"), txt.index("  (wiring")
+            net_re = re.compile(r'\s*\(net ("[^"]+"|[^\s()]+)\s*\(pins[^)]*\)\s*\)')
+            body = net_re.sub(lambda m: m.group(0) if m.group(1).strip('"') in only else "", txt[i0:i1])
+            txt = txt[:i0] + body + txt[i1:]
         open(dsn, "w", encoding="utf-8").write(txt)
+
+    def autoroute_fixed(self, passes=None, opts=()):
+        """配線前に置いたベタ (fixed_rects) がある基板の 2 段配線。
+        1) ベタのネットだけを, ベタの縁 0.3mm を空けて配線 (外にある同ネットのパッドをベタへつなぐ)
+        2) それを固定し, 他のネットをベタの外形まで禁止して配線 (他ネットがベタの縁を削らない)."""
+        fixed = sorted({n for n, _l, _r in self.fixed_rects})
+        self._ko_shrink, self._dsn_only = None, set(fixed)
+        name = self.name
+        try:
+            self.name = name + "_p1"
+            t1, v1 = self.autoroute(passes=passes, opts=opts)
+        finally:
+            self.name = name
+            self._dsn_only = None
+        self.reload()
+        self._ko_shrink = 0.0
+        t2, v2 = self.autoroute(passes=passes, opts=opts, protect=True)
+        return t1 + t2, v1 + v2
 
     def second_pass(self, passes=30, opts=()):
         """配線済みの状態から Freerouting をもう一度走らせ, 残った未接続を引き剥がし再配線で解消する."""
         work = os.path.join(self.dir, "build")
         dsn = os.path.join(work, self.name + "_pass2.dsn")
         ses = os.path.join(work, self.name + "_pass2.ses")
-        zones = [z for z in self.b.Zones() if not z.GetIsRuleArea()]
+        zones = [z for z in self.b.Zones() if not z.GetIsRuleArea() and "_fixed" not in z.GetZoneName()]
         for z in zones:
             self.b.Remove(z)
-        assert pcbnew.ExportSpecctraDSN(self.b, dsn)
+        self._dsn_inflate(True)
+        ok = pcbnew.ExportSpecctraDSN(self.b, dsn)
+        self._dsn_inflate(False)
+        assert ok
         self._dsn_classes(dsn)
         # 先に通した太い主経路 (power_first) は引き剥がさせない
         t = open(dsn, encoding="utf-8").read()
@@ -525,6 +605,7 @@ class Pcb:
         scale = {"um": 1e-3, "mm": 1.0, "mil": 0.0254, "inch": 25.4}[unit] / res
         # via 形状 (padstack 名 → 直径/ドリル) は DSN 側の名前 "Via[0-1]_600:300_um" から読む
         ntracks = nvias = 0
+        self._vias_before = [to_mm(t.GetPosition()) for t in self.b.GetTracks() if t.GetClass() == "PCB_VIA"]
         pos = txt.index("(network_out")
         for nm in re.finditer(r'\(net\s+("[^"]*"|\S+)', txt[pos:]):
             start = pos + nm.start()
@@ -560,8 +641,11 @@ class Pcb:
             for v in re.finditer(r'\(via\s+"?([^"\s]+)"?\s+(-?[\d.]+)\s+(-?[\d.]+)', body):
                 mv = re.search(r"_(\d+):(\d+)_um", v.group(1))
                 dia, drill = (int(mv.group(1)) / 1000, int(mv.group(2)) / 1000) if mv else (0.6, 0.3)
+                vx, vy = float(v.group(2)) * scale, -float(v.group(3)) * scale
+                if any(abs(vx - ex) < 0.01 and abs(vy - ey) < 0.01 for ex, ey in self._vias_before):
+                    continue            # 配線前に置いたビア (SES に書き戻されてくる) は二重にしない
                 via = pcbnew.PCB_VIA(self.b)
-                via.SetPosition(P(float(v.group(2)) * scale, -float(v.group(3)) * scale))
+                via.SetPosition(P(vx, vy))
                 via.SetWidth(MM(dia))
                 via.SetDrill(MM(drill))
                 via.SetNet(net)
@@ -671,6 +755,108 @@ class Pcb:
                     y += step
         return n
 
+    def widen_tracks(self, nets, widths=(3.0, 2.5, 2.0, 1.6, 1.3, 1.0, 0.8, 0.6, 0.5, 0.4), clr=0.2, edge=1.0, h=0.05):
+        """大電流ネットの配線を, 他ネットの銅との間隙 clr と基板端 edge を保てる範囲で太くする (幅を順に試す)。
+        他ネットの銅 (パッド・配線・ビア) を層ごとに h mm 格子で塗り, 太らせた線分が重ならない最大の幅を選ぶ。
+        先に処理したネットの太らせた配線も, 後のネットにとっては障害物として扱う."""
+        import numpy as np
+        W, H = self.W, self.H
+        nx, ny = int(W / h) + 2, int(H / h) + 2
+        LAY = {pcbnew.F_Cu: 0, pcbnew.B_Cu: 1}
+        owner = np.full((2, ny, nx), -1, np.int32)        # セルを占める銅のネット番号 (-1 = 空き)
+        HOLE = -2
+
+        def seg_cells(xa, ya, xb, yb, r):
+            c0, c1 = max(int((min(xa, xb) - r) / h) - 1, 0), min(int((max(xa, xb) + r) / h) + 2, nx)
+            r0, r1 = max(int((min(ya, yb) - r) / h) - 1, 0), min(int((max(ya, yb) + r) / h) + 2, ny)
+            X, Y = np.meshgrid((np.arange(c0, c1) + 0.5) * h, (np.arange(r0, r1) + 0.5) * h)
+            dx, dy = xb - xa, yb - ya
+            L2 = dx * dx + dy * dy
+            t = np.clip(((X - xa) * dx + (Y - ya) * dy) / L2, 0, 1) if L2 > 0 else 0
+            return (r0, r1, c0, c1), np.hypot(X - (xa + t * dx), Y - (ya + t * dy)) <= r
+
+        def poly_cells(ps):
+            m = np.zeros((ny, nx), bool)
+            for i in range(ps.OutlineCount()):
+                chains = [ps.Outline(i)] + [ps.Hole(i, k) for k in range(ps.HoleCount(i))]
+                E = []
+                for ch in chains:
+                    pts = [to_mm(ch.CPoint(k)) for k in range(ch.PointCount())]
+                    E += [(pts[k][0], pts[k][1], pts[(k + 1) % len(pts)][0], pts[(k + 1) % len(pts)][1]) for k in range(len(pts))]
+                E = np.array(E)
+                r0 = max(int(E[:, [1, 3]].min() / h) - 1, 0)
+                r1 = min(int(E[:, [1, 3]].max() / h) + 2, ny)
+                for r in range(r0, r1):
+                    yc = (r + 0.5) * h
+                    sel = ((E[:, 1] <= yc) & (E[:, 3] > yc)) | ((E[:, 3] <= yc) & (E[:, 1] > yc))
+                    if not sel.any():
+                        continue
+                    e = E[sel]
+                    xi = np.sort(e[:, 0] + (yc - e[:, 1]) * (e[:, 2] - e[:, 0]) / (e[:, 3] - e[:, 1]))
+                    for xa, xb in zip(xi[0::2], xi[1::2]):
+                        c0, c1 = max(int(np.ceil(xa / h - 0.5)), 0), min(int(np.floor(xb / h - 0.5)), nx - 1)
+                        if c1 >= c0:
+                            m[r, c0:c1 + 1] ^= True
+            return m
+
+        def mark(L, sl, m, code):
+            r0, r1, c0, c1 = sl
+            sub = owner[L, r0:r1, c0:c1]
+            sub[m & (sub == -1)] = code
+        for fp in self.b.GetFootprints():
+            for pad in fp.Pads():
+                code = pad.GetNetCode() if pad.GetNetname() else HOLE
+                if pad.GetAttribute() == pcbnew.PAD_ATTRIB_NPTH:
+                    code = HOLE
+                m = poly_cells(pad.GetEffectivePolygon())
+                for L, li in LAY.items():
+                    if pad.IsOnLayer(L) or pad.GetAttribute() in (pcbnew.PAD_ATTRIB_PTH, pcbnew.PAD_ATTRIB_NPTH):
+                        owner[li][m & (owner[li] == -1)] = code
+        tracks = [t for t in self.b.GetTracks()]
+        for t in tracks:
+            if t.GetClass() == "PCB_VIA":
+                x, y = to_mm(t.GetPosition())
+                sl, m = seg_cells(x, y, x, y, pcbnew.ToMM(t.GetWidth()) / 2)
+                for li in (0, 1):
+                    mark(li, sl, m, t.GetNetCode())
+            elif t.GetLayer() in LAY:
+                (xa, ya), (xb, yb) = to_mm(t.GetStart()), to_mm(t.GetEnd())
+                sl, m = seg_cells(xa, ya, xb, yb, pcbnew.ToMM(t.GetWidth()) / 2)
+                mark(LAY[t.GetLayer()], sl, m, t.GetNetCode())
+        e = int(edge / h)
+        for li in (0, 1):
+            owner[li, :e, :] = HOLE
+            owner[li, -e - 2:, :] = HOLE
+            owner[li, :, :e] = HOLE
+            owner[li, :, -e - 2:] = HOLE
+            owner[li, int((H - edge) / h):, :] = HOLE
+            owner[li, :, int((W - edge) / h):] = HOLE
+        n = 0
+        for net in nets:
+            if net not in self.nets:
+                continue
+            code = self.nets[net].GetNetCode()
+            for t in tracks:
+                if t.GetClass() == "PCB_VIA" or t.GetNetCode() != code or t.GetLayer() not in LAY:
+                    continue
+                li = LAY[t.GetLayer()]
+                (xa, ya), (xb, yb) = to_mm(t.GetStart()), to_mm(t.GetEnd())
+                w0 = pcbnew.ToMM(t.GetWidth())
+                for w in widths:
+                    if w <= w0 + 1e-6:
+                        break
+                    sl, m = seg_cells(xa, ya, xb, yb, w / 2 + clr)
+                    r0, r1, c0, c1 = sl
+                    sub = owner[li, r0:r1, c0:c1]
+                    if not (m & (sub != -1) & (sub != code)).any():
+                        t.SetWidth(MM(w))
+                        sl2, m2 = seg_cells(xa, ya, xb, yb, w / 2)
+                        mark(li, sl2, m2, code)
+                        n += 1
+                        break
+        self.b.BuildConnectivity()
+        return n
+
     def drop_floating_islands(self):
         """同じネットのパッド・ビア・配線と重ならない (どこにもつながらない) ベタの島を削除する."""
         n = 0
@@ -763,6 +949,8 @@ class Pcb:
         import shutil
         tmp = os.path.join(self.dir, "build", self.name + "_drctmp.kicad_pcb")
         os.makedirs(os.path.dirname(tmp), exist_ok=True)
+        if getattr(self, "zones_pre", False):
+            self.fill()      # 配線前に置いたベタでつながる分を数えるため (kicad-cli 8 の DRC はベタを塗り直さない)
         assert pcbnew.SaveBoard(tmp, self.b)
         pro = os.path.join(self.dir, self.name + ".kicad_pro")
         if os.path.exists(pro):
@@ -794,8 +982,9 @@ class Pcb:
         blocks = re.findall(r"(^\[\w+\]:.*?\n(?:    .*\n)+)", txt, re.M)
         return blocks
 
-    def repair_unrouted(self, maxlen=6.0, skip_nets=(), ripup=False):
+    def repair_unrouted(self, maxlen=None, skip_nets=(), ripup=False):
         """自動配線で残った 2 点間の未接続を, 直線 / L 字の短い配線で補う (DRC が増えない時だけ採用)."""
+        maxlen = maxlen or float(os.environ.get("MPB_REPAIR_MAXLEN", "6.0"))
         bad = ("[clearance]", "[shorting_items]", "[tracks_crossing]", "[copper_edge_clearance]", "[hole_clearance]",
                "[hole_near_hole]")
 
@@ -1014,6 +1203,12 @@ class Pcb:
                             stamp(L, l - ex, t - ex, r + ex, b_ + ex, rect_d(l - ex, t - ex, r + ex, b_ + ex))
                             if soft:
                                 stamp(L, l - ex, t - ex, r + ex, b_ + ex, rect_d(l - ex, t - ex, r + ex, b_ + ex), full)
+            for zn, zl, (l, t, r, b_) in getattr(self, "fixed_rects", []):   # 配線前に置いた他ネットのベタ (間隙 0.25mm)
+                if zn == net or not inwin(l, t, r, b_):
+                    continue
+                L = pcbnew.F_Cu if zl == "F.Cu" else pcbnew.B_Cu
+                g_ = 0.11
+                stamp(L, l - g_, t - g_, r + g_, b_ + g_, rect_d(l - g_, t - g_, r + g_, b_ + g_))
             for tr in self.b.GetTracks():
                 if tr.GetNetname() == net:
                     continue

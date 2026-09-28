@@ -9,6 +9,7 @@ STEP は `kicad-cli pcb export step --subst-models --user-origin 0x0mm` で書�
 重なり体積が 0.001 mm³ を超える組を干渉とする。基板 (PCB) との重なりは THT のピンが穴を通るので対象外。
 """
 import argparse
+import re
 import sys
 
 from OCP.BRepAlgoAPI import BRepAlgoAPI_Common
@@ -164,14 +165,19 @@ def main():
             for x, y, g in close:
                 print(f"   near  {x} - {y}: {g:.3f} mm")
             if a.heatsink:
-                bot = {n: zrange(s) for n, s in P.items() if not is_board(n)}
-                bot = {n: z for n, z in bot.items() if z[1] <= 0.01}          # 下面の部品 (Z < 0)
-                fets = {n: z for n, z in bot.items() if n.startswith("Q")}
+                # ヒートシンクはレッグの MOSFET (Q1〜Q8) を覆う範囲 (その外接矩形 + 0.5mm) に当てる
+                box = {n: bbox(s).Get() for n, s in P.items() if not is_board(n)}
+                bot = {n: b for n, b in box.items() if b[5] <= 0.01}          # 下面の部品 (Z < 0)
+                fets = {n: b for n, b in bot.items() if re.fullmatch(r"Q[1-8]", n)}
                 if fets:
-                    h = min(-z[0] for z in fets.values())
-                    tall = sorted(((-z[0], n) for n, z in bot.items() if not n.startswith("Q") and -z[0] > h - 1e-3), reverse=True)
-                    print(f"   heatsink: MOSFET の下面高さ (最小) {h:.2f} mm; それより高い下面部品: "
-                          + (", ".join(f"{n} {hh:.2f}" for hh, n in tall) or "なし"))
+                    h = min(-b[2] for b in fets.values())
+                    X0, Y0 = min(b[0] for b in fets.values()) - 0.5, min(b[1] for b in fets.values()) - 0.5
+                    X1, Y1 = max(b[3] for b in fets.values()) + 0.5, max(b[4] for b in fets.values()) + 0.5
+                    under = lambda b: b[0] < X1 and b[3] > X0 and b[1] < Y1 and b[4] > Y0
+                    tall = sorted(((-b[2], n) for n, b in bot.items()
+                                   if n not in fets and under(b) and -b[2] > h - 1e-3), reverse=True)
+                    print(f"   heatsink: MOSFET の下面高さ (最小) {h:.2f} mm, 範囲 x {X0:.1f}〜{X1:.1f} y {Y0:.1f}〜{Y1:.1f}; "
+                          "その範囲でそれより高い下面部品: " + (", ".join(f"{n} {hh:.2f}" for hh, n in tall) or "なし"))
         return
     D, M = read_parts(a.steps[0]), read_parts(a.steps[1])
     M = {n: moved(s, a.dx, 0, a.dz) for n, s in M.items()}

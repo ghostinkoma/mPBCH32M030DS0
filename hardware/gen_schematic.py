@@ -244,6 +244,7 @@ FP = {
     # 受動部品: 1005 / 1608 を基本とし, 耐圧・電流の都合で必要なものだけ大きくする (docs/design.md 表)
     "R1005": "Resistor_SMD:R_0402_1005Metric",
     "R1608": "Resistor_SMD:R_0603_1608Metric",
+    "R2012": "Resistor_SMD:R_0805_2012Metric",
     "R1206": "Resistor_SMD:R_1206_3216Metric",
     "R2512": "Resistor_SMD:R_2512_6332Metric",
     "C1005": "Capacitor_SMD:C_0402_1005Metric",
@@ -261,6 +262,7 @@ FP = {
     "SMA": "Diode_SMD:D_SMA",
     "SMB": "Diode_SMD:D_SMB",
     "SOD123": "Diode_SMD:D_SOD-123",
+    "SOD123F": "Diode_SMD:D_SOD-123F",
     "LED1608": "LED_SMD:LED_0603_1608Metric",
     "NANO2": "mPB:Fuse_Littelfuse_NANO2_2410",
     "FUSE1812": "Fuse:Fuse_1812_4532Metric",
@@ -613,11 +615,13 @@ PROJECTS.append(build_main())
 # ===========================================================================
 DAUGHTERS = {
     "A": dict(fet="TPN1R603PL", sym="NMOS", fp="TSON", mpn="Toshiba TPN1R603PL,L1Q (30V 1.6mΩ Qg 41nC)",
-              g="4", d="5", s="1", rg="47R", rpd="20k", shunt=("10mR 1% 2W", "R2512", "2512 2W (例: Bourns CRA2512-FZ-R010ELF)"),
-              bulk=[("100uF/25V", "CPE8x6", "Panasonic EEE-FK1E101P (8x6.2mm)")] * 2,
+              g="4", d="5", s="1", rg="47R", rpd="20k", shunt=("10mR 1% 0.5W", "R1206", "1206 0.5W (例: Yageo PE1206FRF7W0R01L)"),
+              bulk=[("150uF/25V", "CPE8x6", "Panasonic EEE-FK1E151P (8x6.2mm)")], bulk_ret="ISH",
               bemf=("20k 1%", "3k 1%"), ovp=("110k 1%", "OVP 18V (VBUS/12)"),
-              tvs=("SMBJ16A", "SMBJ16A (Vwm 16V)"), vin="8〜16V (公称 12V)", ipk="約 10A (ピンヘッダ律速)",
-              title="子基板 A: TPN1R603PL (12V 系)"),
+              tvs=("SMBJ16A", "SMBJ16A (Vwm 16V)"), vin="8〜16V (公称 12V)", ipk="約 5A (銅箔幅律速, IPC-2221 ΔT20°C)",
+              title="子基板 A: TPN1R603PL (12V 系)", legcap=C_10U25_LP, rg_fp="R2012",
+              usbtvs=False,
+              fuse=("7A", "Littelfuse 0451007.MRL (NANO2 2410, 7A 速断)")),
     "B": dict(fet="TKR74F04PB", sym="NMOS_TO263", fp="TO263", mpn="Toshiba TKR74F04PB,LQ (40V 0.74mΩ TO-220SM(W)) ※ランドは TO-263-2 で暫定",
               g="1", d="2", s="3", rg="22R", rpd="10k", shunt=("10mR 1% 3W", "R2512", "2512 3W (例: Bourns CRE2512-FZ-R010E-3)"),
               bulk=[("47uF/35V", "CPE6x6", "Panasonic EEE-FK1V470P (6.3x6.1mm)")] * 3,
@@ -626,9 +630,11 @@ DAUGHTERS = {
               title="子基板 B: TKR74F04PB (24V 系)"),
     "C": dict(fet="MTN2306AN3", sym="NMOS_SOT23", fp="SOT23", mpn="Cystech MTN2306AN3 (30V 5.5A 25mΩ SOT-23)",
               g="1", d="3", s="2", rg="47R", rpd="20k", shunt=("10mR 1% 0.5W", "R1206", "1206 0.5W (例: Yageo PE1206FRF7W0R01L)"),
-              bulk=[("100uF/25V", "CPE8x6", "Panasonic EEE-FK1E101P (8x6.2mm)")],
+              bulk=[("100uF/25V", "CPE8x6", "Panasonic EEE-FK1E101P (8x6.2mm)")], bulk_ret="ISH",
               bemf=("20k 1%", "3k 1%"), ovp=("110k 1%", "OVP 18V (VBUS/12)"),
-              tvs=("SMBJ16A", "SMBJ16A (Vwm 16V)"), vin="8〜16V (公称 12V)", ipk="約 3A", title="子基板 C: MTN2306AN3 (廉価版)"),
+              tvs=("SMBJ16A", "SMBJ16A (Vwm 16V)"), vin="8〜16V (公称 12V)", ipk="約 3A", title="子基板 C: MTN2306AN3 (廉価版)",
+              usbtvs=False,
+              legcap=C_10U25_LP, fuse=("5A", "Littelfuse 0451005.MRL (NANO2 2410, 5A 速断)")),
 }
 
 
@@ -656,8 +662,8 @@ def build_daughter(key):
     pw.box(150, 20, 405, 120, "電源入力 J3 → F1 → 理想ダイオード (U4+Q9) → VBUS / TVS / バルク容量")
     pw.add("CONN2x6", "J3", "PWR_IN", 175, 45, nets={str(n): ("VIN" if n <= 6 else "GND") for n in range(1, 13)},
            fp="HDR2x6", mpn="2.54mm 2x6 ピンヘッダ (1-6 = VIN, 7-12 = GND, 各 6 本並列)")
-    pw.add("FUSE", "F1", "10A", 215, 45, rot=90, nets={"1": "VIN", "2": "VIN_F"}, fp="NANO2",
-           mpn="Littelfuse 0451010.MRL (NANO2 2410, 10A 速断)")
+    fv, fmpn = v.get("fuse", ("10A", "Littelfuse 0451010.MRL (NANO2 2410, 10A 速断)"))
+    pw.add("FUSE", "F1", fv, 215, 45, rot=90, nets={"1": "VIN", "2": "VIN_F"}, fp="NANO2", mpn=fmpn)
     pw.add("NMOS", "Q9", "TPN2R304PL", 250, 45, rot=270, nets={"1": "VIN_F", "4": "Q9_G", "5": "VBUS"},
            fp="TSON", mpn="Toshiba TPN2R304PL,L1Q (40V 2.3mΩ, 理想ダイオード)")
     pw.add("LM74700", "U4", "LM74700-Q1", 250, 85,
@@ -668,14 +674,20 @@ def build_daughter(key):
     pw.add("D_TVS", "D1", tv, 310, 60, rot=270, nets={"1": "VBUS", "2": "GND"}, fp="SMB", mpn=tmpn)
     cap(pw, "C1", C_10U50, 335, 60, "VBUS", "GND")
     for k, (val, fp, mpn) in enumerate(v["bulk"]):
-        pw.add("CP", f"C{7 + k}", val, 360 + 15 * k, 60, nets={"1": "VBUS", "2": "GND"}, fp=fp, mpn=mpn)
+        pw.add("CP", f"C{7 + k}", val, 360 + 15 * k, 60, nets={"1": "VBUS", "2": v.get("bulk_ret", "GND")}, fp=fp, mpn=mpn)
+    if v.get("bulk_ret") == "ISH":
+        pw.text("バルク容量の − 側は ISH (バス電流シャント R70 の手前)。レッグの帰路に最短でつなぐ。", 153, 104, 1.3)
     pw.text("バルク容量はモジュールの真下 (上面, 高さ ≤7mm)。ソケット高 8.5mm の下に収まる。", 153, 110, 1.3)
 
     pw.box(150, 125, 405, 205, "USB-PD 給電経路 (モジュールの USB_VBUS → VBUS, PD 契約後に PC3 で許可)")
     pw.add("FUSE", "F3", "5A", 175, 150, rot=90, nets={"1": "USB_VBUS", "2": "USB_VBUS_P"}, fp="FUSE1812",
            mpn="1812 5A 速断ヒューズ (例: Bourns SF-1812F500)")
-    pw.add("D_TVS", "D9", "SMAJ20A", 200, 170, rot=270, nets={"1": "USB_VBUS_P", "2": "GND"}, fp="SMA",
-           mpn="SMAJ20A (USB 側サージ)")
+    if v.get("usbtvs", True):
+        pw.add("D_TVS", "D9", "SMAJ20A", 200, 170, rot=270, nets={"1": "USB_VBUS_P", "2": "GND"}, fp="SMA",
+               mpn="SMAJ20A (USB 側サージ)")
+    else:
+        pw.text("USB 側 TVS は省略 (A/C: 基板幅の制約)。USB_VBUS_P のサージは Q10 のボディダイオード経由で VBUS のバルク容量が吸収する。",
+                153, 175, 1.2)
     pw.add("NMOS", "Q10", "TPN1R603PL", 250, 150, rot=270, nets={"1": "USB_VBUS_P", "4": "Q10_G", "5": "VBUS"},
            fp="TSON", mpn="Toshiba TPN1R603PL,L1Q (USB 側 理想ダイオード)")
     pw.add("LM74700", "U5", "LM74700-Q1", 250, 185,
@@ -707,7 +719,7 @@ def build_daughter(key):
         br.add(v["sym"], f"Q{1 + 2 * i}", v["fet"], cx, yH, fp=v["fp"], mpn=v["mpn"],
                nets={g: f"GH{i}", d: "VBUS", s: f"SW{i}"}, wired=(g, d, s))
         br.label("VBUS", cx, yH - 5.08, 90)
-        rgh = res(br, f"R{rb + 0}", v["rg"], cx - 17.78, yH, f"HO{i}", f"GH{i}", wired=("2",))
+        rgh = res(br, f"R{rb + 0}", v["rg"], cx - 17.78, yH, f"HO{i}", f"GH{i}", wired=("2",), fp=v.get("rg_fp", "R1005"))
         br.wire(br.pin(rgh, "2"), (cx - 5.08, yH))
         res(br, f"R{rb + 1}", v["rpd"], xg, yH + 8.89, f"GH{i}", f"SW{i}", rot=0, wired=("1", "2"))
         br.wire((xg, yH), (xg, yH + 5.08))
@@ -719,7 +731,7 @@ def build_daughter(key):
         br.label(f"SW{i}", cx + 10.16, ys, 0)
         br.add(v["sym"], f"Q{2 + 2 * i}", v["fet"], cx, yL, fp=v["fp"], mpn=v["mpn"],
                nets={g: f"GL{i}", d: f"SW{i}", s: f"SRC{i}"}, wired=(g, d, s))
-        rgl = res(br, f"R{rb + 2}", v["rg"], cx - 17.78, yL, f"LO{i}", f"GL{i}", wired=("2",))
+        rgl = res(br, f"R{rb + 2}", v["rg"], cx - 17.78, yL, f"LO{i}", f"GL{i}", wired=("2",), fp=v.get("rg_fp", "R1005"))
         br.wire(br.pin(rgl, "2"), (cx - 5.08, yL))
         res(br, f"R{rb + 3}", v["rpd"], xg, yL + 8.89, f"GL{i}", f"SRC{i}", rot=0, wired=("1", "2"))
         br.wire((xg, yL), (xg, yL + 5.08))

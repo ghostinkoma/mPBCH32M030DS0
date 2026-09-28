@@ -18,7 +18,8 @@ def daughter(I, Iusb):
     c.append(dict(name="USB_VBUS_P F3→Q10",net="USB_VBUS_P",src=["F3"],dst=["Q10"],I=Iusb))
     return c
 k=sys.argv[1]
-if k in "AB": print(json.dumps(daughter(10,5)))
+if k == "A": print(json.dumps(daughter(5,3)))
+elif k == "B": print(json.dumps(daughter(10,3)))
 elif k=="C": print(json.dumps(daughter(3,3)))
 else: print(json.dumps([dict(name="USB_VBUS J8→J1",net="USB_VBUS",src=["J8"],dst=["J1"],I=5),
                         dict(name="GND J8→J1/J2",net="GND",src=["J8"],dst=["J1","J2"],I=5)]))

@@ -293,14 +293,24 @@ def solve(board, case):
         jf = np.where(~far, jj, 0)
         okd = case["I"] / w_req(case["I"], 20)
         kf = np.unravel_index(np.argmax(jf), shape)
+        # 熱の広がり (銅箔 + 基材で ~1mm) を考え, 銅のある格子だけで ±0.5mm を平均した密度の最大
+        from scipy.ndimage import uniform_filter
+        cm = (jj > 0).astype(float)
+        n1 = int(round(1.0 / H)) | 1
+        js = uniform_filter(jj, n1) / np.maximum(uniform_filter(cm, n1), 1e-9)
+        js = np.where(~far & (jj > 0), js, 0)
+        ks = np.unravel_index(np.argmax(js), shape)
         jmax.append((float(jj.max()), L, x0 + (k[1] + 0.5) * H, y0 + (k[0] + 0.5) * H,
                      float(np.percentile(jj[jj > 0], 99.5)) if (jj > 0).any() else 0.0,
                      float(jf.max()), (round(x0 + (kf[1] + 0.5) * H, 2), round(y0 + (kf[0] + 0.5) * H, 2)),
-                     float((jf > okd).sum() * H * H)))
+                     float((jf > okd).sum() * H * H), float(js.max()),
+                     (round(x0 + (ks[1] + 0.5) * H, 2), round(y0 + (ks[0] + 0.5) * H, 2))))
     top = max(jmax)
     fartop = max(jmax, key=lambda v: v[5])
+    stop = max(jmax, key=lambda v: v[8])
     res.update({"j_max": top[0], "j_layer": top[1], "j_at": (round(top[2], 2), round(top[3], 2)),
                 "j_p995": max(v[4] for v in jmax), "j_far": fartop[5], "j_far_at": (fartop[1],) + fartop[6],
+                "j_far1": stop[8], "j_far1_at": (stop[1],) + stop[9],
                 "hot_mm2": sum(v[7] for v in jmax)})
     # ビア電流
     vi = []

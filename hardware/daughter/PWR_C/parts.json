@@ -82,7 +82,7 @@
   {
    "ref": "F1",
    "fp": "mPB:Fuse_Littelfuse_NANO2_2410",
-   "value": "10A",
+   "value": "5A",
    "dnp": false,
    "nets": {
     "1": "VIN",
@@ -153,7 +153,7 @@
    "dnp": false,
    "nets": {
     "1": "VBUS",
-    "2": "GND"
+    "2": "ISH"
    }
   },
   {
@@ -164,16 +164,6 @@
    "nets": {
     "1": "USB_VBUS",
     "2": "USB_VBUS_P"
-   }
-  },
-  {
-   "ref": "D9",
-   "fp": "Diode_SMD:D_SMA",
-   "value": "SMAJ20A",
-   "dnp": false,
-   "nets": {
-    "1": "USB_VBUS_P",
-    "2": "GND"
    }
   },
   {
@@ -358,8 +348,8 @@
   },
   {
    "ref": "C31",
-   "fp": "Capacitor_SMD:C_1206_3216Metric",
-   "value": "10uF/50V",
+   "fp": "Capacitor_SMD:C_0805_2012Metric",
+   "value": "10uF/25V",
    "dnp": false,
    "nets": {
     "1": "VBUS",
@@ -450,8 +440,8 @@
   },
   {
    "ref": "C41",
-   "fp": "Capacitor_SMD:C_1206_3216Metric",
-   "value": "10uF/50V",
+   "fp": "Capacitor_SMD:C_0805_2012Metric",
+   "value": "10uF/25V",
    "dnp": false,
    "nets": {
     "1": "VBUS",
@@ -542,8 +532,8 @@
   },
   {
    "ref": "C51",
-   "fp": "Capacitor_SMD:C_1206_3216Metric",
-   "value": "10uF/50V",
+   "fp": "Capacitor_SMD:C_0805_2012Metric",
+   "value": "10uF/25V",
    "dnp": false,
    "nets": {
     "1": "VBUS",
@@ -634,8 +624,8 @@
   },
   {
    "ref": "C61",
-   "fp": "Capacitor_SMD:C_1206_3216Metric",
-   "value": "10uF/50V",
+   "fp": "Capacitor_SMD:C_0805_2012Metric",
+   "value": "10uF/25V",
    "dnp": false,
    "nets": {
     "1": "VBUS",
