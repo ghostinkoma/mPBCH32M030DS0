@@ -75,7 +75,7 @@ CC1R/CC2R 内蔵の Rd で 5V を受電し、USB FS (書き込み) と MCU へ�
 ```
 USB-C VBUS ─F3 5A─ USB_VBUS_P ─┬─ Q10 (TPN1R603PL) ── VBUS (モーター電源)
                                │   └ U5 LM74700 (理想ダイオード, EN = PC3)
-                               ├─ D9 SMAJ20A
+                               ├─ D9 SMAJ20A (子基板 B のみ)
                                └─ 120k/10k → PA2 (USB_VBUS_SNS, ADC IN15)
 J1 12V ─F1 15A─ VIN_F ── Q9 (TPN1R603PL) ── VBUS
                           └ U4 LM74700 (理想ダイオード, 常時 ON = 逆接保護を兼ねる)
@@ -154,7 +154,7 @@ J1 12V ─F1 15A─ VIN_F ── Q9 (TPN1R603PL) ── VBUS
 | PC3 | GPIO (J6) | **PD_PWR_EN** (U5 EN, R6 プルダウン) |
 | PC4 | USER/BOOT | USER/BOOT **+ 状態 LED** (+3V3–LED–1k–PC4, オープンドレイン Low 点灯) |
 | J1 入力 | Q9 (GND 側逆接保護) + R1/R2/DZ1 | **U4 LM74700 + Q9 (ハイサイド理想ダイオード)** |
-| USB 給電 | PTC 0.5A → VHV のみ | + **F3 5A → U5 LM74700 + Q10 → VBUS**, D9 SMAJ20A |
+| USB 給電 | PTC 0.5A → VHV のみ | + **F3 5A → U5 LM74700 + Q10 → VBUS**, D9 SMAJ20A (B のみ。A/C は Q10 経由で VBUS 側の TVS D1 が受ける) |
 | U3 USBLC6 | VBUS ピン = USB VBUS | VBUS ピン = **+3V3** (PD 20V 対策) |
 | JP7 (新) | — | OPA3 入力 = HB0 レッグ / バス |
 | JP8 + R123 + C105 (新) | — | QII1 入力 = TACH_IN (J6-5) / バス電流リップル |
