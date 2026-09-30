@@ -7,5 +7,5 @@
 |---|---|---|
 | mPBCH32M030DS0 | なし | silk_edge_clearance 6, silk_over_copper 12, silk_overlap 26 |
 | mPBCH32M030DS0_PWR_A | なし | silk_edge_clearance 2, silk_over_copper 69, silk_overlap 9 |
-| mPBCH32M030DS0_PWR_B | なし | silk_edge_clearance 4, silk_over_copper 12, silk_overlap 18 |
+| mPBCH32M030DS0_PWR_B | なし | silk_edge_clearance 7, silk_over_copper 89, silk_overlap 7, track_dangling 4 |
 | mPBCH32M030DS0_PWR_C | なし | silk_edge_clearance 2, silk_over_copper 57, silk_overlap 8, track_dangling 1 |

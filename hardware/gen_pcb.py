@@ -516,6 +516,43 @@ def build_daughter_a(route=True, key="A"):
                   outside_ok={"J4", "J1", "J2", "J3"}, fr_opts=FR_OPTS)
 
 
+def tight_courtyard(b, ref, margin=0.05, body=False):
+    """courtyard を実物に合わせて詰める (密に並べた TO-263 など)。body=False: パッドごとの矩形 + margin,
+    body=True: 部品図 (Fab) の外形 + margin."""
+    pn = pcblib.pcbnew
+    fp = b.b.FindFootprintByReference(ref)
+    crt = pn.B_CrtYd if fp.IsFlipped() else pn.F_CrtYd
+    fab = pn.B_Fab if fp.IsFlipped() else pn.F_Fab
+    for g in list(fp.GraphicalItems()):
+        if g.GetLayer() == crt:
+            fp.Remove(g)
+    if body:
+        bbs = [g.GetBoundingBox() for g in fp.GraphicalItems() if g.GetLayer() == fab]
+        boxes = [(min(q.GetLeft() for q in bbs), min(q.GetTop() for q in bbs),
+                  max(q.GetRight() for q in bbs), max(q.GetBottom() for q in bbs))]
+    else:
+        boxes = [(q.GetLeft(), q.GetTop(), q.GetRight(), q.GetBottom()) for q in (pd.GetBoundingBox() for pd in fp.Pads())]
+    m = pcblib.MM(margin)
+    ps = pn.SHAPE_POLY_SET()
+    for l, t, r, bt in boxes:
+        one = pn.SHAPE_POLY_SET()
+        one.NewOutline()
+        for x, y in ((l - m, t - m), (r + m, t - m), (r + m, bt + m), (l - m, bt + m)):
+            one.Append(int(x), int(y))
+        ps.BooleanAdd(one, pn.SHAPE_POLY_SET.PM_FAST)
+    for i in range(ps.OutlineCount()):
+        ch = ps.Outline(i)
+        pts = [ch.CPoint(k) for k in range(ch.PointCount())]
+        for a, c in zip(pts, pts[1:] + pts[:1]):
+            sh = pn.PCB_SHAPE(fp)
+            sh.SetShape(pn.SHAPE_T_SEGMENT)
+            sh.SetStart(pn.VECTOR2I(a.x, a.y))
+            sh.SetEnd(pn.VECTOR2I(c.x, c.y))
+            sh.SetLayer(crt)
+            sh.SetWidth(pcblib.MM(0.05))
+            fp.Add(sh)
+
+
 def fixed_zones(b, zs, priority=3):
     """(ネット, 層, 多角形) の並びを, ネット・層ごとに 1 つの多角形へ合成してベタにする
     (長方形を別々のベタにすると, パッドの無い帯が孤立島として消されるため)."""
@@ -542,84 +579,209 @@ def fixed_zones(b, zs, priority=3):
             z.SetPadConnection(pn.ZONE_CONNECTION_FULL)
 
 
-BW = 43.18   # 子基板 B の幅 (17 マス)。モジュールは中央 (左右対称)
+BW, BH = 44.6, 99.5   # 子基板 B (面付け 100 × 100mm に収まる最大)。モジュールは左右中央
 BOFF = (BW - MW) / 2
-B_GAP = tuple(float(v) for v in os.environ.get("MPB_B_GAP", "0.9,0.45").split(","))   # 上面の部品間隔 (外側, モジュール下)
+B_LEG_X = tuple(5.65 + 11.1 * i for i in range(4))   # レッグ i (HS/LS の縦の列) の中心 x
+B_SH_Y, B_LS_Y, B_HS_Y, B_T_Y = 54.925, 66.85, 83.3, 94.4   # シャント中心 / LS・HS の原点 / 出力端子の中心
 
 
 def build_daughter_b(route=True):
-    """TO-263 x8 は下面に 3 列 x 3 段 (ソケット端子列の間を避ける)。ゲート抵抗・シャントは上面の外側."""
-    import gen_schematic as gs
-    W, H = BW, MH + 13.6           # 43.18 x 66.94mm (Rev 0.3 の 66 x 66mm から -34%)
+    """子基板 B (TO-263 ×8, 丸端子)。モジュールの下に 4 レッグを横に並べ (1 枚のヒートシンクで覆える),
+    各レッグは上から シャント → LS (ピン上向き) → HS (ピン上向き, タブ = VBUS が下) → 出力端子 (M3 丸端子)。
+    HS のタブは下面で 1 本の VBUS 帯になり, 上面の SW 帯が LS のタブから端子へ下る。
+    シャントの ISH は上面の ISH 帯 (y 53〜57) で左列のバスシャント R70 → GND 端子へ。
+    電源入力 (VIN 端子 → F1 → Q9) は右列, GND 端子と R70 は左列。モジュールの真下は信号の部品だけ."""
+    W, H = BW, BH
     b = Pcb(prj("daughter/PWR_B"), W, H, "mPBCH32M030DS0 power board B", rev="0.4")
     hicur_daughter(b)
+    b.widen, b.grow_extra = None, []
+    B = "B"
     b.place("J1", BOFF + PIN_X[0], PIN_Y0)
     b.place("J2", BOFF + PIN_X[1], PIN_Y0)
-    put_c(b, "J4", W / 2, H - 3.3, rot=90)
-    put_c(b, "J3", W / 2, H - 9.9, rot=90)
-    zl0, zr0 = 1.0, b.bbox("J1")[0] - 0.2                                  # モジュールの左外側 (基板端から 1mm 空けて配線を通す)
-    zl1, zr1 = b.bbox("J2")[2] + 0.2, W - 0.4                               # モジュールの右外側
-    x0, x1 = b.bbox("J1")[2] + 0.25, b.bbox("J2")[0] - 0.25                 # ソケット列の間 (モジュールの真下)
+    # ---- レッグ (下面) と出力端子 (上面) ----
+    for i, cx in enumerate(B_LEG_X):
+        rb = 30 + 10 * i
+        b.place(f"Q{2 + 2 * i}", cx, B_LS_Y, 90, B)          # LS: ピン上 (G 左 / S 右), タブ (SW) 下
+        b.place(f"Q{1 + 2 * i}", cx, B_HS_Y, 90, B)          # HS: ピン上 (S → LS タブ), タブ (VBUS) 下
+        b.place(f"R{rb + 4}", cx + 2.54 - 2.965, B_SH_Y, 180, B)   # シャント: 1 (SRC) 右 = LS ソースの真上, 2 (ISH) 左
+        b.place(f"J4{i}", cx, B_T_Y, 0)                       # 出力端子 OUTi
+        if i < 3:
+            put_c(b, f"C{rb + 1}", cx + 3.35, 64.0, rot=180)  # 10µF: 左 = SRC, 右 = VBUS (上面, LS ソースの下)
+            put_c(b, f"C{rb}", cx + 3.75, 62.35, rot=180)      # 0.1µF
+        else:                                                 # レッグ 3: VBUS の入口 (右列 → HS 列) を細らせないよう上に寄せる
+            put_c(b, f"C{rb + 1}", cx + 3.35, 58.3, rot=180)
+            put_c(b, f"C{rb}", cx + 2.95, 59.95, rot=180)
+    for k, i in enumerate((0, 1, 2)):                         # バルク容量: 上 = ISH 帯, 下 = VBUS 帯
+        put_c(b, f"C{7 + k}", B_LEG_X[i] + 4.6, 57.85, rot=90)
+    # ---- 左列: GND 端子, バスシャント, ヒートシンク穴 ----
+    b.place("J5", 6.26, 5.9)
+    b.place("H1", 4.0, 43.0)
+    put_c(b, "R70", 9.6, 50.4, rot=90)                        # 下 = ISH (帯へ), 上 = GND
+    # ---- 右列: VIN 端子 → F1 → Q9 → VBUS 帯, ヒートシンク穴 ----
+    b.place("J3", 38.35, 5.9)
+    b.place("F1", 41.5, 15.2, 270)                            # 上 = VIN, 下 = VIN_F
+    b.place("Q9", 41.5, 22.0, 270)                            # ピン (S, G) 上, ドレイン下
+    put_c(b, "U4", 37.6, 22.0, rot=0, side=B)
+    put_c(b, "C5", 37.6, 18.9, rot=0, side=B)
+    b.place("H2", 36.6, 43.0)
+    put_c(b, "D1", 40.1, 55.2, rot=180)                       # 右 = VBUS (K), 左 = ISH
+    put_c(b, "C1", 40.2, 51.9, rot=180)
+    # ---- モジュールの真下 (信号の部品。上面は低背品のみ) ----
+    y = b.pack(["F3", "Q10", "D9"], 15.4, 0.6, 29.6, gap=0.4)          # USB_VBUS (J1 1/2 番) → F3 → Q10 (ドレイン = VBUS)
+    b.pack(["R6", "U5", "C6", "U2", "C3", "C4"], 15.4, y + 0.4, 29.6, gap=0.4)   # U5 (LM74700), 78L05 → J1 7 番
+    put_c(b, "JP7", 17.2, 42.6, rot=90)
+    put_c(b, "JP5", 17.2, 37.4, rot=90)
+    put_c(b, "TH1", 11.3, 45.8, rot=90, side=B)               # NTC: 下面, 左列 (レッグ 0 の上, J1 10 番から J1 の左を下る)
+    put_c(b, "R63", 39.35, 60.3, rot=0, side=B)                # LS3 の G-S 10k は LS3 の足元 (SRC3 への道がモジュール側に無い)
+    b.pack([f"R{30 + 10 * i + k}" for i in (3, 2, 1, 0) for k in (0, 2, 1, 3) if (i, k) != (3, 3)], 20.4, 9.5, 27.3,
+           rot=90, side=B, gap=0.9, row_gap=1.6)             # ゲート抵抗・プルダウン (J2 の HO/LO の横)
+    b.pack(["R71", "R72", "C71", "R74", "R75", "C72", "R77", "R78", "C73", "R11", "R12"], 15.0, 22.0, 20.0,
+           rot=90, side=B, gap=0.25, row_gap=0.6)
+    # 密に並べた部品の courtyard を実物に合わせる (MOSFET のパッド間は 0.3mm, 部品本体は干渉しない)
+    for ref in [f"Q{k}" for k in range(1, 9)] + ["R34", "R44", "R54", "R64", "R63", "R70", "C1", "D1"] + \
+               [f"C{30 + 10 * i + k}" for i in range(4) for k in (0, 1)]:
+        tight_courtyard(b, ref)
+    for ref in ("J1", "J2"):
+        tight_courtyard(b, ref, margin=0.25, body=True)
+    for ref in ("C7", "C8", "C9"):
+        tight_courtyard(b, ref, margin=0.1, body=True)
+    # ---- 電源の銅箔 (配線より先に置く。基板端からは 1.0mm 離す = 面付けのタブ・レジスト開口と揃える) ----
+    zs = []
+    e = pcblib.ZONE_EDGE
 
-    def flow(items, xa, xb, y, gap=0.25):
-        """items を xa..xb の幅で折り返しながら上から並べ, 最下端を返す."""
-        x, rowb = xa, y
-        for it in items:
-            ref, rot = it if isinstance(it, tuple) else (it, 0)
-            put(b, ref, x, y, rot=rot)
-            if b.bbox(ref)[2] > xb + 1e-6 and x > xa:
-                x, y = xa, rowb + gap + 0.05
-                put(b, ref, x, y, rot=rot)
-            x = b.bbox(ref)[2] + gap
-            rowb = max(rowb, b.bbox(ref)[3])
-        return rowb
-    # モジュールの真下: バルク容量 → 電源入力 (J3 側)
-    y = flow(["C7", "C8", "C9"], x0, x1, 0.6)
-    flow(["F1", "C5", ("D1", 90), "Q9", "U4", ("C1", 90)], x0, x1, y + 0.6, gap=B_GAP[1])
-    # 左外側 (J1 の USB_VBUS / VBUS_SNS / +5V の近く): USB-PD 経路, 78L05, VBUS 分圧
-    # LM74700 (U5) は Q10 (ゲート) と C6 (VCAP) の間に置く
-    y = flow(["F3", "Q10", "U5", "C6", "R6", "D9", "U2", "C3", "C4"], zl0, zr0, 0.6, gap=B_GAP[0])
-    # 左外側の下: 各レッグのシャント + VBUS-SRC 容量 (ISH は J1 の ISH と下面の R70 へ)
-    y += 0.6
-    for i in (3, 2, 1, 0):
-        rb = 30 + 10 * i
-        put(b, f"R{rb + 4}", 0.4, y)                                        # シャントは基板端まで寄せる
-        put(b, f"C{rb + 1}", b.bbox(f"R{rb + 4}")[2] + 0.3, y, rot=90)
-        y = max(b.bbox(f"R{rb + 4}")[3], b.bbox(f"C{rb + 1}")[3]) + 0.4
-    # 右外側: ゲート抵抗・プルダウン・0.1µF を J2 の HOx の高さに合わせて並べる
-    for i in (3, 2, 1, 0):
-        rb = 30 + 10 * i
-        yh = b.pad_xy("J2", str(gs.EDGE_R.index(f"HO{i}") + 1))[1]          # J2 の HOx の高さ
-        row = [f"R{rb}", f"R{rb + 2}", f"R{rb + 1}", f"R{rb + 3}", f"C{rb}"]
-        b.pack(row, zl1, yh - 1.0, zr1, rot=90)
-    ys = b.pad_xy("J2", str(gs.EDGE_R.index("VBUS_SNS") + 1))[1]
-    b.pack(["R11", "R12"], zl1, ys - 1.0, zr1, rot=90)                      # VBUS 分圧 (OVP) は J2 の VBUS_SNS の横
-    # ---- 下面 (ヒートシンク側): MOSFET 3 列 x 3 段 ----
-    B = "B"
-    cols = (0.3, BOFF + PIN_X[0] + 1.15, BOFF + PIN_X[1] + 1.15)      # 各列の左端
-    # (列, 段): レッグ 3 = 左列, 2 = 右列, 1 = 中央列 (上 2 段), 0 = 最下段の左右 (J2 の HO0/SW0/LO0 と J4 に近い)
-    slots = {"Q7": (0, 0), "Q8": (0, 1), "Q5": (2, 0), "Q6": (2, 1),
-             "Q3": (1, 0), "Q4": (1, 1), "Q1": (0, 2), "Q2": (2, 2)}
-    rows_y = (0.4, 17.9, 35.4)
-    for q, (c, r) in slots.items():
-        put(b, q, cols[c], rows_y[r], rot=90, side=B)
-    # 中央下段: バスシャント, 電流チャネル選択, 相電圧分圧, NTC
-    y = rows_y[2]
-    cx0, cx1 = cols[1], BOFF + PIN_X[1] - 1.15
-    put(b, "R70", cx0, y, side=B)
-    put(b, "TH1", b.bbox("R70")[2] + 0.3, y, side=B)
-    y = b.bbox("R70")[3] + 0.3
-    put(b, "JP5", cx0, y, rot=90, side=B)
-    put(b, "JP7", b.bbox("JP5")[2] + 0.3, y, rot=90, side=B)
-    y = b.bbox("JP5")[3] + 0.3
-    b.pack(["R71", "R72", "C71", "R74", "R75", "C72", "R77", "R78", "C73"], cx0, y, cx1,
-           rot=90, side=B, gap=0.2, row_gap=0.25)
-    # U4 (LM74700) の EN (3) は ANODE (6) = VIN_F と同電位。IC の腹下を先に結んでおく (外側からは入れないため)
-    pre_route(b, "U4", ["3", ("3", "4"), ("6", "1"), "6"], 0.25)
-    for ref, txt in (("J3", "VIN / GND"), ("J4", "OUT0  OUT1  OUT2  OUT3")):
+    def Z(net, layer, x0, y0, x1, y1):
+        zs.append((net, layer, rect(max(x0, e), max(y0, e), min(x1, W - e), min(y1, H - e))))
+
+    for i, cx in enumerate(B_LEG_X):
+        Z(f"SRC{i}", "B.Cu", cx + 1.7, 53.25, cx + 3.8, 61.55)          # シャント 1 → LS ソース
+        Z(f"SW{i}", "B.Cu", cx - 5.4, 63.6, cx + 5.4, 73.1)             # LS タブ
+        Z(f"SW{i}", "B.Cu", cx - 0.6, 73.1, cx + 5.4, 78.1)             # → HS ソース (左は HS ゲートのビア用に空ける)
+        if i:
+            Z("ISH", "B.Cu", cx - 7.0, 53.25, cx - 2.55, 56.6)          # シャント 2 (ISH) + 上面へのビア
+        xr = W - 0.25 if i == 3 else cx + 5.4
+        if i < 3:
+            Z(f"SRC{i}", "F.Cu", cx + 1.3, 57.3, cx + 3.55, 65.2)       # 上面: レッグの C (SRC 側)
+            Z("VBUS", "F.Cu", cx + 3.85, 57.3, xr, 65.5)                # 上面: レッグの C (VBUS 側) とバルク容量
+        else:
+            Z(f"SRC{i}", "F.Cu", cx + 1.3, 57.3, cx + 2.75, 60.6)       # 上面: C の SRC 側は短く
+            Z("VBUS", "F.Cu", cx + 3.05, 57.3, xr, 60.9)
+            Z("VBUS", "F.Cu", cx + 1.3, 60.9, xr, 65.5)
+        Z("VBUS", "F.Cu", cx + 1.3, 65.5, xr, 89.2)                     # 上面: HS タブ (VBUS) からのビアの帯
+        Z(f"SW{i}", "F.Cu", cx - 3.8, 63.4, cx + 1.0, 89.6)             # 上面: SW 帯 → 出力端子
+        Z(f"SW{i}", "F.Cu", cx - 4.9, 89.55, cx + 4.9, H - 0.3)
+    Z("ISH", "B.Cu", 0.25, 47.9, B_LEG_X[0] - 2.7, 56.6)                # レッグ 0 の ISH (左列へ逃がす)
+    Z("VBUS", "B.Cu", 0.25, 79.9, W - 0.25, 89.55)                      # HS タブを 1 本の VBUS 帯に
+    Z("ISH", "F.Cu", 0.25, 53.25, 39.95, 57.0)                          # ISH 帯 (上面): 各シャント → R70
+    Z("ISH", "F.Cu", 0.25, 47.9, B_LEG_X[0] - 2.7, 53.25)
+    Z("ISH", "F.Cu", 7.6, 52.5, 11.6, 53.25)                            # R70 の ISH 側
+    Z("ISH", "F.Cu", 36.5, 50.4, 39.95, 53.25)                          # C1 の ISH 側
+    Z("GND", "F.Cu", 7.6, 1.0, 12.25, 48.3)                             # GND 端子 J5 → R70
+    Z("GND", "F.Cu", 10.8, 48.3, 13.6, 52.9)                            # → J1 21 番 (モジュールの GND)
+    Z("VIN", "F.Cu", 33.6, 1.0, 43.2, 13.7)                             # VIN 端子 J3 → F1
+    Z("VIN_F", "F.Cu", 40.9, 16.7, 43.2, 21.1)                          # F1 → Q9 ソース
+    Z("VBUS", "F.Cu", 40.4, 21.45, W - 0.25, 57.3)                      # Q9 ドレイン → レッグ 3 の帯
+    Z("VBUS", "B.Cu", 40.0, 23.8, W, 52.7)                              # 同じ帯の裏 (ビアで並列にする)
+    Z("VBUS", "B.Cu", 42.4, 52.7, W, 63.1)                              # → レッグ 3 の C の横 (上面が細い所) を裏で抜ける
+    Z("GND", "B.Cu", 8.4, 1.0, 30.6, 1.9)                               # 上端: J5 (GND) → J2 1 番 (USB の帰路)
+    Z("VBUS", "F.Cu", B_LEG_X[1] + 3.85, 57.5, 28.8, 60.4)              # USB 経路の VBUS の受け口
+    fixed_zones(b, zs)
+    b.solder_nets = {"VBUS", "ISH", "VIN", "VIN_F", "GND"} | {f"SW{i}" for i in range(4)} | {f"SRC{i}" for i in range(4)}
+    b.ko_band = lambda net, layer: 0.3
+    b.grow_skip = {"VBUS"}          # VBUS の主経路は固定のベタ。モジュール真下の細い VBUS は太らせない (塗りが割れるため)
+    vias = []
+    for i, cx in enumerate(B_LEG_X):
+        vias += [(f"SW{i}", cx + dx, y, 0.8, 0.4) for dx in (-3.2, -2.05, -0.9, 0.25) for y in (64.5, 65.8, 67.1, 68.4, 69.7, 71.0, 72.3)]
+        vias += [("VBUS", cx + dx, y, 0.8, 0.4) for dx in (1.9, 3.1, 4.3) for y in (80.9, 82.2, 83.5, 84.8, 86.1, 87.4, 88.7)]
+        vias += ([(f"SRC{i}", cx + 3.2, y, 0.6, 0.3) for y in (57.9, 59.1, 60.3)] if i < 3 else
+                 [(f"SRC{i}", cx + 2.2, y, 0.6, 0.3) for y in (59.35, 60.25)])
+        if i:
+            vias += [("ISH", cx + dx, y, 0.8, 0.4) for dx in (-6.4, -5.25) for y in (53.95, 54.93, 55.9)]
+    vias += [("ISH", x, y, 0.8, 0.4) for x in (1.45, 2.45) for y in (48.6, 49.8, 51.0, 52.2)]
+    vias += [("VBUS", x, 25.0 + 2.45 * k, 0.8, 0.4) for x in (41.1, 42.6) for k in range(11)]
+    vias += [("VBUS", 43.0, y, 0.8, 0.4) for y in (61.5, 62.5)]
+    for net, x, y, d, dr in vias:
+        b.via(net, x, y, dia=d, drill=dr).SetLocked(True)
+
+    def track(net, layer, pts, w=0.2):
+        for (x1, y1), (x2, y2) in zip(pts, pts[1:]):
+            if abs(x1 - x2) + abs(y1 - y2) < 1e-6:
+                continue
+            t = pcblib.pcbnew.PCB_TRACK(b.b)
+            t.SetLocked(True)
+            t.SetStart(pcblib.P(x1, y1))
+            t.SetEnd(pcblib.P(x2, y2))
+            t.SetWidth(pcblib.MM(w))
+            t.SetLayer(pcblib.pcbnew.B_Cu if layer == "B" else pcblib.pcbnew.F_Cu)
+            t.SetNet(b.net(net))
+            b.b.Add(t)
+    # USB 経路の VBUS (Q10 ドレイン, モジュールの真下) → 裏面を x 28.4 で下る → シャント 2 の下 → ビア → 上面の受け口
+    pd = b.pad_xy("Q10", "5")
+    pd = (pd[0], pd[1] + 0.68)          # パッド (y 1.23〜3.62) の下寄り: 上端の GND 帯 (J2 1 番) を空ける
+    xl = 28.5
+    b.via("VBUS", pd[0], pd[1], dia=0.8, drill=0.4).SetLocked(True)
+    b.via("VBUS", xl, 59.0, dia=0.8, drill=0.4).SetLocked(True)
+    track("VBUS", "B", [pd, (xl, pd[1] + (xl - pd[0]) if xl > pd[0] else pd[1]), (xl, 59.0)], w=1.2)
+    # 信号の先付け: モジュールの真下 → MOSFET 列へ抜ける所は決まった道しかないので, 交差しない順で先に引く。
+    #  - レッグ 1/2 のシャントの下 (x 15.3〜17.3 / 26.3〜27.6) を裏で下り, LS のピンとタブの間の帯 (y 61.85〜62.9) を横へ
+    #  - HS のゲートは, LS ゲートの左 (y 59.5) のビア → 上面の SW 帯の左の溝 → ビア (y 75.5) → HS ゲート
+    #  - 外側レッグ (0/3) の SW と SRC0 はソケットの端子の間 (19-20 / 20-21 番) を裏で
+    ya, yb = PIN_Y0 + 2.54 * 19.5, PIN_Y0 + 2.54 * 18.5       # 20-21 番の間 / 19-20 番の間
+    ra, rb_, rc, rd = 61.85, 62.2, 62.55, 62.9
+    yv, yh = 59.5, 75.5
+    vd, vr = 0.5, 0.25
+
+    def top(xs, dx):                     # 束の上端: 左へ逃がして SW2 のビアの場所を空ける (右は USB の VBUS 線)
+        return [(xs + dx, 50.0), (xs + dx, 51.0), (xs, 52.6)] if dx else [(xs, 50.0)]
+
+    def gate_hs(i, row, xs, dx=0.0):
+        cx = B_LEG_X[i]
+        xv = 1.0 if i == 0 else cx - 4.7
+        track(f"GH{i}", "B", top(xs, dx) + [(xs, row), (xv, row), (xv, yv)], w=0.15)
+        b.via(f"GH{i}", xv, yv, dia=vd, drill=vr).SetLocked(True)
+        track(f"GH{i}", "F", [(xv, yv), (xv, yh)], w=0.15)
+        b.via(f"GH{i}", xv, yh, dia=vd, drill=vr).SetLocked(True)
+        track(f"GH{i}", "B", [(xv, yh), (cx - 2.54, yh)], w=0.15)
+
+    def gate_ls(i, row, xs, dx=0.0):
+        cx = B_LEG_X[i]
+        track(f"GL{i}", "B", top(xs, dx) + [(xs, row), (cx - 2.54, row), (cx - 2.54, 61.3)], w=0.15)
+
+    gate_ls(1, ra, 15.3); gate_hs(1, rb_, 15.7); gate_ls(0, rc, 16.1); gate_hs(0, rd, 16.5)
+    track("SW1", "B", [(16.9, 50.0), (16.9, 64.2)], w=0.15)
+    track("SRC1", "B", [(20.0, 54.2), (20.2, 53.6), (20.2, 50.0)], w=0.15)             # SRC1 のベタの右肩から上へ
+    gate_ls(2, ra, 26.3, -0.9); gate_hs(2, rb_, 26.65, -0.9)
+    track("SW2", "B", [(26.5, 50.9), (26.5, 51.7), (27.0, 52.6), (27.0, 64.2)], w=0.15)   # 上端はビアで上面へ
+    b.via("SW2", 26.5, 50.9, dia=vd, drill=vr).SetLocked(True)
+    gate_ls(3, rd, 27.3); gate_hs(3, rc, 27.6)
+    x0, x3 = B_LEG_X[0] - 0.2, B_LEG_X[3] - 0.2
+    for net, xx in (("SW0", x0), ("SW3", x3)):                   # SW 帯 (上面) → ビア (ゲートの帯より上) → 裏
+        track(net, "F", [(xx, 63.9), (xx, 57.8)], w=0.15)
+        b.via(net, xx, 57.8, dia=vd, drill=vr).SetLocked(True)
+    track("SW0", "B", [(x0, 57.8), (x0, yb), (14.55, yb)], w=0.15)
+    track("SRC0", "B", [(B_LEG_X[0] + 2.75, 53.5), (B_LEG_X[0] + 2.75, ya), (14.95, ya)], w=0.15)
+    track("SW3", "B", [(x3, 57.8), (x3, ya), (29.9, ya)], w=0.15)
+    track("SRC2", "B", [(29.85, 53.6), (29.7, 53.3), (29.7, 52.3)], w=0.15)
+    b.via("SRC2", 29.7, 52.3, dia=vd, drill=vr).SetLocked(True)
+    gl, sr = b.pad_xy("R63", "1"), b.pad_xy("R63", "2")        # 1 = GL3 (左), 2 = SRC3 (右)
+    assert gl[0] < sr[0], (gl, sr)
+    track("GL3", "B", [(B_LEG_X[3] - 2.54, gl[1]), gl], w=0.2)
+    track("SRC3", "B", [sr, (B_LEG_X[3] + 1.95, sr[1])], w=0.2)
+    pj = b.pad_xy("JP7", "3")
+    track("ISH", "F", [(21.6, 53.6), (21.6, pj[1] + 1.2), (20.4, pj[1]), pj], w=0.3)  # ISH 帯 → JP7 3 番
+    p18 = b.pad_xy("J1", "18")
+    track("ISH", "F", [p18, (14.7, p18[1] + 0.75), (14.7, 53.6)], w=0.3)             # J1 18 番 (ISH) → ISH 帯
+    p19, p5 = b.pad_xy("J1", "19"), b.pad_xy("JP5", "2")                             # ISB_SEL: 裏 → ビア → JP5 2 番
+    b.via("ISB_SEL", 15.9, p5[1]).SetLocked(True)
+    track("ISB_SEL", "B", [p19, (15.9, p19[1]), (15.9, p5[1])])
+    track("ISB_SEL", "F", [(15.9, p5[1]), p5])
+    b.zones_pre = True
+    for ref, txt in (("J3", "VIN"), ("J5", "GND"), ("J40", "OUT0"), ("J41", "OUT1"), ("J42", "OUT2"), ("J43", "OUT3")):
         l, t, r, bt = b.bbox(ref)
-        b.text(txt, (l + r) / 2, t - 0.6, 0.7)
-    return finish(b, route, silk=[("mPB PWR-B", W / 2, 54.3, 0.7)], outside_ok={"J4", "J1", "J2"},
+        b.text(txt, (l + r) / 2, (t + bt) / 2 + (6.2 if ref in ("J3", "J5") else -6.3), 1.0, bold=True)
+    for ref in ("H1", "H2"):
+        l, t, r, bt = b.bbox(ref)
+        b.text("HS M3", (l + r) / 2, bt + 0.8, 0.7)
+    return finish(b, route, silk=[("mPB PWR-B", W / 2, 50.2, 0.8)], outside_ok={"J1", "J2", "Q1", "Q2", "Q7", "Q8", "C61"},
                   fr_opts=FR_OPTS)
 
 
@@ -653,7 +815,8 @@ def finish(b, route, silk=(), zones_hicur=(), fr_opts=(), outside_ok=()):
         if getattr(b, "widen", None):     # 大電流ネットの配線を, 間隙の許す限り太くする
             nw = b.widen_tracks(b.widen)
             print(f"[{b.name}] widened power tracks: {nw}")
-        g = b.grow_zones(list(b.assign_hicur()) + list(getattr(b, "grow_extra", [])))
+        g = b.grow_zones([n for n in list(b.assign_hicur()) + list(getattr(b, "grow_extra", []))
+                          if n not in getattr(b, "grow_skip", ())])
         print(f"[{b.name}] grown power zones: {g}")
     for net, layer, pts in zones_hicur:
         b.zone(net, layer, pts, priority=2)

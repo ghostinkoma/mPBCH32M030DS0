@@ -115,6 +115,9 @@ defsym("SJ3", "JP", [("1", "~", -5.08, 0, 0, 2.54, False), ("2", "~", 0, -3.81, 
        [_rect(-2.286, -1.016, -1.27, 1.016, fill="outline"), _rect(-0.508, -1.016, 0.508, 1.016, fill="outline"),
         _rect(1.27, -1.016, 2.286, 1.016, fill="outline"), _pl([(-1.27, 0), (-0.508, 0)], 0.508)],
        ref_at=(0, 2.54), val_at=(0, 4.2))
+# 丸端子 (リング端子) 用のネジ端子 1 極
+defsym("TERM1", "J", [("1", "~", -5.08, 0, 0, 2.54, False)],
+       [_rect(-2.54, -1.524, 2.54, 1.524, fill="background"), _circ(0.508, 0, 0.889)], ref_at=(0, 2.54), val_at=(0, -2.54))
 defsym("TP", "TP", [("1", "~", 0, -2.54, 90, 1.27, False)], [_circ(0, 0, 1.27)],
        ref_at=(1.905, 1.27), val_at=(1.905, -1.27))
 defsym("REG3", "U",
@@ -289,6 +292,8 @@ FP = {
     "CPE8x6": "Capacitor_SMD:CP_Elec_8x6.2",
     "CPE6x6": "Capacitor_SMD:CP_Elec_6.3x5.9",
     "MH": "MountingHole:MountingHole_2.2mm_M2",
+    "MH32": "MountingHole:MountingHole_3.2mm_M3",
+    "REDCUBE_M3": "TerminalBlock_Wuerth:Wuerth_REDCUBE-THR_WP-THRBU_74650073_THR",
 }
 
 
@@ -613,6 +618,7 @@ PROJECTS.append(build_main())
 # ===========================================================================
 # パワー段子基板 (モジュールを上面のソケットで受け, MOSFET 等は下面 = ヒートシンク側)
 # ===========================================================================
+TERM_MPN = "Würth REDCUBE THR WP-THRBU 74650073 (M3 貫通ネジ, 丸端子用, 定格 50A 以上)"
 DAUGHTERS = {
     "A": dict(fet="TPN1R603PL", sym="NMOS", fp="TSON", mpn="Toshiba TPN1R603PL,L1Q (30V 1.6mΩ Qg 41nC)",
               g="4", d="5", s="1", rg="47R", rpd="20k", shunt=("10mR 1% 0.5W", "R1206", "1206 0.5W (例: Yageo PE1206FRF7W0R01L)"),
@@ -626,8 +632,8 @@ DAUGHTERS = {
               g="1", d="2", s="3", rg="22R", rpd="10k", shunt=("10mR 1% 3W", "R2512", "2512 3W (例: Bourns CRE2512-FZ-R010E-3)"),
               bulk=[("47uF/35V", "CPE6x6", "Panasonic EEE-FK1V470P (6.3x6.1mm)")] * 3,
               bemf=("47k 1%", "3.3k 1%"), ovp=("180k 1%", "OVP 28.5V (VBUS/19)"),
-              tvs=("SMBJ24A", "SMBJ24A (Vwm 24V)"), vin="12〜24V (上限 26V, 安定化電源)", ipk="約 10A (ピンヘッダ律速)",
-              title="子基板 B: TKR74F04PB (24V 系)"),
+              tvs=("SMBJ24A", "SMBJ24A (Vwm 24V)"), vin="12〜24V (上限 26V, 安定化電源)", ipk="銅箔律速 (電流容量チェック参照)",
+              title="子基板 B: TKR74F04PB (24V 系)", lugs=True, bulk_ret="ISH", tvs_ret="ISH"),
     "C": dict(fet="MTN2306AN3", sym="NMOS_SOT23", fp="SOT23", mpn="Cystech MTN2306AN3 (30V 5.5A 25mΩ SOT-23)",
               g="1", d="3", s="2", rg="47R", rpd="20k", shunt=("10mR 1% 0.5W", "R1206", "1206 0.5W (例: Yageo PE1206FRF7W0R01L)"),
               bulk=[("100uF/25V", "CPE8x6", "Panasonic EEE-FK1E101P (8x6.2mm)")], bulk_ret="ISH",
@@ -645,11 +651,13 @@ def build_daughter(key):
         f"mPBCH32M030DS0 Rev 0.4 {v['title']}",
         "",
         f"・MOSFET: {v['fet']} x8 (4 ハーフブリッジ)   入力電圧: {v['vin']}   出力電流の目安: {v['ipk']}",
-        "・上面: MCU モジュールを挿す 1x21 ピンソケット x2 (左右対称, 列間 17.78mm), 電源入力 J3, モータ出力 J4, バルク容量",
+        ("・上面: MCU モジュールを挿す 1x21 ピンソケット x2, 丸端子用ネジ端子 (電源 2 + 出力 4), バルク容量" if v.get("lugs") else
+         "・上面: MCU モジュールを挿す 1x21 ピンソケット x2 (左右対称, 列間 17.78mm), 電源入力 J3, モータ出力 J4, バルク容量"),
         "・下面 (ヒートシンク側): MOSFET, シャント, ゲート抵抗, 理想ダイオード, TVS, 78L05 など。LED は置かない (モジュール側)",
         "・電圧系に依存する部品 (TVS, VBUS 分圧 = OVP, バルク容量, 相電圧分圧) はこの基板で決める",
         "",
-        "J3 電源入力 (2x6): 1-6 = VIN, 7-12 = GND    J4 モータ出力 (2x8): 1-4 = OUT0, 5-8 = OUT1, 9-12 = OUT2, 13-16 = OUT3",
+        ("J3 = VIN, J5 = GND, J40-J43 = OUT0-OUT3 (M3 丸端子用ネジ端子 REDCUBE)    H1/H2: ヒートシンク固定 M3" if v.get("lugs") else
+         "J3 電源入力 (2x6): 1-6 = VIN, 7-12 = GND    J4 モータ出力 (2x8): 1-4 = OUT0, 5-8 = OUT1, 9-12 = OUT2, 13-16 = OUT3"),
         "  3相 = U/V/W (OUT0-2), DC x2 = OUT0-1 / OUT2-3, ステッピング = A+ A- B+ B-",
         "JP5 (はんだ, 1-2 済): ISP2 = HB1 / 2-3: HB2      JP7 (はんだ, 1-2 済): ISP1 = HB0 / 2-3: バス電流",
     ])
@@ -660,8 +668,12 @@ def build_daughter(key):
     pw.add("CONN21", "J2", "SOCK_R", 110, 40, nets=PINMAP_R, fp="SOCK1x21", mpn="2.54mm 1x21 ピンソケット (標準 8.5mm 高)")
 
     pw.box(150, 20, 405, 120, "電源入力 J3 → F1 → 理想ダイオード (U4+Q9) → VBUS / TVS / バルク容量")
-    pw.add("CONN2x6", "J3", "PWR_IN", 175, 45, nets={str(n): ("VIN" if n <= 6 else "GND") for n in range(1, 13)},
-           fp="HDR2x6", mpn="2.54mm 2x6 ピンヘッダ (1-6 = VIN, 7-12 = GND, 各 6 本並列)")
+    if v.get("lugs"):
+        pw.add("TERM1", "J3", "VIN", 175, 40, nets={"1": "VIN"}, fp="REDCUBE_M3", mpn=TERM_MPN)
+        pw.add("TERM1", "J5", "GND", 175, 55, nets={"1": "GND"}, fp="REDCUBE_M3", mpn=TERM_MPN)
+    else:
+        pw.add("CONN2x6", "J3", "PWR_IN", 175, 45, nets={str(n): ("VIN" if n <= 6 else "GND") for n in range(1, 13)},
+               fp="HDR2x6", mpn="2.54mm 2x6 ピンヘッダ (1-6 = VIN, 7-12 = GND, 各 6 本並列)")
     fv, fmpn = v.get("fuse", ("10A", "Littelfuse 0451010.MRL (NANO2 2410, 10A 速断)"))
     pw.add("FUSE", "F1", fv, 215, 45, rot=90, nets={"1": "VIN", "2": "VIN_F"}, fp="NANO2", mpn=fmpn)
     pw.add("NMOS", "Q9", "TPN2R304PL", 250, 45, rot=270, nets={"1": "VIN_F", "4": "Q9_G", "5": "VBUS"},
@@ -671,8 +683,8 @@ def build_daughter(key):
            fp="SOT236", mpn="TI LM74700QDBVRQ1")
     cap(pw, "C5", C_100N, 285, 85, "VCAP1", "VIN_F", rot=0)
     tv, tmpn = v["tvs"]
-    pw.add("D_TVS", "D1", tv, 310, 60, rot=270, nets={"1": "VBUS", "2": "GND"}, fp="SMB", mpn=tmpn)
-    cap(pw, "C1", C_10U50, 335, 60, "VBUS", "GND")
+    pw.add("D_TVS", "D1", tv, 310, 60, rot=270, nets={"1": "VBUS", "2": v.get("tvs_ret", "GND")}, fp="SMB", mpn=tmpn)
+    cap(pw, "C1", C_10U50, 335, 60, "VBUS", v.get("tvs_ret", "GND"))
     for k, (val, fp, mpn) in enumerate(v["bulk"]):
         pw.add("CP", f"C{7 + k}", val, 360 + 15 * k, 60, nets={"1": "VBUS", "2": v.get("bulk_ret", "GND")}, fp=fp, mpn=mpn)
     if v.get("bulk_ret") == "ISH":
@@ -755,9 +767,16 @@ def build_daughter(key):
            mpn="はんだジャンパ 3 端子 (1-2 ブリッジ済み: HB1 / 2-3: HB2)")
     br.add("SJ3", "JP7", "ISEL_A", 45, 225, nets={"1": "SRC0", "2": "ISA_SEL", "3": "ISH"}, fp="SJ3",
            mpn="はんだジャンパ 3 端子 (1-2 ブリッジ済み: HB0 レッグ / 2-3: バス電流)")
-    br.add("CONN2x8", "J4", "MOTOR", 130, 170, nets={str(n): f"SW{(n - 1) // 4}" for n in range(1, 17)}, fp="HDR2x8",
-           mpn="2.54mm 2x8 ピンヘッダ (各出力 4 本並列)")
-    br.text("J4: 1-4=OUT0 5-8=OUT1 9-12=OUT2 13-16=OUT3 (各 4 ピン並列)", 18, 260, 1.4)
+    if v.get("lugs"):
+        for i in range(4):
+            br.add("TERM1", f"J4{i}", f"OUT{i}", 130, 160 + 15 * i, nets={"1": f"SW{i}"}, fp="REDCUBE_M3", mpn=TERM_MPN)
+        for k in range(2):
+            br.add("MH", f"H{k + 1}", "HEATSINK_M3", 170, 160 + 12 * k, fp="MH32", mpn="ヒートシンク固定用 M3 穴 (非めっき)")
+        br.text("J40-J43: OUT0-OUT3 (M3 丸端子)。H1/H2: ヒートシンク固定 (M3)。D1/C1 の帰りは ISH (バスシャント R70 経由で GND)", 18, 260, 1.3)
+    else:
+        br.add("CONN2x8", "J4", "MOTOR", 130, 170, nets={str(n): f"SW{(n - 1) // 4}" for n in range(1, 17)}, fp="HDR2x8",
+               mpn="2.54mm 2x8 ピンヘッダ (各出力 4 本並列)")
+        br.text("J4: 1-4=OUT0 5-8=OUT1 9-12=OUT2 13-16=OUT3 (各 4 ピン並列)", 18, 260, 1.4)
     br.text("R70 は全レッグ共通の帰路 (ISH→GND)。ISH/ISA_SEL/ISB_SEL はシャント端からケルビン配線でソケットへ。", 18, 268, 1.25)
 
     br.box(210, 140, 405, 285, "相電圧 (BEMF) 分圧 / 温度 (NTC)")

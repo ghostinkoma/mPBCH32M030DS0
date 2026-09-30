@@ -4,16 +4,16 @@
   python3 gen_panel.py            # hardware/panel/ に KiCad 基板, hardware/fab/ に製造データ, docs/pcb/ に図
 
 配置 (上から見た図, 単位 mm):
-  ┌─┐┌──────┐  ┌──────┐  ┌────────────┐
-  │左││  A   │==│  C   │==│     B      │   A / C / B は長辺どうしをタブでつなぐ
-  │の││      │  │      │==│            │   (A / C の上下辺はソケット・J3/J4 が端に寄っているのでタブを付けない)
-  │桟││      │==│      │==│            │
-  │ │└──────┘  └──────┘  └────┬───────┘
-  │ │=┌────────────────────┐=┌┴┐              モジュールは横向き (USB-C は右, J1 側が上)。両端の短辺を左右の桟へつなぐ
-  │ │ │ M (横向き)          │ │右│             (長辺はピンヘッダ沿いに配線が走っているのでタブを付けない)
-  └─┘ └────────────────────┘ └─┘
+  ┌──────┐  ┌──────┐  ┌┐  ┌────────────┐
+  │  A   │==│  C   │==││==│     B      │   A / C は長辺どうし, C と B の間は捨て桟 (B は全高 99.5mm)
+  │      │  │      │  ││  │ (44.6 幅)  │
+  │      │==│      │==││==│            │
+  └──┬───┘  └──────┘  └┘  │            │
+  ┌──┴────────────────────┐ │            │   モジュールは横向き (USB-C は左, J2 側が上)。
+  │ M (横向き)            │=│            │   上辺の USB 寄りを A の下辺へ, 右の短辺 (21 番ピン側) を B へつなぐ
+  └───────────────────────┘ └────────────┘
 各基板は 2mm の溝で切り離し, タブの両端にマウスバイトの穴 (0.5mm, 0.8mm ピッチ, 基板側へ 0.25mm 寄せる) を開ける。
-タブは, 基板端から 1.2mm 以内に銅 (パッド・配線・ビア) の無い区間にだけ置く (ベタは gen_pcb.py zone_edge で 1.0mm 後退済み)。
+タブは, 基板端から 1.0mm 以内に銅 (パッド・配線・ビア) の無い区間にだけ置く (ベタは gen_pcb.py zone_edge で 1.0mm 後退済み)。
 """
 import os
 import shutil
@@ -26,35 +26,31 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 F, T = pcbnew.FromMM, pcbnew.ToMM
 NAME = "mPBCH32M030DS0_panel"
 GAP = 2.0                      # 基板間の溝 (ルータ径)
-BAR = 3.0                      # 捨て桟の幅
 MB_D, MB_PITCH, MB_OFF = 0.5, 0.8, 0.25   # マウスバイト: 穴径, ピッチ, 基板側へのずらし量
 
-MW, MH, AH, BW, BH = 22.86, 53.34, 74.9, 43.18, 66.94
-XA = BAR + GAP                 # A の左端
+MW, MH, AH, BW, BH = 22.86, 53.34, 74.9, 44.6, 99.5
+XA = 0.0                       # A の左端
 XC = XA + MW + GAP
-XB = XC + MW + GAP
-YB = AH - BH                   # B は下端を A / C にそろえる
+XR = XC + MW + GAP             # C と B の間の捨て桟
+XB = XA + MH + GAP             # B の左端 (モジュールの右端 + 溝)
 YM = AH + GAP                  # モジュール (横向き) の上端
-XM = XA                        # モジュールの左端 (21 番ピン側の短辺が左)
-XR = XM + MH + GAP             # 右の桟 (B の下辺から吊る)
+XM = XA
 PW, PH = XB + BW, YM + MW      # パネル外形
 
 BOARDS = [  # (記号, 基板ファイル, 回転 [deg], 左上の位置)
-    ("M", "mPBCH32M030DS0.kicad_pcb", 270, (XM, YM)),
+    ("M", "mPBCH32M030DS0.kicad_pcb", 90, (XM, YM)),
     ("A", "daughter/PWR_A/mPBCH32M030DS0_PWR_A.kicad_pcb", 0, (XA, 0.0)),
     ("C", "daughter/PWR_C/mPBCH32M030DS0_PWR_C.kicad_pcb", 0, (XC, 0.0)),
-    ("B", "daughter/PWR_B/mPBCH32M030DS0_PWR_B.kicad_pcb", 0, (XB, YB)),
+    ("B", "daughter/PWR_B/mPBCH32M030DS0_PWR_B.kicad_pcb", 0, (XB, 0.0)),
 ]
-BARS = [(0.0, 0.0, BAR, PH),               # 左の桟 (A の左辺とモジュールの左端を支える)
-        (XR, YM, XR + 4.0, PH)]            # 右の桟 (B の下辺から吊り, モジュールの右端を支える)
+BARS = [(XR, 0.0, XB - GAP, AH)]   # 捨て桟 (C と B の間, モジュールより上)
 # タブ: (向き, 溝の中心線の位置, 溝に沿った中心, 幅)。向き "v" = 縦の溝 (左右をつなぐ), "h" = 横の溝 (上下をつなぐ)
 TABS = [
-    ("v", BAR + GAP / 2, 15.0, 4.0), ("v", BAR + GAP / 2, 70.0, 4.0),            # 左の桟 ↔ A (A の左辺は全長空き)
     ("v", XA + MW + GAP / 2, 56.0, 4.0), ("v", XA + MW + GAP / 2, 70.5, 4.0),   # A ↔ C (A の右辺は J2 沿いの GND 配線で 52.3〜 のみ空き)
-    ("v", XC + MW + GAP / 2, 62.0, 4.0), ("v", XC + MW + GAP / 2, 71.0, 4.0),   # C ↔ B (C 右辺 52.3〜, B 左辺 59.8〜73.9 が空き)
-    ("v", BAR + GAP / 2, YM + MW / 2, 4.0),                                       # 左の桟 ↔ モジュール (21 番ピン側の短辺)
-    ("v", XM + MH + GAP / 2, YM + 5.17, 3.0),                                     # モジュール (USB 側の短辺, 空き 3.4〜6.9) ↔ 右の桟
-    ("h", AH + GAP / 2, XR + 2.0, 3.0),                                           # B の下辺 ↔ 右の桟
+    ("v", XC + MW + GAP / 2, 56.0, 4.0), ("v", XC + MW + GAP / 2, 70.5, 4.0),   # C ↔ 捨て桟
+    ("v", XB - GAP / 2, 10.0, 4.0), ("v", XB - GAP / 2, 40.0, 4.0),             # 捨て桟 ↔ B (B 左辺の空き 1〜48)
+    ("h", AH + GAP / 2, XA + 7.0, 4.0),                                           # A の下辺 ↔ モジュール上辺 (USB 寄り, 空き 1〜12)
+    ("v", XB - GAP / 2, YM + 16.1, 4.0),                                          # モジュール右の短辺 ↔ B (空き 89.5〜96.4)
 ]
 
 
@@ -192,7 +188,7 @@ def main():
     t.SetTextSize(pcbnew.VECTOR2I(F(0.8), F(0.8)))
     t.SetTextThickness(F(0.15))
     t.SetTextAngle(pcbnew.EDA_ANGLE(90, pcbnew.DEGREES_T))
-    t.SetPosition(pcbnew.VECTOR2I(F(BAR / 2), F(45.0)))
+    t.SetPosition(pcbnew.VECTOR2I(F((XR + XB - GAP) / 2), F(30.0)))
     panel.Add(t)
     out = os.path.join(HERE, "panel")
     os.makedirs(out, exist_ok=True)

@@ -61,22 +61,20 @@
   },
   {
    "ref": "J3",
-   "fp": "Connector_PinHeader_2.54mm:PinHeader_2x06_P2.54mm_Vertical",
-   "value": "PWR_IN",
+   "fp": "TerminalBlock_Wuerth:Wuerth_REDCUBE-THR_WP-THRBU_74650073_THR",
+   "value": "VIN",
    "dnp": false,
    "nets": {
-    "1": "VIN",
-    "2": "VIN",
-    "3": "VIN",
-    "4": "VIN",
-    "5": "VIN",
-    "6": "VIN",
-    "7": "GND",
-    "8": "GND",
-    "9": "GND",
-    "10": "GND",
-    "11": "GND",
-    "12": "GND"
+    "1": "VIN"
+   }
+  },
+  {
+   "ref": "J5",
+   "fp": "TerminalBlock_Wuerth:Wuerth_REDCUBE-THR_WP-THRBU_74650073_THR",
+   "value": "GND",
+   "dnp": false,
+   "nets": {
+    "1": "GND"
    }
   },
   {
@@ -133,7 +131,7 @@
    "dnp": false,
    "nets": {
     "1": "VBUS",
-    "2": "GND"
+    "2": "ISH"
    }
   },
   {
@@ -143,7 +141,7 @@
    "dnp": false,
    "nets": {
     "1": "VBUS",
-    "2": "GND"
+    "2": "ISH"
    }
   },
   {
@@ -153,7 +151,7 @@
    "dnp": false,
    "nets": {
     "1": "VBUS",
-    "2": "GND"
+    "2": "ISH"
    }
   },
   {
@@ -163,7 +161,7 @@
    "dnp": false,
    "nets": {
     "1": "VBUS",
-    "2": "GND"
+    "2": "ISH"
    }
   },
   {
@@ -173,7 +171,7 @@
    "dnp": false,
    "nets": {
     "1": "VBUS",
-    "2": "GND"
+    "2": "ISH"
    }
   },
   {
@@ -695,28 +693,54 @@
    }
   },
   {
-   "ref": "J4",
-   "fp": "Connector_PinHeader_2.54mm:PinHeader_2x08_P2.54mm_Vertical",
-   "value": "MOTOR",
+   "ref": "J40",
+   "fp": "TerminalBlock_Wuerth:Wuerth_REDCUBE-THR_WP-THRBU_74650073_THR",
+   "value": "OUT0",
    "dnp": false,
    "nets": {
-    "1": "SW0",
-    "2": "SW0",
-    "3": "SW0",
-    "4": "SW0",
-    "5": "SW1",
-    "6": "SW1",
-    "7": "SW1",
-    "8": "SW1",
-    "9": "SW2",
-    "10": "SW2",
-    "11": "SW2",
-    "12": "SW2",
-    "13": "SW3",
-    "14": "SW3",
-    "15": "SW3",
-    "16": "SW3"
+    "1": "SW0"
    }
+  },
+  {
+   "ref": "J41",
+   "fp": "TerminalBlock_Wuerth:Wuerth_REDCUBE-THR_WP-THRBU_74650073_THR",
+   "value": "OUT1",
+   "dnp": false,
+   "nets": {
+    "1": "SW1"
+   }
+  },
+  {
+   "ref": "J42",
+   "fp": "TerminalBlock_Wuerth:Wuerth_REDCUBE-THR_WP-THRBU_74650073_THR",
+   "value": "OUT2",
+   "dnp": false,
+   "nets": {
+    "1": "SW2"
+   }
+  },
+  {
+   "ref": "J43",
+   "fp": "TerminalBlock_Wuerth:Wuerth_REDCUBE-THR_WP-THRBU_74650073_THR",
+   "value": "OUT3",
+   "dnp": false,
+   "nets": {
+    "1": "SW3"
+   }
+  },
+  {
+   "ref": "H1",
+   "fp": "MountingHole:MountingHole_3.2mm_M3",
+   "value": "HEATSINK_M3",
+   "dnp": false,
+   "nets": {}
+  },
+  {
+   "ref": "H2",
+   "fp": "MountingHole:MountingHole_3.2mm_M3",
+   "value": "HEATSINK_M3",
+   "dnp": false,
+   "nets": {}
   },
   {
    "ref": "R71",
