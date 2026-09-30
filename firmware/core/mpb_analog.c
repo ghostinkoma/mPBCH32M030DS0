@@ -22,12 +22,18 @@ static void Gpio_Analog(GPIO_TypeDef *port, uint16_t pins)
 /* ------------------------------------------------------------------ ADC --- */
 void Mpb_Adc_Init(void)
 {
+    static uint8_t done;
     ADC_InitTypeDef a = {0};
 
+    if (done)
+    {
+        return;                               /* 2 回目以降は何もしない (注入変換の設定を消さない) */
+    }
+    done = 1;
     RCC_PB2PeriphClockCmd(RCC_PB2Periph_GPIOA | RCC_PB2Periph_GPIOB | RCC_PB2Periph_ADC1, ENABLE);
     Gpio_Analog(GPIOA, GPIO_Pin_2 | GPIO_Pin_4 | GPIO_Pin_5 | GPIO_Pin_7);
     Gpio_Analog(GPIOB, GPIO_Pin_2 | GPIO_Pin_3 | GPIO_Pin_4);
-    RCC_ADCCLKConfig(RCC_HB_Div8);
+    RCC_ADCCLKConfig(RCC_HB_Div4);           /* 18MHz (上限)。注入変換 2ch を PWM の山の約 2µs に収める */
     ADC_DeInit(ADC1);
     a.ADC_Mode = ADC_Mode_Independent;
     a.ADC_ScanConvMode = DISABLE;

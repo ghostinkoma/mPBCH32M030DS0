@@ -161,7 +161,7 @@ J1 12V ─F1 15A─ VIN_F ── Q9 (TPN1R603PL) ── VBUS
 | J6 | GND/3V3/PC3/PC4/PA6/PC5/nFAULT/5V | GND/3V3/PC4/PC5/**TACH_IN**/nFAULT/5V/GND |
 | J7 | 5P (SWDIO/SWCLK/RST) | **4P 1 線 SDI** (3V3/SWIO/RST/GND) |
 
-## 5. ファームウェア (`firmware/app_template/src/mpb*.c`)
+## 5. ファームウェア (`firmware/core/mpb*.c`, 応用は `firmware/lib/` と [firmware/README.md](../firmware/README.md))
 
 | API | 内容 |
 |---|---|

@@ -24,6 +24,7 @@
 
 void setup(void);
 void loop(void);
+void Mpb_Uart_TxIrq(void);
 
 void USART1_IRQHandler(void) MPB_IRQ;
 
@@ -47,15 +48,27 @@ static void USART1_IT_CFG(void)
     NVIC_EnableIRQ(USART1_IRQn);
     USART_Cmd(USART1, ENABLE);
 }
+#endif
+
+/* 送信割込み (TXE) のフック: lib/mpb_log.c が使う */
+__attribute__((weak)) void Mpb_Uart_TxIrq(void)
+{
+    USART_ITConfig(USART1, USART_IT_TXE, DISABLE);
+}
 
 void USART1_IRQHandler(void)
 {
+#if MPB_UART_BOOT
     if (USART_GetFlagStatus(USART1, USART_FLAG_RXNE) != RESET)
     {
         UART_Rx_Deal();
     }
-}
 #endif
+    if ((USART1->CTLR1 & UART_CTLR1_TXEIE) && USART_GetFlagStatus(USART1, USART_FLAG_TXE) != RESET)
+    {
+        Mpb_Uart_TxIrq();
+    }
+}
 
 int main(void)
 {

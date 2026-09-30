@@ -107,7 +107,9 @@ USB-C から ESP32-C3 / Arduino のように書き込めて、**USB-PD 充電器
 | `docs/design.md` | **部品選定の妥当性と設計根拠** (データシート値) |
 | `docs/advanced_features.md` | 内蔵機能 (電流源/シンク・USB-PD・OPA/CMP 全モード) の活用検討 |
 | `firmware/bootloader/` | USB/UART ブートローダ (WCH IAP 互換, 20KB) |
-| `firmware/app_template/` | Arduino 風テンプレート (`setup()` / `loop()`) + ボード支援ライブラリ `mpb.h` |
+| `firmware/core/`, `firmware/lib/` | スケッチ環境 (ch32fun 風): 起動・USB 書き込み・PD と, モーター / I2C / ログ / WS2812 / LED / センサ / エンコーダのライブラリ。**[firmware/README.md](firmware/README.md)** |
+| `firmware/app_template/` | Arduino 風テンプレート (`setup()` / `loop()`)。`#include "mpbfun.h"` で全ライブラリ |
+| `firmware/examples/` | サンプル 9 本 (DC / ステッピング / 3 相 ホール・センサなし, I2C マスタ・スレーブ, UART ログ, WS2812, LED の CIE 調光) |
 | `tools/mpb_upload.py` | 書き込みツール (USB / UART, Windows・macOS・Linux) |
 
 KiCad ファイルは **KiCad 8 形式** (回路図 20231120, 基板は pcbnew 8.0 で生成) です。再生成の手順 (KiCad 8.0.x の Python が必要):
@@ -260,6 +262,7 @@ sudo cp tools/99-mpb.rules /etc/udev/rules.d/    # root なしで USB を開く
 cd firmware && ./sdk/fetch_sdk.sh
 make -C bootloader          # → bootloader/build/mpb_bootloader.hex
 make -C app_template        # → app_template/build/app.bin
+make                        # ブートローダ + テンプレート + サンプル全部 (make test で単体テスト)
 
 # 2) 【初回のみ】ブートローダを WCH-LinkE (1 線 SDI: J1-8 SWDIO / J2-4 nRST / GND) で書き込む
 #    子基板 J3 (またはモジュールの VBUS ピン) に 12V を給電 (SWD には VHV ≥ 5V が必要)。WCH-Link から 3.3V は供給しない。
@@ -272,6 +275,7 @@ make -C app_template upload
 ```
 
 - スケッチは `firmware/app_template/src/sketch.c` の `setup()` / `loop()` に書く (Arduino の .ino 相当)。
+  ライブラリとサンプルの説明は [firmware/README.md](firmware/README.md)。サンプルは `make -C examples/dc_motor upload` のように書き込む。
 - `main.c` が USB/UART の書き込み要求を常に受け付けるので、「Upload」だけで書き換わる (ESP32 / Arduino の自動リセット相当)。
 - アプリが暴走して応答しない時は **SW2 (USER/BOOT) を押しながら SW1 (RESET)** → 状態 LED が高速点滅 → 書き込み可能。
 - USB だけの給電でも MCU とブートローダは動作する (VHV ≈ 4.5V)。モーター駆動には子基板 J3 の 12V か、PD 充電器 (9〜15V) が必要。
@@ -285,7 +289,8 @@ make -C app_template upload
 | 回路図の接続 | `kicad-cli` のネットリストと設計値が一致 (`verify_netlist.py`): **モジュール 83/83, 子基板 A/B/C 58/58** (KiCad 8.0.9) |
 | モジュールと子基板の嵌合 | モジュール J1/J2 と子基板 J1/J2 は同じ座標・同じピン番号・同じネット名 (回路図生成時に同じピン表から作成) |
 | 基板 (2 層) | **子基板 A/B/C: 未接続 0 / 電気的 DRC エラー 0** (シルクの重なり等の警告のみ)。**MCU モジュール: 未接続 0 / 電気的 DRC エラー 0** ([docs/stacking.md](docs/stacking.md#mcu-モジュールの配線))。製造データ (ガーバー・ドリル・部品座標) は `hardware/fab/*.zip` |
-| ブートローダ / アプリ | GCC 13 (riscv64-unknown-elf + picolibc) で**警告 0 でビルド** (5.7KB / 10.5KB)。`POWER_STAGE=A/B` の両方を確認 |
+| ブートローダ / アプリ | GCC 13 (riscv64-unknown-elf + picolibc) で**警告 0 でビルド** (5.7KB / 10.6KB, サンプル 10〜21KB / 44KB)。`POWER_STAGE=A/B` の両方を確認 |
+| ライブラリの計算 | ホストの単体テスト (`make -C firmware test`): 書式化, CIE 1931, センサ換算 (BMP280・SHT3x のデータシート例題と一致), ステッピングの加減速と位置決め |
 | 書き込みツール | ブートローダのプロトコル処理を Python で再現したシミュレータで**書込・検証が一致** (`tools/test_mpb_upload.py`) |
 | 実機 | **未確認** (基板未製作) |
 
@@ -293,8 +298,9 @@ make -C app_template upload
 
 - TIM1 (HB0〜HB2) と TIM2 (HB2/HB3 リマップ2) を同時に同じピンへ出さないこと (PB12/PB13 は両方の候補)。
 - デッドタイム初期値 0.5µs, PWM 16〜20kHz から始め、ゲート確認 LED とオシロで確認する。
-- 過電流: CMP3 (IBUS) / CMP2 (OPA3+DAC) → TIM1 BKIN。BKIN の無い TIM2 は `OPA_IRQHandler` (mpb_analog.c) が停止し、HB2/HB3 のゲートを Low に固定する。
-- VDD8 は `PWR_VDD8_Config()` で VIN に合わせて選択 (VIN ≥ 12V → 10V)。
+- 過電流: CMP3 (IBUS) / CMP2 (OPA3+DAC) の割込み (`OPA_IRQHandler`) で全レッグのゲートを Low に固定する。TIM1 BKIN のハード遮断も使えるが,
+  BKIN の既定端子 PA15 は I2C の SCL と共用なので, I2C と併用するときは `Mpb_BridgeCfg.hw_break = 0` (既定)。
+- ゲート駆動電源 VDD8 はリセット時 5V。`Mpb_Bridge_Init()` とモーターの `*_Task()` が VBUS に合わせて自動で選ぶ (VBUS ≥ 12V → 10V)。
 - パワー段 (子基板) に合わせて `make POWER_STAGE=A|B|C` でビルドする (B は VBUS 分圧比 1/19)。子基板 B は Qg が大きいので
   `8 × Qg × fPWM + MCU ≤ 35mA` (VDD8 LDO) を満たす PWM 周波数にする。
 - ゲートを駆動する前に VBUS ≥ 8V を ADC で確認する (USB のみ給電時は駆動しない)。

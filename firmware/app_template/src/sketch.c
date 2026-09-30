@@ -4,12 +4,11 @@
  * 例: 状態 LED (PC4) の点滅 + USB-PD 給電ネゴシエーション + 温度/電圧の監視。
  * loop() は Delay で止めないこと (PD 処理は 1ms 周期で回す必要がある)。
  *
- * 注意: モーター出力 (PB8〜PB15) を触る前に README の「ファームウェア開発」を読むこと。
- *       HO/LO を同時に ON にするとハーフブリッジが短絡する (TIM1/TIM2 の相補 PWM +
- *       デッドタイム + ブレーキを使うこと)。
+ * モーター・I2C・ログ・WS2812 などは "mpbfun.h" のライブラリを使う (firmware/README.md, examples/)。
+ * 注意: モーター出力 (PB8〜PB15) を直接触らないこと。HO/LO を同時に ON にするとハーフブリッジが短絡する
+ *       (mpb_bridge の相補 PWM + デッドタイム + 過電流遮断を使う)。
  */
-#include "debug.h"
-#include "mpb.h"
+#include "mpbfun.h"
 
 static void Led(uint8_t on)
 {
