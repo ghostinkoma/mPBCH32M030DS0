@@ -142,9 +142,13 @@ def build_main(route=True):
     dflt.SetClearance(pcblib.MM(rule))
     dflt.SetViaDiameter(pcblib.MM(via[0]))
     dflt.SetViaDrill(pcblib.MM(via[1]))
-    # ---- 端子・USB (上面) ----
+    # ---- 端子: ピンヘッダは下面に実装し, ピンを MCU と反対側 (下) へ出す (ブレッドボード・ソケットへ挿しても
+    #      USB-C とボタンが上に来る)。穴の位置は表裏で同じなので, 配線は表に置いた状態で行い (前回の配線を再利用),
+    #      配線の後で下面へ裏返す (finish の flip_after_route)
     b.place("J1", PIN_X[0], PIN_Y0)
     b.place("J2", PIN_X[1], PIN_Y0)
+    b.flip_after_route = ("J1", "J2")
+    # ---- USB (上面) ----
     put_c(b, "J8", MW / 2, 3.7, rot=180)                  # USB-C: 差込口は上端
     put(b, "U3", 4.45, 8.6)
     put(b, "SW1", 10.95, 8.5)
@@ -191,7 +195,11 @@ def build_main(route=True):
         b.pack(["C131", "C132"], b.bbox("Y1")[0], yb, b.bbox("Y1")[2] + 0.4, side="B", gap=0.25)
     # nFAULT (TIM1 BKIN) のノイズ対策 1nF: nFAULT の配線沿いで空いている裏面の位置 (MCU の 2 番ピンから 5mm)
     put_c(b, "C120", 10.15, 26.93, rot=90, side="B")
-    pin_labels(b, [("J1", gs.PINMAP_L, +1), ("J2", gs.PINMAP_R, -1)], "B.SilkS", 1.15)
+    # 信号名は下面 (ピンヘッダの樹脂 = ピン中心から 1.27mm の外側), ピン番号は上面 (MCU 側) の外縁
+    pin_labels(b, [("J1", gs.PINMAP_L, +1), ("J2", gs.PINMAP_R, -1)], "B.SilkS", 1.5)
+    for ref, xn in (("J1", 0.95), ("J2", MW - 0.95)):
+        for n in range(1, 22):
+            b.text(str(n), xn, b.pad_xy(ref, str(n))[1], 0.6, layer="F.SilkS")
     return finish(b, route, silk=[("mPB CH32M030", MW / 2, MH - 3.4, 0.8, "B.SilkS"),
                                   ("ghostinkoma/mPBCH32M030DS0", MW / 2, MH - 1.8, 0.6, "B.SilkS")],
                   outside_ok={"J8", "J1", "J2"}, fr_opts=FR_OPTS_MAIN)
@@ -818,6 +826,13 @@ def finish(b, route, silk=(), zones_hicur=(), fr_opts=(), outside_ok=()):
         g = b.grow_zones([n for n in list(b.assign_hicur()) + list(getattr(b, "grow_extra", []))
                           if n not in getattr(b, "grow_skip", ())])
         print(f"[{b.name}] grown power zones: {g}")
+    for ref in getattr(b, "flip_after_route", ()):      # 下面へ裏返す (180° 回して 1 番ピンを上端のまま, 穴の位置は不変)
+        fp = b.fps[ref]
+        before = {p.GetNumber(): pcblib.to_mm(p.GetPosition()) for p in fp.Pads()}
+        fp.SetOrientationDegrees(fp.GetOrientationDegrees() + 180)
+        fp.Flip(fp.GetPosition(), False)
+        after = {p.GetNumber(): pcblib.to_mm(p.GetPosition()) for p in fp.Pads()}
+        assert all(abs(before[k][0] - after[k][0]) + abs(before[k][1] - after[k][1]) < 1e-3 for k in before), ref
     for net, layer, pts in zones_hicur:
         b.zone(net, layer, pts, priority=2)
     e = pcblib.ZONE_EDGE
