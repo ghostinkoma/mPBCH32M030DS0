@@ -77,7 +77,7 @@ void loop(void)
 | `mpb.h` (core) | 時間, ADC, VBUS, 電流アンプ, 過電流, ホール / BEMF, タコ (QII), NTC, USB-PD | `Mpb_Millis` `Mpb_Vbus_mV` `Mpb_Ocp_*` `Mpb_Tach_PeriodUs` `Mpb_Ntc_DeciCelsius` `Mpb_PD_*` |
 | `mpb_bridge.h` | 4 本のハーフブリッジ: 中心揃えの相補 PWM + デッドタイム (TIM1 と TIM2 を同期), ゲート電源 VDD8 の自動選択, **PWM の山で IA/IB を同時に取り込む電流計測**, ローサイドだけの PWM | `Mpb_Bridge_Init` `Mpb_Bridge_Leg` `Mpb_Bridge_LegLow` `Mpb_Bridge_CurrentInit` `Mpb_Bridge_Current_mA` |
 | `mpb_dc.h` | DC モーター ×2: 正転 / 逆転, duty (加減速付き) または **電流制御 (PI)**, 電流制限, 短絡ブレーキ, **Kv [rpm/V] からの回転数の概算** | `Mpb_Dc_SetDuty` `Mpb_Dc_SetCurrent` `Mpb_Dc_Rpm` |
-| `mpb_stepper.h` | 2 相バイポーラ: フル〜**1/32 マイクロステップ**, 正転 / 逆転, 台形加減速, 位置決め, 保持電流, **ソフトウェア タコ** | `Mpb_Stepper_SetRpm` `Mpb_Stepper_MoveTo` `Mpb_Stepper_Rpm` |
+| `mpb_stepper.h` | 2 相バイポーラ: フル〜**1/128 マイクロステップ** (sin 表はフラッシュ 258 バイト), 正転 / 逆転, 台形加減速, 位置決め, 保持電流, **ソフトウェア タコ** | `Mpb_Stepper_SetRpm` `Mpb_Stepper_MoveTo` `Mpb_Stepper_Rpm` |
 | `mpb_bldc.h` | 3 相ブラシレス 6 ステップ: **ホールセンサ** (エッジで転流 + 周期でタコ) / **センサなしのオープンループ** (V/f), 正転 / 逆転, 電流制限, 外部タコ (TACH_IN) | `Mpb_Bldc_SetDuty` `Mpb_Bldc_SetRpm` `Mpb_Bldc_Rpm` `Mpb_Bldc_TachRpm` |
 | `mpb_led.h` + `mpb_cie.h` | パワー段 (MOSFET) につないだ単色 LED の **CIE 1931 L*** 調光, フェード, 呼吸 | `Mpb_Led_Fade` `Mpb_Led_Breathe` `Mpb_Cie` |
 | `mpb_ws2812.h` | WS2812B / SK6812 (RGB/RGBW), HSV, L* での減光, 変化したときだけ送信 | `Mpb_Ws2812_Hsv` `Mpb_Ws2812_Show` |

@@ -38,6 +38,8 @@ typedef struct {
 void     Mpb_Bridge_Init(const Mpb_BridgeCfg *cfg);   /* NULL で既定値。全レッグ開放で起動 */
 void     Mpb_Bridge_Leg(uint8_t leg, int16_t duty);   /* duty 0〜1000 / MPB_LEG_FLOAT */
 int16_t  Mpb_Bridge_GetLeg(uint8_t leg);
+/* Leg の細かい版: duty を 0〜65535 (16bit) で指定 (上限は max_duty)。分解能は実際には 1/ARR (20kHz で 1/1800) */
+void     Mpb_Bridge_LegQ16(uint8_t leg, uint16_t duty_q16);
 /* ローサイドだけの PWM (ハイサイドは常時 OFF)。on = ローサイド ON の割合 0〜65535 (上限なし, 16bit)。
  * LED・ソレノイドなどを VBUS と出力端子の間につなぎ, ローサイドスイッチとして使う (0 = 開放) */
 void     Mpb_Bridge_LegLow(uint8_t leg, uint16_t on);

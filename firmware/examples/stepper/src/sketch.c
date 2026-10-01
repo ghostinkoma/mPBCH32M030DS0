@@ -11,7 +11,7 @@
 #include "mpbfun.h"
 
 #define STEPS_PER_REV  200u
-#define MICROSTEP      16u
+#define MICROSTEP      16u       /* 1〜128 (2 のべき乗)。128 でも sin 表はフラッシュ 258 バイト */
 #define COIL_MA        800u      /* 相電流 (ピーク) */
 #define COIL_R_MOHM    2800u     /* 巻線抵抗 (例: 2.8Ω/相) */
 

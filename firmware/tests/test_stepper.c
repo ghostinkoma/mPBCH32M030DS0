@@ -12,7 +12,9 @@ uint32_t Mpb_Vbus_mV(void) { return 12000; }
 static Mpb_BridgeHook g_hook;
 static int16_t g_leg[4];
 void Mpb_Bridge_AddHook(Mpb_BridgeHook fn) { g_hook = fn; }
+static int32_t g_q[4];
 void Mpb_Bridge_Leg(uint8_t leg, int16_t d) { g_leg[leg] = d; }
+void Mpb_Bridge_LegQ16(uint8_t leg, uint16_t q) { if (q > 58982u) q = 58982u; g_q[leg] = q; }
 uint32_t Mpb_Bridge_PwmHz(void) { return 20000; }
 uint16_t Mpb_Bridge_MaxDuty(void) { return 900; }
 int32_t Mpb_Bridge_Current_mA(uint8_t ch) { (void)ch; return 0; }
@@ -47,8 +49,8 @@ int main(void)
 
     Mpb_Stepper_Init(&c);
     Mpb_Stepper_Enable(1);
-    /* 振幅: 800mA × 2.8Ω / 12V = 186‰ */
-    CHECK(s_amp == 186, "amp %u", s_amp);
+    /* 振幅: 800mA × 2.8Ω / 12V = 186.7‰ → ×65.535 = 12233 */
+    CHECK(s_amp == 12233, "amp %u", s_amp);
 
     Mpb_Stepper_Move(3200, 8000);
     vmax = run(3000, 0, 3200, &oor);
@@ -78,18 +80,67 @@ int main(void)
     CHECK(Mpb_Stepper_Speed() == 0 && Mpb_Stepper_Position() == p, "stop %d", Mpb_Stepper_Speed());
     /* 保持電流: 500ms 後に 40% */
     run(600, -100000, 100000, &oor);
-    CHECK(s_amp == 74, "hold amp %u", s_amp);
+    CHECK(s_amp == 4893, "hold amp %u", s_amp);
 
     /* 1/16: 1 フルステップ (16 µstep) で電気角 90° 進む = A 相と B 相の役割が入れ替わる */
     Mpb_Stepper_SetPosition(0);
     Mpb_Stepper_SetCurrent(800);
     run(600, -100000, 100000, &oor);
     s_dirty = 1; g_hook(0, 0);
-    int a0 = g_leg[0] - g_leg[1], b0 = g_leg[2] - g_leg[3];
+    int a0 = g_q[0] - g_q[1], b0 = g_q[2] - g_q[3];
     Mpb_Stepper_SetPosition(16);
     s_dirty = 1; g_hook(0, 0);
-    int a1 = g_leg[0] - g_leg[1], b1 = g_leg[2] - g_leg[3];
+    int a1 = g_q[0] - g_q[1], b1 = g_q[2] - g_q[3];
     CHECK(a0 == 0 && b0 > 0 && a1 == b0 && b1 == 0, "phase a0 %d b0 %d a1 %d b1 %d", a0, b0, a1, b1);
+
+    /* ---- 1/128 ---- */
+    {
+        Mpb_StepperCfg c128 = {200, 128, 800, 2800, 400000, 40, 500};
+        Mpb_Stepper_Init(&c128);
+        Mpb_Stepper_Enable(1);
+        run(10, -1, 1, &oor);
+        /* 電気角 1 周 (4 フルステップ = 512 µstep) で sin が 1 周: 0, 90, 180, 270° の値 */
+        static const int32_t pos[4] = {0, 128, 256, 384};
+        int32_t av[4], bv[4];
+        for (int k = 0; k < 4; k++)
+        {
+            Mpb_Stepper_SetPosition(pos[k]);
+            s_dirty = 1; g_hook(0, 0);
+            av[k] = g_q[0] - g_q[1]; bv[k] = g_q[2] - g_q[3];
+        }
+        int32_t A = (int32_t)(((uint32_t)s_amp * 65535u) >> 16);
+        CHECK(s_amp == 12233, "amp128 %u", s_amp);
+        CHECK(av[0] == 0 && av[1] == A && av[2] == 0 && av[3] == -A, "a %d %d %d %d", av[0], av[1], av[2], av[3]);
+        CHECK(bv[0] == A && bv[1] == 0 && bv[2] == -A && bv[3] == 0, "b %d %d %d %d", bv[0], bv[1], bv[2], bv[3]);
+        /* 1 マイクロステップごとに単調 (0〜90°) で, 振幅 (a²+b²) がほぼ一定 */
+        int32_t prev = -1, mono = 1, rmin = 1 << 30, rmax = 0;
+        for (int32_t p = 0; p <= 128; p++)
+        {
+            Mpb_Stepper_SetPosition(p);
+            s_dirty = 1; g_hook(0, 0);
+            int32_t a = g_q[0] - g_q[1], b = g_q[2] - g_q[3];
+            if (a < prev) mono = 0;
+            prev = a;
+            int32_t r2 = (int32_t)(((int64_t)a * a + (int64_t)b * b) >> 10);
+            if (r2 < rmin) rmin = r2;
+            if (r2 > rmax) rmax = r2;
+        }
+        CHECK(mono, "not monotonic");
+        CHECK(rmax - rmin <= rmax / 500, "amplitude ripple %d..%d", rmin, rmax);
+        /* 速い移動: 1 周期に複数ステップ進んでも目標で止まる (1 回転 = 25600 µstep, 最高 2 回転/s) */
+        Mpb_Stepper_SetPosition(0);
+        oor = 0;
+        Mpb_Stepper_Move(25600, 51200);
+        vmax = run(3000, 0, 25600, &oor);
+        CHECK(Mpb_Stepper_Position() == 25600 && oor == 0, "fast pos %d oor %d", Mpb_Stepper_Position(), oor);
+        CHECK(vmax == 51200, "fast vmax %d", vmax);
+        CHECK(Mpb_Stepper_Rpm() == 0, "rpm after stop");
+        /* 上限: 1 PWM 周期に 1 フルステップ (20kHz × 128 = 2.56M µstep/s) */
+        Mpb_Stepper_SetSpeed(10000000);
+        set_rate(10000000);
+        CHECK(Mpb_Stepper_Speed() == 2560000, "cap %d", Mpb_Stepper_Speed());
+        Mpb_Stepper_SetSpeed(0); set_rate(0);
+    }
 
     printf(fails ? "stepper: %d FAILED\n" : "stepper: all tests passed\n", fails);
     return fails != 0;

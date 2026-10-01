@@ -73,6 +73,32 @@ void Mpb_Bridge_Leg(uint8_t leg, int16_t duty)
     s_leg[leg] = duty;
 }
 
+void Mpb_Bridge_LegQ16(uint8_t leg, uint16_t q)
+{
+    uint32_t mx = (uint32_t)s_max * 65536u / MPB_DUTY_FULL;
+
+    if (leg > 3 || (leg == 3 && !s_tim2))
+    {
+        return;
+    }
+    if (s_fault)
+    {
+        leg_pins(leg, 0);
+        s_leg[leg] = MPB_LEG_FLOAT;
+        return;
+    }
+    if (q > mx)
+    {
+        q = (uint16_t)mx;
+    }
+    *ccr_of(leg) = ((uint32_t)s_arr * q) >> 16;
+    if (s_leg[leg] < 0 || s_leg[leg] > MPB_DUTY_FULL)
+    {
+        leg_pins(leg, 1);
+    }
+    s_leg[leg] = (int16_t)(((uint32_t)q * MPB_DUTY_FULL) >> 16);
+}
+
 void Mpb_Bridge_LegLow(uint8_t leg, uint16_t on)
 {
     if (leg > 3 || (leg == 3 && !s_tim2))
