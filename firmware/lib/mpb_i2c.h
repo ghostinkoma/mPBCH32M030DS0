@@ -10,6 +10,8 @@
  *   Mpb_I2c_Start(0x44, &reg, 1, rx, 6);          // 書き込み 1 バイト → リピートスタート → 読み出し 6 バイト
  *   ... loop: if (Mpb_I2c_Done()) { if (Mpb_I2c_Result() == MPB_I2C_OK) 使う; }
  *
+ * 複数のドライバで共有するときは, 自分が Start した転送だけ Done/Result で受け取ること
+ * (受け取るまで次の Start は 0 を返す = 結果の取り違えが起きない)。
  * 【注意】TIM1 の BKIN 既定端子は PA15。モーターと併用するときは Mpb_BridgeCfg.hw_break = 0 にする。
  * Copyright (c) 2026 ghostinkoma — LICENSE 参照 (無保証)
  */

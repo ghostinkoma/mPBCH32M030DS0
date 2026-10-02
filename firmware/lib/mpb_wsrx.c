@@ -22,7 +22,7 @@ static uint8_t  s_last[4], s_have_last, s_applied[4], s_have_applied;
 static uint32_t s_frames, s_errors, s_last_ms;
 
 /* 1 フレーム受信 (割込み禁止, RAM 上)。立ち上がりを見つけた直後に呼ぶ。0 = 失敗 */
-__attribute__((section(".data.mpb_wsrx"), noinline))
+__attribute__((section(".highcode.mpb_wsrx"), noinline))
 static uint32_t rx_frame(const Rx *r, uint8_t *out, uint32_t t_rise)
 {
     volatile uint32_t *cnt = &SysTick->CNT;

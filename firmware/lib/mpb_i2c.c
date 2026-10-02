@@ -90,7 +90,8 @@ void Mpb_I2c_Recover(void)
 
 uint8_t Mpb_I2c_Start(uint8_t addr7, const uint8_t *tx, uint8_t ntx, uint8_t *rx, uint8_t nrx)
 {
-    if (s_state != S_IDLE || (ntx == 0 && nrx == 0))
+    /* 前の転送の結果がまだ受け取られていないときも断る (複数のドライバでバスを共有するため) */
+    if (s_state != S_IDLE || s_done || (ntx == 0 && nrx == 0))
     {
         return 0;
     }

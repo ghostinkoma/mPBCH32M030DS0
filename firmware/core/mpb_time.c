@@ -74,3 +74,37 @@ void TIM3_IRQHandler(void)
         TIM_ClearITPendingBit(TIM3, TIM_IT_CC1);
     }
 }
+
+#if defined(MPB_RTOS)
+/* RTOS では SysTick が OS のティックなので, SDK の Delay_Us / Delay_Ms (SysTick を設定し直して止める) は使えない。
+ * 同じ名前で TIM3 (1MHz) の待ちに置き換える (SDK 側は common/app.mk で Sdk_Delay_* に改名してある)。
+ * TIM3 が動く前 (Mpb_Time_Init 前の USB 初期化など) は命令ループで近似する。 */
+void Delay_Us(uint32_t n)
+{
+    if (TIM3->CTLR1 & TIM_CEN)
+    {
+        uint16_t last = TIM3->CNT;
+        while (n)
+        {
+            uint16_t now = TIM3->CNT, d = (uint16_t)(now - last);
+            if (d)
+            {
+                last = now;
+                n = d >= n ? 0u : n - d;
+            }
+        }
+    }
+    else
+    {
+        for (volatile uint32_t i = n * (SystemCoreClock / 8000000u) + 1u; i; i--) {}
+    }
+}
+
+void Delay_Ms(uint32_t n)
+{
+    while (n--)
+    {
+        Delay_Us(1000u);
+    }
+}
+#endif

@@ -25,6 +25,11 @@
 #include "mpb_guard.h"      /* 保護: 熱・過電流・短絡で警報出力 */
 #include "mpb_rgbw.h"       /* RGBW 4ch LED (CIE) */
 #include "mpb_wsrx.h"       /* WS2812 互換の受信 (1 画素 + 中継) */
+#include "mpb_font5x7.h"    /* 5×7 フォント */
+#include "mpb_oled.h"       /* I2C OLED (SSD1306 / SH1106) */
+#include "mpb_matrix.h"     /* 8×8 マトリクスの数珠つなぎ用の描画バッファ */
+#include "mpb_ht16k33.h"    /* HT16K33 8×8 マトリクス (I2C, 8 枚まで) */
+#include "mpb_tm1640.h"     /* TM1640 2 色 8×8 マトリクス (SCLK 共有 + DIN 個別) */
 
 /* 周期実行の小道具: MPB_EVERY_MS(t, 100) { … } は 100ms ごとに 1 回だけ中を実行する */
 #define MPB_EVERY_MS(var, ms) static uint32_t var; if ((uint32_t)(Mpb_Millis() - var) >= (ms) && ((var = Mpb_Millis()), 1))

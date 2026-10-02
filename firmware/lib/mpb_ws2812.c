@@ -17,7 +17,7 @@ static uint32_t s_last_us;
 #define STK_EN_HCLK  ((1u << 0) | (1u << 2))
 
 /* RAM 上で実行 (フラッシュのウェイトでタイミングが揺れないように)。割込み禁止で呼ぶこと */
-__attribute__((section(".data.mpb_ws2812"), noinline))
+__attribute__((section(".highcode.mpb_ws2812"), noinline))
 static void ws_send(volatile uint32_t *bshr, volatile uint32_t *bcr, uint32_t mask,
                     const uint8_t *p, uint32_t n, uint32_t t0h, uint32_t t1h, uint32_t tbit)
 {

@@ -40,7 +40,8 @@ LDFLAGS += $(ARCH) $(LIBC_SPECS) -nostartfiles -Wl,--gc-sections -Wl,-Map=$(BUIL
 
 SRCS    := $(wildcard src/*.c) $(SDK)/Core/core_riscv.c $(SDK)/Debug/debug.c \
            $(wildcard $(SDK)/Peripheral/src/*.c)
-ASRCS   := $(SDK)/Startup/startup_ch32m030.S
+STARTUP ?= $(SDK)/Startup/startup_ch32m030.S
+ASRCS   := $(STARTUP) $(EXTRA_ASRCS)
 LIBA    :=
 ifeq ($(MPB_APP),1)
 # アプリ: core/ (起動・USB 書き込み・PD) は常にリンク, lib/ (機能ライブラリ) はアーカイブにして使った物だけリンク
@@ -56,9 +57,10 @@ LIBA    := $(BUILD)/libmpb.a
 # WS2812 の送信関数を RAM (.data) で実行するため, RAM の区画は RWX になる (意図どおり)
 LDFLAGS += -Wl,--no-warn-rwx-segments
 endif
+SRCS    += $(EXTRA_SRCS)
 OBJS    := $(addprefix $(BUILD)/,$(notdir $(SRCS:.c=.o) $(ASRCS:.S=.o)))
-vpath %.c src $(CORE) $(SDK)/Core $(SDK)/Debug $(SDK)/Peripheral/src
-vpath %.S $(SDK)/Startup
+vpath %.c src $(CORE) $(SDK)/Core $(SDK)/Debug $(SDK)/Peripheral/src $(sort $(dir $(EXTRA_SRCS)))
+vpath %.S $(sort $(dir $(ASRCS)))
 
 all: check-sdk $(BUILD)/$(TARGET).bin $(BUILD)/$(TARGET).hex
 	@$(SIZE) $(BUILD)/$(TARGET).elf
