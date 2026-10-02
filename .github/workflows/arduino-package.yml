@@ -1,0 +1,118 @@
+# Arduino Boards Manager 用パッケージを作って GitHub Releases に置く
+#
+#   git tag arduino-v0.1.0 && git push origin arduino-v0.1.0      (または Actions 画面から手動で版を指定)
+#
+# 1. WCH SDK を取得し, arduino/build_package.py でコア (mpbch32m030-<版>.tar.bz2) を作る
+# 2. ツールチェーン xPack riscv-none-elf-gcc を本家から取り, SHA-256 を公開値と照合して
+#    このリポジトリの Release にミラーする (Linux x64/arm64, macOS x64/arm64, Windows x64)
+# 3. 全サンプルを arduino-cli でビルドして確かめる
+# 4. Release を作り, 索引 package_mpbch32m030_index.json を main の先頭に置く (Boards Manager の URL)
+#
+# 【注意】リポジトリが非公開だと, Arduino IDE からは索引もアーカイブも取得できない (公開リポジトリで使う)。
+name: arduino-package
+
+on:
+  push:
+    tags: ['arduino-v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Platform version (e.g. 0.1.0). Creates tag arduino-v<version>.'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    env:
+      XPACK_VER: 14.3.0-1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Version
+        id: v
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then V="${{ github.event.inputs.version }}"; else V="${GITHUB_REF_NAME#arduino-v}"; fi
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          echo "tag=arduino-v$V" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch WCH SDK
+        run: sh firmware/sdk/fetch_sdk.sh
+
+      - name: Download toolchain (xPack riscv-none-elf-gcc)
+        run: |
+          mkdir -p dist
+          base=https://github.com/xpack-dev-tools/riscv-none-elf-gcc-xpack/releases/download/v$XPACK_VER
+          for h in darwin-arm64.tar.gz darwin-x64.tar.gz linux-arm64.tar.gz linux-x64.tar.gz win32-x64.zip; do
+            f=xpack-riscv-none-elf-gcc-$XPACK_VER-$h
+            curl -fsSL --retry 4 -o "dist/$f" "$base/$f"
+          done
+          ls -l dist
+
+      - name: Build core archive + index
+        run: |
+          git show origin/main:package_mpbch32m030_index.json > prev_index.json 2>/dev/null || rm -f prev_index.json
+          python3 arduino/build_package.py --version "${{ steps.v.outputs.version }}" --out dist \
+            --release-url "https://github.com/${{ github.repository }}/releases/download/${{ steps.v.outputs.tag }}" \
+            --tools-dir dist --merge prev_index.json
+
+      - name: Test build of all examples (arduino-cli, before publishing)
+        run: |
+          set -e
+          curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=$PWD/bin sh
+          export PATH=$PWD/bin:$PATH
+          V=${{ steps.v.outputs.version }}
+          mkdir -p sb/hardware/mpbch32m030 tc
+          cp -r dist/mpbch32m030-$V sb/hardware/mpbch32m030/ch32m030
+          tar -xzf dist/xpack-riscv-none-elf-gcc-$XPACK_VER-linux-x64.tar.gz -C tc
+          arduino-cli config init --dest-dir . --overwrite
+          arduino-cli config set directories.user "$PWD/sb" --config-file arduino-cli.yaml
+          arduino-cli core update-index --config-file arduino-cli.yaml
+          arduino-cli core install arduino:avr --config-file arduino-cli.yaml   # ctags / discovery の取得用
+          for ex in sb/hardware/mpbch32m030/ch32m030/libraries/mpbfun/examples/*/; do
+            echo "::group::$(basename $ex)"
+            arduino-cli compile --config-file arduino-cli.yaml -b mpbch32m030:ch32m030:mpb --warnings default \
+              --build-property "runtime.tools.xpack-riscv-none-elf-gcc.path=$PWD/tc/xpack-riscv-none-elf-gcc-$XPACK_VER" "$ex"
+            echo "::endgroup::"
+          done
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.v.outputs.tag }}
+          name: Arduino package ${{ steps.v.outputs.version }}
+          body: |
+            Arduino Boards Manager package for mPBCH32M030DS0.
+            Additional Boards Manager URL:
+            https://raw.githubusercontent.com/${{ github.repository }}/main/package_mpbch32m030_index.json
+
+            Includes a mirror of xPack riscv-none-elf-gcc ${{ env.XPACK_VER }} (MIT/GPL, https://xpack-dev-tools.github.io/riscv-none-elf-gcc-xpack/)
+            and WCH CH32M030 EVT sources (for WCH microcontrollers only).
+          files: |
+            dist/mpbch32m030-*.tar.bz2
+            dist/xpack-riscv-none-elf-gcc-*
+            dist/package_mpbch32m030_index.json
+
+      - name: Put the index on main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout -B main origin/main
+          cp dist/package_mpbch32m030_index.json package_mpbch32m030_index.json
+          git add package_mpbch32m030_index.json
+          git commit -m "arduino: package index ${{ steps.v.outputs.version }}" || exit 0
+          git push origin main
+
+      - name: Check install from the published index
+        continue-on-error: true
+        run: |
+          export PATH=$PWD/bin:$PATH
+          arduino-cli core update-index --config-file arduino-cli.yaml \
+            --additional-urls "https://raw.githubusercontent.com/${{ github.repository }}/main/package_mpbch32m030_index.json"
+          arduino-cli core install mpbch32m030:ch32m030@${{ steps.v.outputs.version }} --config-file arduino-cli.yaml \
+            --additional-urls "https://raw.githubusercontent.com/${{ github.repository }}/main/package_mpbch32m030_index.json"

@@ -100,8 +100,8 @@ void setup(void)
                        .hw_break = CFG_HW_BREAK};
     static const uint8_t legs[4] = {CFG_LEG_R, CFG_LEG_G, CFG_LEG_B, CFG_LEG_W};
 #if CFG_WSRX_ENABLE
-    Mpb_WsRxCfg rx = {.bytes = CFG_WSRX_BYTES, .t1_ns = CFG_WSRX_T1_NS, .confirm = CFG_WSRX_CONFIRM,
-                      .dout_pin = CFG_WSRX_DOUT ? GPIO_Pin_14 : 0};
+    Mpb_WsRxCfg rx = {.dout_pin = CFG_WSRX_DOUT ? GPIO_Pin_14 : 0, .bytes = CFG_WSRX_BYTES,
+                      .t1_ns = CFG_WSRX_T1_NS, .confirm = CFG_WSRX_CONFIRM};
 #endif
 
     Mpb_Time_Init();

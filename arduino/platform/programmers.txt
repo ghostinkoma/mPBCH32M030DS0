@@ -1,0 +1,5 @@
+# 「書き込み装置を使って書き込む」用: USB-C のブートローダへ (ポートの選択は不要)
+mpbusb.name=mPB USB-C bootloader
+mpbusb.protocol=mpb_usb
+mpbusb.program.tool=mpb_upload
+mpbusb.program.tool.default=mpb_upload

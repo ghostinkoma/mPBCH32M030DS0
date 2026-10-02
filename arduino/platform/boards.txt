@@ -1,0 +1,41 @@
+# mPBCH32M030DS0 — Arduino ボード定義
+# Copyright (c) 2026 ghostinkoma — LICENSE 参照 (無保証)
+
+menu.stage=Power stage (子基板)
+menu.uartboot=UART boot request
+menu.upload_method=Upload method
+
+mpb.name=mPBCH32M030DS0 (CH32M030)
+mpb.vid.0=0x1A86
+mpb.pid.0=0x55E0
+mpb.build.core=mpb
+mpb.build.variant=mpbch32m030ds0
+mpb.build.board=MPBCH32M030DS0
+mpb.build.mcu=ch32m030
+mpb.build.f_cpu=72000000L
+mpb.build.ldscript=app.ld
+mpb.upload.tool=mpb_upload
+mpb.upload.tool.default=mpb_upload
+mpb.upload.maximum_size=44928
+mpb.upload.maximum_data_size=12288
+
+mpb.menu.stage.A=A (12V)
+mpb.menu.stage.A.build.power_stage=65
+mpb.menu.stage.B=B (24V)
+mpb.menu.stage.B.build.power_stage=66
+mpb.menu.stage.C=C (low cost)
+mpb.menu.stage.C.build.power_stage=67
+
+mpb.menu.uartboot.on=On (PC2 = UART RX)
+mpb.menu.uartboot.on.build.uart_boot=1
+mpb.menu.uartboot.off=Off (PC2 free: WS2812 in / TM1640 ...)
+mpb.menu.uartboot.off.build.uart_boot=0
+
+# 書き込み方法: USB-C (ブートローダ, ポートの選択は不要: 「書き込み装置を使って書き込む」でも可) / UART (選んだシリアルポート)
+mpb.menu.upload_method.usb=USB-C (bootloader)
+mpb.menu.upload_method.usb.upload.tool=mpb_upload
+mpb.menu.upload_method.usb.upload.tool.default=mpb_upload
+mpb.menu.upload_method.uart=UART (selected serial port, PC2/PC1)
+mpb.menu.upload_method.uart.upload.tool=mpb_upload_uart
+mpb.menu.upload_method.uart.upload.tool.default=mpb_upload_uart
+mpb.menu.upload_method.uart.upload.tool.serial=mpb_upload_uart

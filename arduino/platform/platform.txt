@@ -1,0 +1,71 @@
+# mPBCH32M030DS0 — Arduino プラットフォーム (CH32M030, RISC-V)
+# ツールチェーン: xPack riscv-none-elf-gcc (Boards Manager が自動で入れる)
+# Copyright (c) 2026 ghostinkoma — LICENSE 参照 (無保証)
+
+name=mPBCH32M030DS0
+version=@VERSION@
+
+compiler.path={runtime.tools.xpack-riscv-none-elf-gcc.path}/bin/
+compiler.prefix=riscv-none-elf-
+compiler.c.cmd={compiler.prefix}gcc
+compiler.cpp.cmd={compiler.prefix}g++
+compiler.S.cmd={compiler.prefix}gcc
+compiler.c.elf.cmd={compiler.prefix}g++
+compiler.ar.cmd={compiler.prefix}ar
+compiler.objcopy.cmd={compiler.prefix}objcopy
+compiler.size.cmd={compiler.prefix}size
+
+# MPB_POWER_STAGE は文字 ('A' = 65) を数値で渡す (コマンド行の引用符を避ける)
+mpb.arch=-march=rv32imac_zicsr_zifencei -mabi=ilp32
+mpb.defs=-DARDUINO={runtime.ide.version} -DARDUINO_{build.board} -DARDUINO_ARCH_{build.arch} -DF_CPU={build.f_cpu} -DUSE_STD_IRQ_ATTR -DMPB_POWER_STAGE={build.power_stage} -DMPB_UART_BOOT={build.uart_boot}
+# スケッチの config.h (タブ) をライブラリにも効かせる: mpb_config_select.h が __has_include で読む
+mpb.inc="-I{build.core.path}/mpb" "-I{build.core.path}/sdk/Core" "-I{build.core.path}/sdk/Debug" "-I{build.core.path}/sdk/Peripheral/inc" "-I{build.path}/sketch" -include "{build.core.path}/mpb_config_select.h"
+# 標準 C ライブラリ (xPack: newlib-nano)
+mpb.libc=--specs=nano.specs --specs=nosys.specs
+mpb.common={mpb.libc} -Os -g -ffunction-sections -fdata-sections -fno-common -msmall-data-limit=8 -Wall -Wno-unused-parameter -MMD
+
+compiler.c.flags=-c {mpb.arch} {mpb.common} {mpb.defs} {mpb.inc}
+compiler.cpp.flags=-c {mpb.arch} {mpb.common} -std=gnu++20 -fno-exceptions -fno-rtti -fno-threadsafe-statics -fno-use-cxa-atexit {mpb.defs} {mpb.inc}
+compiler.S.flags=-c -x assembler-with-cpp {mpb.arch} -g {mpb.defs} {mpb.inc}
+compiler.c.elf.flags={mpb.arch} {mpb.libc} -nostartfiles -Wl,--gc-sections -Wl,--no-warn-rwx-segments "-T{runtime.platform.path}/ld/{build.ldscript}" "-Wl,-Map={build.path}/{build.project_name}.map"
+compiler.ar.flags=rcs
+
+build.extra_flags=
+compiler.c.extra_flags=
+compiler.cpp.extra_flags=
+compiler.S.extra_flags=
+compiler.c.elf.extra_flags=
+
+recipe.c.o.pattern="{compiler.path}{compiler.c.cmd}" {compiler.c.flags} {compiler.c.extra_flags} {build.extra_flags} {includes} "{source_file}" -o "{object_file}"
+recipe.cpp.o.pattern="{compiler.path}{compiler.cpp.cmd}" {compiler.cpp.flags} {compiler.cpp.extra_flags} {build.extra_flags} {includes} "{source_file}" -o "{object_file}"
+recipe.S.o.pattern="{compiler.path}{compiler.S.cmd}" {compiler.S.flags} {compiler.S.extra_flags} {build.extra_flags} {includes} "{source_file}" -o "{object_file}"
+recipe.ar.pattern="{compiler.path}{compiler.ar.cmd}" {compiler.ar.flags} "{archive_file_path}" "{object_file}"
+# core (起動・USB 書き込み・PD・SDK) はまるごとリンク, ライブラリ mpbfun は .a で使った物だけ (make と同じ)
+recipe.c.combine.pattern="{compiler.path}{compiler.c.elf.cmd}" {compiler.c.elf.flags} {compiler.c.elf.extra_flags} -o "{build.path}/{build.project_name}.elf" -Wl,--start-group {object_files} -Wl,--whole-archive "{archive_file_path}" -Wl,--no-whole-archive -lm -Wl,--end-group
+recipe.objcopy.bin.pattern="{compiler.path}{compiler.objcopy.cmd}" -O binary "{build.path}/{build.project_name}.elf" "{build.path}/{build.project_name}.bin"
+recipe.objcopy.hex.pattern="{compiler.path}{compiler.objcopy.cmd}" -O ihex "{build.path}/{build.project_name}.elf" "{build.path}/{build.project_name}.hex"
+recipe.output.tmp_file={build.project_name}.bin
+recipe.output.save_file={build.project_name}.{build.variant}.bin
+
+recipe.size.pattern="{compiler.path}{compiler.size.cmd}" -A "{build.path}/{build.project_name}.elf"
+recipe.size.regex=^(?:\.init|\.text|\.fini|\.preinit_array|\.init_array|\.fini_array|\.dlalign|\.data)\s+([0-9]+).*
+recipe.size.regex.data=^(?:\.data|\.bss|\.stack)\s+([0-9]+).*
+
+# 書き込み: USB-C (ブートローダ) へ tools/mpb_upload.py (Python 3 + pyusb が必要)
+tools.mpb_upload.path={runtime.platform.path}/tools
+tools.mpb_upload.cmd=python3
+tools.mpb_upload.cmd.windows=python
+tools.mpb_upload.upload.params.verbose=
+tools.mpb_upload.upload.params.quiet=
+tools.mpb_upload.upload.pattern="{cmd}" "{path}/mpb_upload.py" "{build.path}/{build.project_name}.bin"
+tools.mpb_upload.program.params.verbose=
+tools.mpb_upload.program.params.quiet=
+tools.mpb_upload.program.pattern={tools.mpb_upload.upload.pattern}
+
+# UART: 選んだシリアルポートへ (アプリが UART 書き込み要求を受ける設定 = UART boot On のとき, またはブートローダ中)
+tools.mpb_upload_uart.path={runtime.platform.path}/tools
+tools.mpb_upload_uart.cmd=python3
+tools.mpb_upload_uart.cmd.windows=python
+tools.mpb_upload_uart.upload.params.verbose=
+tools.mpb_upload_uart.upload.params.quiet=
+tools.mpb_upload_uart.upload.pattern="{cmd}" "{path}/mpb_upload.py" --uart "{serial.port}" "{build.path}/{build.project_name}.bin"

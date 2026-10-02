@@ -17,6 +17,7 @@
 #include "debug.h"
 #include "iap.h"
 #include "board.h"
+#include "mpb.h"
 
 #ifndef MPB_UART_BOOT
 #define MPB_UART_BOOT 1
@@ -84,6 +85,15 @@ int main(void)
     USART1_IT_CFG();
 #endif
 
+#ifdef ARDUINO
+    {
+        /* Arduino (C++): 大域オブジェクトのコンストラクタを呼ぶ (スタートアップは呼ばないので) */
+        extern void (*__init_array_start[])(void);
+        extern void (*__init_array_end[])(void);
+        for (void (**f)(void) = __init_array_start; f < __init_array_end; f++) (*f)();
+    }
+    Mpb_Time_Init();                /* millis() / micros() を setup() の前から使えるように */
+#endif
     setup();
     while (1)
     {

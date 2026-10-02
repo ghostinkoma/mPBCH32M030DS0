@@ -9,6 +9,10 @@
 #ifndef MPBFUN_H
 #define MPBFUN_H
 
+#ifdef __cplusplus
+extern "C" {            /* Arduino (C++) のスケッチからも使えるように */
+#endif
+
 #include "mpb.h"            /* core */
 #include "mpb_bridge.h"     /* ハーフブリッジ PWM + PWM 同期の電流 */
 #include "mpb_dc.h"         /* DC モーター */
@@ -33,5 +37,9 @@
 
 /* 周期実行の小道具: MPB_EVERY_MS(t, 100) { … } は 100ms ごとに 1 回だけ中を実行する */
 #define MPB_EVERY_MS(var, ms) static uint32_t var; if ((uint32_t)(Mpb_Millis() - var) >= (ms) && ((var = Mpb_Millis()), 1))
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* MPBFUN_H */
