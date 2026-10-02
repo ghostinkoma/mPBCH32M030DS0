@@ -13,7 +13,7 @@ typedef struct {
     volatile uint32_t *set, *clr;
     uint32_t dout_mask;          /* 0 = 中継しない */
     uint32_t nbits;
-    uint32_t t1, tbit_max, tgap_max, tend;
+    uint32_t t1, tbit_max, tgap_max, tend, trelay_max;
 } Rx;
 
 static Rx s_rx;
@@ -55,9 +55,15 @@ static uint32_t rx_frame(const Rx *r, uint8_t *out, uint32_t t_rise)
     /* 残りのデータを DOUT へ中継 (Low が tend 続いたらフレームの終わり) */
     if (r->dout_mask)
     {
-        t = *cnt;
+        uint32_t t_start = *cnt;
+        t = t_start;
         for (;;)
         {
+            if ((uint32_t)(*cnt - t_start) > r->trelay_max)   /* 割込み停止を長引かせない (ウォッチドッグ 29ms) */
+            {
+                *r->clr = r->dout_mask;
+                break;
+            }
             if (*din & m)
             {
                 *r->set = r->dout_mask;
@@ -105,6 +111,7 @@ void Mpb_WsRx_Init(const Mpb_WsRxCfg *cfg)
     s_rx.tbit_max = mhz * 3u;                     /* High が 3µs を超えたら異常 */
     s_rx.tgap_max = mhz * 8u;                     /* ビット間の Low が 8µs を超えたら途中で切れた */
     s_rx.tend = mhz * 20u;                        /* 中継: Low が 20µs 続いたらフレームの終わり */
+    s_rx.trelay_max = mhz * 10000u;               /* 中継は最大 10ms (= 約 330 画素) */
     s_have_last = 0;
 }
 

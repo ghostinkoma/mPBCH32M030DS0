@@ -22,6 +22,9 @@
 #ifndef MPB_WS2812_MAX
 #define MPB_WS2812_MAX 32u                  /* 最大 LED 数 (RAM 4 バイト/個) */
 #endif
+#if MPB_WS2812_MAX > 600
+#error "MPB_WS2812_MAX は 600 まで (送信中は割込みを止めるため, ウォッチドッグ 29ms に収める)"
+#endif
 
 typedef enum { MPB_WS_GRB = 0, MPB_WS_RGB, MPB_WS_GRBW, MPB_WS_RGBW } Mpb_WsOrder;
 

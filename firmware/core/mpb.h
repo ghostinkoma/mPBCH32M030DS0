@@ -45,7 +45,31 @@
 #define MPB_SHUNT_MOHM    10u              /* 各レッグ / バス 10mΩ (子基板 A/B/C 共通) */
 
 /* ---- core ---------------------------------------------------------------- */
-void     Mpb_Core_Service(void);          /* USB/UART の書き込み要求を処理 (loop の外で回す RTOS 用。通常は自動) */
+void     Mpb_Core_Service(void);          /* USB/UART の書き込み要求 + ウォッチドッグへの給餌 (loop の外で回す RTOS 用。通常は自動) */
+
+/* ---- ウォッチドッグと全 FET OFF (core/mpb_wdt.c) ------------------------------------
+ * main() が setup() の前に開始する (MPB_WDT_MS = 0 で無効)。loop() から戻るたびに自動で給餌される。
+ * loop() / タスクが MPB_WDT_MS 以上戻らない, 割込みが 29ms 以上止まる, ブリッジの設定が壊れる
+ * → 全ゲート OFF → リセット。リセット後も全 FET OFF (惰性)。上下短絡・短絡ブレーキにはしない。 */
+#ifndef MPB_WDT_MS
+#define MPB_WDT_MS        200u             /* loop() がこれ以上戻らなければリセット [ms] (29 の倍数に切り上げ) */
+#endif
+#ifndef MPB_WDT_SETUP_MS
+#define MPB_WDT_SETUP_MS  3000u            /* setup() にだけ許す時間 [ms] */
+#endif
+#define MPB_RST_POWER     0x01u
+#define MPB_RST_PIN       0x02u
+#define MPB_RST_SOFT      0x04u            /* 書き込み要求・HardFault など */
+#define MPB_RST_WDT       0x08u            /* ウォッチドッグ (ハングまたは安全点検の不合格) */
+#define MPB_RST_LOWPOWER  0x10u
+void     Mpb_Gates_Off(void);             /* 全ゲート OFF (どこからでも即時) */
+void     Mpb_Wdt_Start(uint32_t ms);      /* 通常は main() が呼ぶ */
+void     Mpb_Wdt_SetLimit(uint32_t ms);   /* 一時的に長くする/短くする */
+void     Mpb_Wdt_Feed(void);              /* 「生きている」(loop の外で長く回すとき) */
+uint8_t  Mpb_Wdt_Running(void);
+void     Mpb_Wdt_ReadResetCause(void);
+uint8_t  Mpb_ResetCause(void);            /* 直前のリセットの原因 (MPB_RST_*) */
+const char *Mpb_ResetCauseText(uint8_t c);
 
 /* ---- 時間基準 (TIM3 1MHz フリーラン。TIM3 CH1 は QII タコ捕捉にも使う) ------ */
 void     Mpb_Time_Init(void);

@@ -35,8 +35,10 @@ void USART1_IRQHandler(void) MPB_IRQ;
  * 通常は main の loop で毎回呼ぶ。RTOS で loop() に戻らないスケッチはタスクから Mpb_Core_Service() を呼ぶ */
 void Mpb_Core_Service(void)
 {
+    Mpb_Wdt_Feed();                 /* ここまで来た = loop() (またはこれを呼ぶタスク) は動いている */
     if (*(vu32 *)CalAddr == CheckNum)
     {
+        Mpb_Gates_Off();            /* リセット前に全 FET OFF */
         Delay_Ms(10);
         NVIC_SystemReset();
         while (1)
@@ -76,8 +78,13 @@ void USART1_IRQHandler(void)
 
 int main(void)
 {
+    Mpb_Gates_Off();                /* 最初に全 FET OFF を確定 (リセット直後もハード的に OFF だが, 能動的に Low にする) */
+    Mpb_Wdt_ReadResetCause();
     SystemCoreClockUpdate();
     Delay_Init();
+#if MPB_WDT_MS
+    Mpb_Wdt_Start(MPB_WDT_SETUP_MS);   /* setup() の間は長め */
+#endif
 
     /* USB ベンダーインターフェース (書き込み要求の受付) */
     USBFS_RCC_Init();
@@ -97,6 +104,9 @@ int main(void)
     Mpb_Time_Init();                /* millis() / micros() を setup() の前から使えるように */
 #endif
     setup();
+#if MPB_WDT_MS
+    Mpb_Wdt_SetLimit(MPB_WDT_MS);
+#endif
     if (Mpb_Rtos_AfterSetup)
     {
         Mpb_Rtos_AfterSetup();      /* 戻らない */

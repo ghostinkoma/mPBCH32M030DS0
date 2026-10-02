@@ -7,6 +7,7 @@
 #define FREERTOS_CONFIG_H
 
 #include "debug.h"     /* SystemCoreClock, NVIC, SysTick */
+void Mpb_Gates_Off(void);   /* core/mpb_wdt.c: 全 FET OFF */
 
 #ifndef MPB_RTOS_HEAP
 #define MPB_RTOS_HEAP 4096u                    /* xTaskCreate / キュー などの動的確保の領域 [バイト] */
@@ -28,7 +29,9 @@
 #define configMAX_TASK_NAME_LEN                 8
 #define configUSE_16_BIT_TICKS                  0
 #define configIDLE_SHOULD_YIELD                 1
-#define configUSE_IDLE_HOOK                     0
+#ifndef configUSE_IDLE_HOOK
+#define configUSE_IDLE_HOOK                     1      /* アイドル中にウォッチドッグへ給餌 (mpb_freertos.c) */
+#endif
 #define configUSE_TICK_HOOK                     0
 #define configUSE_MUTEXES                       1
 #define configUSE_RECURSIVE_MUTEXES             1
@@ -67,6 +70,7 @@
 #define INCLUDE_xTaskGetCurrentTaskHandle       1
 #define INCLUDE_eTaskGetState                   1
 
-#define configASSERT(x) do { if ((x) == 0) { taskDISABLE_INTERRUPTS(); for (;;) {} } } while (0)
+/* 失敗したら全 FET OFF で止まる (割込みが止まるので約 29ms 後にウォッチドッグがリセット) */
+#define configASSERT(x) do { if ((x) == 0) { taskDISABLE_INTERRUPTS(); Mpb_Gates_Off(); for (;;) {} } } while (0)
 
 #endif /* FREERTOS_CONFIG_H */

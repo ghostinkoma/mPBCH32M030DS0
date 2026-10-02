@@ -185,6 +185,7 @@ void OPA_IRQHandler(void)
 
     if (CMP_GetFlagStatus(CMP2_FLAG_OUTHIGH) != RESET || CMP_GetFlagStatus(CMP3_FLAG_CHOUT0) != RESET)
     {
+        Mpb_Gates_Off();            /* まず全ゲート OFF (BKIN を使わない設定でも即時) */
         TIM2->CCER &= (uint16_t)~(TIM_CC1E | TIM_CC1NE | TIM_CC2E | TIM_CC2NE);
         TIM_Cmd(TIM2, DISABLE);
         /* HB2/HB3 のゲートピン (PB12〜PB15) を GPIO Low に固定 (全 FET OFF) */

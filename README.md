@@ -310,6 +310,7 @@ make -C app_template upload
 - ゲートを駆動する前に VBUS ≥ 8V を ADC で確認する (USB のみ給電時は駆動しない)。
 - `loop()` は Delay で止めない (USB-PD の処理は 1ms 周期で `Mpb_PD_Task()` を呼ぶ必要がある)。
 - 起動時に `Mpb_SelfTest_Wiring()` でモーターの接続を確認してからパワー段を有効にすると安全。
+- ウォッチドッグ (WWDG) は常に有効: ハング・設定異常・故障・リセットのどの経路でも全 FET OFF にし, 上下短絡にはしない ([firmware/README.md](firmware/README.md#ウォッチドッグと全-fet-offcorempb_wdtc-常に有効))。
 
 ## ライセンス
 

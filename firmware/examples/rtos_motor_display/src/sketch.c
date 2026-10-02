@@ -265,8 +265,8 @@ void vApplicationGetIdleTaskMemory(StaticTask_t **tcb, StackType_t **stack, uint
 
 void vApplicationStackOverflowHook(TaskHandle_t t, char *name)
 {
-    Mpb_Bridge_AllFloat();                              /* モーターを止めて止まる (ログは割込みが要るので出せない) */
     taskDISABLE_INTERRUPTS();
+    Mpb_Gates_Off();                                    /* 全 FET OFF で止まる (約 29ms 後にウォッチドッグがリセット) */
     for (;;) {}
 }
 
@@ -294,6 +294,7 @@ void setup(void)
     s_task[1] = xTaskCreateStatic(i2c_task, "i2c", CFG_STACK_I2C, NULL, 1, i2c_stack, &i2c_tcb);
     s_task[2] = xTaskCreateStatic(tm_task, "tm1640", CFG_STACK_TM1640, NULL, 3, tm_stack, &tm_tcb);
     s_task[3] = xTaskCreateStatic(mon_task, "monitor", CFG_STACK_MONITOR, NULL, 2, mon_stack, &mon_tcb);
+    Mpb_Wdt_SetLimit(MPB_WDT_MS);                       /* setup() から戻らないので, ここで通常の時間に (monitor が給餌) */
     vTaskStartScheduler();
     for (;;) {}
 }

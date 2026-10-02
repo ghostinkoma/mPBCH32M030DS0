@@ -57,14 +57,24 @@ __attribute__((weak)) void vApplicationGetTimerTaskMemory(StaticTask_t **tcb, St
 #endif
 
 #if configCHECK_FOR_STACK_OVERFLOW
-/* スタックあふれ: 割込みを止めて止まる (状態 LED PC4 を点灯)。上書きしたいときはスケッチで同名の関数を定義する */
+/* スタックあふれ: 全 FET OFF で止まる (状態 LED PC4 を点灯, 約 29ms 後にウォッチドッグがリセット)。上書きしたいときはスケッチで同名の関数を定義する */
 __attribute__((weak)) void vApplicationStackOverflowHook(TaskHandle_t t, char *name)
 {
     (void)t;
     (void)name;
     taskDISABLE_INTERRUPTS();
+    Mpb_Gates_Off();                      /* 全 FET OFF。割込みを止めたので約 29ms でウォッチドッグがリセット */
     GPIOC->BCR = GPIO_Pin_4;
     for (;;) {}
+}
+#endif
+
+#if configUSE_IDLE_HOOK
+/* アイドルタスクが回っている = どのタスクも CPU を占有していない → ウォッチドッグへ給餌。
+ * loop() が長く待つ (キュー待ちなど) スケッチでもリセットされない。上書きするときは Mpb_Wdt_Feed() を呼ぶこと */
+__attribute__((weak)) void vApplicationIdleHook(void)
+{
+    Mpb_Wdt_Feed();
 }
 #endif
 
@@ -72,6 +82,7 @@ __attribute__((weak)) void vApplicationStackOverflowHook(TaskHandle_t t, char *n
 __attribute__((weak)) void vApplicationMallocFailedHook(void)
 {
     taskDISABLE_INTERRUPTS();
+    Mpb_Gates_Off();
     GPIOC->BCR = GPIO_Pin_4;
     for (;;) {}
 }

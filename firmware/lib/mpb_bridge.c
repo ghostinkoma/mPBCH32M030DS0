@@ -10,6 +10,15 @@ static uint32_t s_hz = 20000;
 static uint8_t  s_tim2;
 static int16_t  s_leg[4] = {MPB_LEG_FLOAT, MPB_LEG_FLOAT, MPB_LEG_FLOAT, MPB_LEG_FLOAT};
 static volatile uint8_t s_fault;
+static uint8_t  s_inited, s_dtg;           /* 点検用: 設定したデッドタイムのレジスタ値 */
+
+/* 上下短絡 (同じレッグの HO と LO が同時に ON) を防ぐための下限。設定 (dead_ns) がこれより小さくても切り上げる */
+#ifndef MPB_DEAD_MIN_NS
+#define MPB_DEAD_MIN_NS 300u
+#endif
+#if MPB_DEAD_MIN_NS < 200
+#error "MPB_DEAD_MIN_NS は 200ns 未満にできません (上下短絡の防止)"
+#endif
 
 /* レッグ → (ポート B のピン番号 HO / LO) */
 static const uint8_t k_ho[4] = {9, 11, 13, 15};
@@ -22,14 +31,27 @@ static void pin_cfg(uint8_t pin, uint32_t cfg)
     GPIOB->CFGHR = (GPIOB->CFGHR & ~(0xFu << sh)) | (cfg << sh);
 }
 
+/* 割込み (過電流) と取り合っても設定が戻らないよう, ピン設定は割込みを止めて書く */
+static inline uint32_t irq_save(void) { uint32_t m; __asm volatile("csrrci %0, mstatus, 8" : "=r"(m)); return m; }
+static inline void irq_restore(uint32_t m) { __asm volatile("csrs mstatus, %0" ::"r"(m & 8u)); }
+
 static void leg_pins(uint8_t leg, uint8_t pwm)
 {
-    if (!pwm)
+    uint32_t m = irq_save();
+
+    if (!pwm || s_fault)
     {
         GPIOB->BCR = (1u << k_ho[leg]) | (1u << k_lo[leg]);   /* 先に Low を確定 */
+        pin_cfg(k_ho[leg], 0x3u);
+        pin_cfg(k_lo[leg], 0x3u);
     }
-    pin_cfg(k_ho[leg], pwm ? 0xBu : 0x3u);
-    pin_cfg(k_lo[leg], pwm ? 0xBu : 0x3u);
+    else
+    {
+        /* GPIO Low → タイマー: 相補出力 + デッドタイムなので, どちらから切り替えても同時 ON にならない */
+        pin_cfg(k_ho[leg], 0xBu);
+        pin_cfg(k_lo[leg], 0xBu);
+    }
+    irq_restore(m);
 }
 
 static volatile uint32_t *ccr_of(uint8_t leg)
@@ -113,9 +135,13 @@ void Mpb_Bridge_LegLow(uint8_t leg, uint16_t on)
     }
     /* CHxN は CNT ≥ CCR の間 High (相補)。CCR = ARR × (1 − on/65535) */
     *ccr_of(leg) = (uint32_t)s_arr * (uint32_t)(65535u - on) / 65535u;
-    GPIOB->BCR = 1u << k_ho[leg];
-    pin_cfg(k_ho[leg], 0x3u);                    /* HO: GPIO Low (ハイサイド常時 OFF) */
-    pin_cfg(k_lo[leg], 0xBu);                    /* LO: PWM */
+    {
+        uint32_t m = irq_save();
+        GPIOB->BCR = 1u << k_ho[leg];
+        pin_cfg(k_ho[leg], 0x3u);                /* HO: GPIO Low (ハイサイド常時 OFF) */
+        if (!s_fault) pin_cfg(k_lo[leg], 0xBu);  /* LO: PWM */
+        irq_restore(m);
+    }
     s_leg[leg] = (int16_t)(2000 + (on >> 6));    /* 通常の PWM と区別 (>1000) */
 }
 
@@ -177,7 +203,36 @@ void Mpb_Bridge_SetFaultHook(void (*fn)(void)) { s_fault_hook = fn; }
 void Mpb_Bridge_Trip(void)
 {
     s_fault = 1;
+    Mpb_Gates_Off();
     Mpb_Bridge_AllFloat();
+}
+
+/* WWDG の早期警告割込み (約 29ms ごと, core/mpb_wdt.c) から呼ばれる点検。0 を返すと全ゲート OFF → リセット */
+int Mpb_Bridge_SafetyCheck(void)
+{
+    const uint16_t pol = TIM_CC1P | TIM_CC1NP | TIM_CC2P | TIM_CC2NP | TIM_CC3P | TIM_CC3NP;
+    uint32_t cfg = GPIOB->CFGHR, odr = GPIOB->OUTDR;
+
+    if (!s_inited)
+    {
+        return 1;
+    }
+    if ((TIM1->BDTR & 0xFFu) != s_dtg || (TIM1->CCER & pol))        /* デッドタイム・極性が変わっていない */
+    {
+        return 0;
+    }
+    if (s_tim2 && ((TIM1->CCER & (TIM_CC3E | TIM_CC3NE)) || (TIM2->CCER & (TIM_CC1P | TIM_CC1NP | TIM_CC2P | TIM_CC2NP))))
+    {
+        return 0;                                /* TIM1 CH3 と TIM2 CH1 が同じ PB12/PB13 に重なっていない */
+    }
+    for (uint8_t i = 0; i < 8; i++)              /* GPIO 出力にしているゲートを High にしていない (この基板では使わない) */
+    {
+        if (((cfg >> (i * 4u)) & 0x3u) && ((cfg >> (i * 4u)) & 0xCu) == 0u && (odr & (1u << (8u + i))))
+        {
+            return 0;
+        }
+    }
+    return 1;
 }
 
 /* core の OPA_IRQHandler (過電流) から呼ばれる: 全レッグを GPIO Low に固定する */
@@ -214,7 +269,7 @@ void Mpb_Bridge_Init(const Mpb_BridgeCfg *cfg)
     TIM_TimeBaseInitTypeDef tb = {0};
     TIM_OCInitTypeDef oc = {0};
     TIM_BDTRInitTypeDef bd = {0};
-    uint32_t dt;
+    uint32_t dt, dns;
 
     if (cfg == NULL)
     {
@@ -224,6 +279,7 @@ void Mpb_Bridge_Init(const Mpb_BridgeCfg *cfg)
     s_max = (cfg->max_duty && cfg->max_duty <= 980u) ? cfg->max_duty : 900u;
     s_tim2 = cfg->use_tim2;
     s_arr = (uint16_t)(SystemCoreClock / (2u * s_hz));
+    s_inited = 0;
 
     RCC_PB2PeriphClockCmd(RCC_PB2Periph_GPIOB | RCC_PB2Periph_AFIO | RCC_PB2Periph_TIM1, ENABLE);
     s_fault = 0;
@@ -245,15 +301,23 @@ void Mpb_Bridge_Init(const Mpb_BridgeCfg *cfg)
     oc.TIM_Pulse = (uint16_t)(s_arr - 1u);
     TIM_OC4Init(TIM1, &oc);
 
-    dt = (uint32_t)cfg->dead_ns * (SystemCoreClock / 1000000u) / 1000u;   /* tDTS = 1/HCLK */
+    if (s_tim2)
+    {
+        /* HB2 を TIM2 で出すときは TIM1 CH3/CH3N を出さない (同じ PB12/PB13 に重なると上下同時 ON になりうる) */
+        TIM1->CCER &= (uint16_t)~(TIM_CC3E | TIM_CC3NE);
+    }
+    dns = cfg->dead_ns > MPB_DEAD_MIN_NS ? cfg->dead_ns : MPB_DEAD_MIN_NS;
+    dt = ((uint32_t)dns * (SystemCoreClock / 1000000u) + 999u) / 1000u;   /* tDTS = 1/HCLK, 切り上げ */
     bd.TIM_OSSRState = TIM_OSSRState_Enable;
     bd.TIM_OSSIState = TIM_OSSIState_Enable;
-    bd.TIM_LOCKLevel = TIM_LOCKLevel_OFF;
+    bd.TIM_LOCKLevel = TIM_LOCKLevel_3;          /* デッドタイム・極性・出力モードをリセットまで固定 (暴走しても変えられない) */
     bd.TIM_DeadTime = (uint8_t)(dt > 127u ? 127u : dt);
+    s_dtg = bd.TIM_DeadTime;
     bd.TIM_Break = cfg->hw_break ? TIM_Break_Enable : TIM_Break_Disable;
     bd.TIM_BreakPolarity = TIM_BreakPolarity_High;   /* CMP2/CMP3 は過電流で High */
     bd.TIM_AutomaticOutput = TIM_AutomaticOutput_Disable;
     TIM_BDTRConfig(TIM1, &bd);
+    s_dtg = (uint8_t)(TIM1->BDTR & 0xFFu);      /* 実際に入った値 (LOCK 済みで再設定されなかった場合も一致する) */
     TIM_SelectMasterSlaveMode(TIM1, TIM_MasterSlaveMode_Enable);
     TIM_SelectOutputTrigger(TIM1, TIM_TRGOSource_Enable);   /* TIM1 の起動で TIM2 も起動 → 同位相 */
 
@@ -266,7 +330,7 @@ void Mpb_Bridge_Init(const Mpb_BridgeCfg *cfg)
         tim_pwm(TIM2, 1);
         tim_pwm(TIM2, 2);
         /* TIM2 のデッドタイム: (DT+1) × 4 / HCLK, 最大 16 × 55.6ns = 889ns */
-        dt = (uint32_t)cfg->dead_ns * (SystemCoreClock / 4000000u) / 1000u;
+        dt = ((uint32_t)dns * (SystemCoreClock / 1000000u) + 3999u) / 4000u;   /* 切り上げ */
         dt = dt ? dt - 1u : 0u;
         TIM2_DeadTimeConfig(TIM2, TIM_DTPolarity_Rising, (uint8_t)(dt > 15u ? 15u : dt), TIM_DT_DIV4);
         TIM2_DeadTimeConfig(TIM2, TIM_DTPolarity_Falling, (uint8_t)(dt > 15u ? 15u : dt), TIM_DT_DIV4);
@@ -287,6 +351,7 @@ void Mpb_Bridge_Init(const Mpb_BridgeCfg *cfg)
     Mpb_Bridge_Vdd8Auto();                       /* ゲート駆動電圧を VBUS に合わせる */
     TIM_CtrlPWMOutputs(TIM1, ENABLE);            /* MOE: 出力の可否はピン設定 (leg_pins) で決める */
     TIM_Cmd(TIM1, ENABLE);
+    s_inited = 1;
 }
 
 /* ------------------------------------------------------------ 電流 ------------------ */

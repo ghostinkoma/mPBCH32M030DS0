@@ -10,6 +10,7 @@
 * microcontroller manufactured by Nanjing Qinheng Microelectronics.
 *******************************************************************************/
 #include "ch32m030_it.h"
+#include "mpb.h"
 #include "board.h"
 
 void NMI_Handler(void) MPB_IRQ;
@@ -24,6 +25,8 @@ void HardFault_Handler(void) MPB_IRQ;
  */
 void NMI_Handler(void)
 {
+    Mpb_Gates_Off();                /* 全 FET OFF → リセット */
+    NVIC_SystemReset();
     while(1)
     {
     }
@@ -38,6 +41,7 @@ void NMI_Handler(void)
  */
 void HardFault_Handler(void)
 {
+    Mpb_Gates_Off();                /* 全 FET OFF → リセット */
     NVIC_SystemReset();
     while (1)
     {

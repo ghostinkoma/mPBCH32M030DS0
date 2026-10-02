@@ -21,6 +21,7 @@
 /* #define MPB_LOG_BUF      512u */           /* UART ログのリングバッファ [バイト] (2 のべき乗) */
 /* #define MPB_WS2812_MAX   32u */            /* WS2812 の最大個数 (RAM 4 バイト/個) */
 /* #define MPB_DEBUG */                       /* MPB_LOGD() を有効にする */
+/* #define MPB_WDT_MS       200u */           /* ウォッチドッグ: loop() がこれ以上戻らなければ全 FET OFF → リセット [ms] (0 = 無効, デバッグ時のみ) */
 
 /* ============================================================== このスケッチ ===== */
 #define CFG_SLAVE_ADDR      0x30        /* 7bit アドレス */

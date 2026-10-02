@@ -180,6 +180,27 @@ void loop(void)
   (VBUS ≥ 12V で 10V)。子基板 B の TKR74F04PB は 10V 駆動が前提です。
 - ゲートを駆動する前に VBUS ≥ 8V を確認してください (サンプルは `Mpb_Vbus_mV() >= 8000` まで待ちます)。
 
+### ウォッチドッグと「全 FET OFF」(core/mpb_wdt.c, 常に有効)
+
+| 場面 | 動作 |
+|---|---|
+| 電源投入・リセット (nRST・WDT・ソフト) | ハード: HO (PB9/11/13/15) はリセット値が Low 出力, LO (PB8/10/12/14) は内蔵プルダウン, 子基板の各 FET に 10k/20k の G-S プルダウン → **全 FET OFF**。さらに `main()` の最初に `Mpb_Gates_Off()` で PB8〜PB15 を能動的に Low |
+| `loop()` (RTOS ではタスク) が `MPB_WDT_MS` (既定 200ms) 戻らない | WWDG の早期警告割込み (約 29ms ごと) が検出 → **全ゲート OFF → WWDG リセット** (0.5ms 以内) |
+| 割込みごと止まった (割込み禁止の無限ループ, クロック異常) | 早期警告が動けないので WWDG が約 29ms でリセット (この間もデッドタイムは固定済みで上下短絡は起きない) |
+| ブリッジの設定が壊れた (デッドタイム・極性・TIM1/TIM2 の重なり・ゲートの GPIO High) | 早期警告割込みで毎回点検 → 全ゲート OFF → リセット |
+| 過電流 (CMP2/CMP3)・HardFault・NMI・RTOS のスタックあふれ / assert・書き込み要求のリセット | まず `Mpb_Gates_Off()` |
+
+- `Mpb_Gates_Off()` は TIM1 の MOE を切り, PB8〜PB15 を 1 回の書き込みで「GPIO 出力 Low」にする (上下とも OFF = 惰性。短絡ブレーキにもしない)。
+- **上下短絡 (同じレッグの HO と LO が同時 ON) の防止**: 相補 PWM + デッドタイム (下限 `MPB_DEAD_MIN_NS` 300ns, 200ns 未満は
+  コンパイルエラー, 切り上げ計算)。TIM1 は LOCK レベル 3 でデッドタイム・極性・出力モードをリセットまで固定。
+  TIM2 で HB2 を出すときは TIM1 CH3/CH3N を出さない (同じ PB12/PB13 に重ならない)。ピン切替は割込みを止めて行い, 故障中は PWM に戻さない。
+- 直前のリセットの原因は `Mpb_ResetCause()` / `Mpb_ResetCauseText()` (例: `MPB_LOGI("reset: %s", Mpb_ResetCauseText(Mpb_ResetCause()))`)。
+- `setup()` は `MPB_WDT_SETUP_MS` (既定 3 秒) まで。`loop()` の外で長く回す処理は `Mpb_Wdt_Feed()` を呼ぶ。
+  FreeRTOS ではスケジューラ開始後, 最初の給餌 (loop タスク・アイドル・`Mpb_Core_Service()`) から動く。
+- 割込みを止める処理は 29ms 未満に: WS2812 は 600 個まで (`MPB_WS2812_MAX`), WS2812 入力の中継は最大 10ms。
+- デバッガで止めるとリセットされる (安全側)。デバッグ中だけ `config.h` で `#define MPB_WDT_MS 0` (VBUS を切って作業)。
+- 短絡ブレーキ (`Mpb_Dc_Brake` = 両ローサイド ON) はスケッチが明示的に呼んだときだけ。故障・リセットの経路では使わない。
+
 - `mpb_guard` (examples/protect): NTC の温度, 電流 (PWM 同期), VBUS を 1ms ごとに見て, 異常で警報端子を High にします。
   短絡はコンパレータの割込みから直接 High にするので µs 単位で反応します。`latch = 1` なら原因が消えても解除まで保持します。
 

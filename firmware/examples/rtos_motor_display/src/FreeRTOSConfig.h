@@ -7,6 +7,7 @@
 #define FREERTOS_CONFIG_H
 
 #include "debug.h"     /* SystemCoreClock, NVIC, SysTick */
+void Mpb_Gates_Off(void);   /* core/mpb_wdt.c: 全 FET OFF */
 
 #define configMTIME_BASE_ADDRESS                0
 #define configMTIMECMP_BASE_ADDRESS             0
@@ -46,6 +47,6 @@
 #define INCLUDE_uxTaskPriorityGet               0
 #define INCLUDE_xTaskGetSchedulerState          1
 
-#define configASSERT(x) do { if ((x) == 0) { taskDISABLE_INTERRUPTS(); for (;;) {} } } while (0)
+#define configASSERT(x) do { if ((x) == 0) { taskDISABLE_INTERRUPTS(); Mpb_Gates_Off(); for (;;) {} } } while (0)
 
 #endif /* FREERTOS_CONFIG_H */
