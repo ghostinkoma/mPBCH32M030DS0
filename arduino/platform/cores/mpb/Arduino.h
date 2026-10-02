@@ -7,6 +7,7 @@
  *     MPB_EVERY_MS(t, 100) { … } のような待たない書き方にする。
  *   ・Serial は UART (TX = PC1 / J2-3) のログ。既定 460800bps。受信はない (PC2 は書き込み要求用)。
  *   ・analogRead(ch) の引数は ADC のチャンネル番号 (端子番号ではない)。
+ *   ・ツール → RTOS → FreeRTOS: loop() はタスクとして動き, delay() は vTaskDelay() になる (mpb_freertos.h)。
  * Copyright (c) 2026 ghostinkoma — LICENSE 参照 (無保証)
  */
 #ifndef Arduino_h
@@ -20,6 +21,9 @@
 #include <math.h>
 #include "mpbfun.h"
 #include "pins_arduino.h"
+#if MPB_RTOS
+#include "mpb_freertos.h"   /* ツール → RTOS → FreeRTOS: ライブラリ MpbFreeRTOS が自動で組み込まれる */
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -89,13 +93,26 @@ static inline uint32_t micros(void) { return Mpb_Micros(); }
 static inline void delayMicroseconds(uint32_t us) { uint32_t t = Mpb_Micros(); while (Mpb_Micros() - t < us) {} }
 static inline void delay(uint32_t ms)
 {
+#if MPB_RTOS
+    if (xTaskGetSchedulerState() == taskSCHEDULER_RUNNING)
+    {
+        vTaskDelay(pdMS_TO_TICKS(ms) ? pdMS_TO_TICKS(ms) : 1);   /* 他のタスクに CPU を譲る */
+        return;
+    }
+#endif
     uint32_t t = Mpb_Micros();
     while (Mpb_Micros() - t < ms * 1000u)
     {
         Mpb_Core_Service();                 /* 待っている間も USB からの書き込み要求に応える */
     }
 }
-static inline void yield(void) { Mpb_Core_Service(); }
+static inline void yield(void)
+{
+#if MPB_RTOS
+    if (xTaskGetSchedulerState() == taskSCHEDULER_RUNNING) { taskYIELD(); return; }
+#endif
+    Mpb_Core_Service();
+}
 
 static inline int analogRead(uint8_t adc_ch) { Mpb_Adc_Init(); return (int)Mpb_Adc_Read(adc_ch); }
 

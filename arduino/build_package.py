@@ -50,8 +50,9 @@ TOOLCHAIN = {
     "win32-x64.zip":       ("44749ebaac273114f6689360d6e1a10b7e0debe9cee7cbc24e83ef84b0c21cc5", ["x86_64-mingw32", "i686-mingw32"]),
 }
 
-# Arduino のサンプルにしない物 (FreeRTOS は Arduino 版では未対応)
-SKIP_EXAMPLES = {"rtos_motor_display"}
+FRT = os.path.join(FW, "sdk", "ch32m030", "EVT", "EXAM", "FreeRTOS", "FreeRTOS", "FreeRTOS")
+# FreeRTOS を使うサンプル (mpbfun ではなく MpbFreeRTOS のスケッチ例に入れる)
+RTOS_EXAMPLES = {"rtos_motor_display"}
 
 
 def tool_file(suffix):
@@ -102,7 +103,8 @@ def stage(out, version):
     if not os.path.isdir(SDK):
         sys.exit("WCH SDK がありません: firmware/sdk/fetch_sdk.sh を実行してください")
     shutil.copytree(os.path.join(ROOT, "arduino", "platform"), top)
-    for f in ("platform.txt", os.path.join("libraries", "mpbfun", "library.properties")):
+    for f in ("platform.txt", os.path.join("libraries", "mpbfun", "library.properties"),
+              os.path.join("libraries", "MpbFreeRTOS", "library.properties")):
         subst(os.path.join(top, f), version)
     core = os.path.join(top, "cores", "mpb")
     copy_tree(os.path.join(FW, "core"), os.path.join(core, "mpb"), {".c", ".h"})
@@ -111,7 +113,18 @@ def stage(out, version):
         copy_tree(os.path.join(SDK, d), os.path.join(core, "sdk", d), {".c", ".h"})
     copy_tree(os.path.join(SDK, "Peripheral", "inc"), os.path.join(core, "sdk", "Peripheral", "inc"), {".h"})
     copy_tree(os.path.join(SDK, "Peripheral", "src"), os.path.join(core, "sdk", "Peripheral", "src"), {".c"})
-    copy(os.path.join(SDK, "Startup", "startup_ch32m030.S"), os.path.join(core, "sdk", "Startup", "startup_ch32m030.S"))
+    # スタートアップは 1 つで RTOS と切り替える (違いは 2 行: FreeRTOS はハードウェアの自動退避 HPE を使わない)
+    st = open(os.path.join(SDK, "Startup", "startup_ch32m030.S"), encoding="utf-8").read()
+    for a, b in (("\tli t0, 0x3\n", "\tli t0, 0x2\n"), ("\tli t0, 0x88\n", "\tli t0, 0x1800\n")):
+        if st.count(a) != 1:
+            sys.exit(f"startup_ch32m030.S の想定外の内容: {a!r}")
+        st = st.replace(a, f"#if MPB_RTOS\n{b}#else\n{a}#endif\n")
+    os.makedirs(os.path.join(core, "sdk", "Startup"), exist_ok=True)
+    open(os.path.join(core, "sdk", "Startup", "startup_ch32m030.S"), "w", encoding="utf-8").write(st)
+    # RTOS では SDK の Delay_Us/Ms (SysTick を止める) を改名し, core/mpb_time.c の TIM3 版を使う (make 版と同じ)
+    dbg = os.path.join(core, "sdk", "Debug", "debug.c")
+    s2 = open(dbg, encoding="utf-8").read()
+    open(dbg, "w", encoding="utf-8").write("#if MPB_RTOS\n#define Delay_Us Sdk_Delay_Us\n#define Delay_Ms Sdk_Delay_Ms\n#endif\n" + s2)
     copy(os.path.join(FW, "common", "app.ld"), os.path.join(top, "ld", "app.ld"))
     copy(os.path.join(ROOT, "tools", "mpb_upload.py"), os.path.join(top, "tools", "mpb_upload.py"))
     copy(os.path.join(ROOT, "tools", "99-mpb.rules"), os.path.join(top, "tools", "99-mpb.rules"))
@@ -120,16 +133,30 @@ def stage(out, version):
             copy(os.path.join(ROOT, f), os.path.join(top, f))
     lib = os.path.join(top, "libraries", "mpbfun")
     copy_tree(os.path.join(FW, "lib"), os.path.join(lib, "src"), {".c", ".h"})
+    # FreeRTOS (WCH SDK 同梱 V10.4.6) → libraries/MpbFreeRTOS/src (平らに置く)
+    frt = os.path.join(top, "libraries", "MpbFreeRTOS", "src")
+    for f in ("tasks.c", "list.c", "queue.c", "timers.c", "event_groups.c", "stream_buffer.c"):
+        copy(os.path.join(FRT, f), os.path.join(frt, f))
+    copy_tree(os.path.join(FRT, "include"), frt, {".h"})
+    rv = os.path.join(FRT, "portable", "GCC", "RISC-V")
+    for f in ("port.c", "portASM.S", "portmacro.h"):
+        copy(os.path.join(rv, f), os.path.join(frt, f))
+    copy(os.path.join(rv, "chip_specific_extensions", "RV32I_PFIC_no_extensions",
+                      "freertos_risc_v_chip_specific_extensions.h"),
+         os.path.join(frt, "freertos_risc_v_chip_specific_extensions.h"))
+    copy(os.path.join(FRT, "portable", "MemMang", "heap_4.c"), os.path.join(frt, "heap_4.inc"))
     exdir = os.path.join(FW, "examples")
     for name in sorted(os.listdir(exdir)):
         src = os.path.join(exdir, name, "src")
-        if name in SKIP_EXAMPLES or not os.path.isfile(os.path.join(src, "sketch.c")):
+        if not os.path.isfile(os.path.join(src, "sketch.c")):
             continue
-        dst = os.path.join(lib, "examples", name)
+        dst = os.path.join(top, "libraries", "MpbFreeRTOS" if name in RTOS_EXAMPLES else "mpbfun", "examples", name)
         os.makedirs(dst, exist_ok=True)
         copy(os.path.join(src, "sketch.c"), os.path.join(dst, name + ".ino"))
         cfg = open(os.path.join(src, "config.h"), encoding="utf-8").read()
         open(os.path.join(dst, "config.h"), "w", encoding="utf-8").write(arduino_config(cfg))
+        if os.path.isfile(os.path.join(src, "FreeRTOSConfig.h")):
+            copy(os.path.join(src, "FreeRTOSConfig.h"), os.path.join(dst, "FreeRTOSConfig.h"))
     return top
 
 

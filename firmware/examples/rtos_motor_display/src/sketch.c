@@ -238,7 +238,7 @@ static void mon_task(void *arg)
             taskENTER_CRITICAL();
             memcpy(s_marquee, t, sizeof(t));
             s_marquee_color = color;
-            s_marquee_seq++;
+            s_marquee_seq = (uint8_t)(s_marquee_seq + 1u);
             taskEXIT_CRITICAL();
         }
         if (Mpb_Millis() - t_log >= CFG_LOG_MS)

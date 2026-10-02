@@ -1,0 +1,14 @@
+{
+    // 補完・定義ジャンプは clangd が各プロジェクトの compile_commands.json (mpb: build で作られる) を使う。
+    // config.h の -include も含めビルドと同じ設定で解析される。
+    "clangd.arguments": [
+        "--query-driver=/usr/bin/riscv64-unknown-elf-gcc,**/riscv-none-elf-gcc*,**/riscv-wch-elf-gcc*",
+        "--header-insertion=never"
+    ],
+    "C_Cpp.intelliSenseEngine": "disabled",
+    "files.associations": { "*.h": "c", "config.h": "c", "FreeRTOSConfig.h": "c" },
+    "files.exclude": { "**/build": true, "sdk/ch32m030/.git": true },
+    "search.exclude": { "sdk/**": true, "**/build": true, "**/compile_commands.json": true },
+    "files.encoding": "utf8",
+    "editor.rulers": [120]
+}

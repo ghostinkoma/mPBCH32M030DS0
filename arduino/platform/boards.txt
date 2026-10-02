@@ -4,6 +4,7 @@
 menu.stage=Power stage (子基板)
 menu.uartboot=UART boot request
 menu.upload_method=Upload method
+menu.rtos=RTOS
 
 mpb.name=mPBCH32M030DS0 (CH32M030)
 mpb.vid.0=0x1A86
@@ -14,6 +15,8 @@ mpb.build.board=MPBCH32M030DS0
 mpb.build.mcu=ch32m030
 mpb.build.f_cpu=72000000L
 mpb.build.ldscript=app.ld
+mpb.build.rtos=0
+mpb.build.rtos_ldflags=
 mpb.upload.tool=mpb_upload
 mpb.upload.tool.default=mpb_upload
 mpb.upload.maximum_size=44928
@@ -39,3 +42,11 @@ mpb.menu.upload_method.uart=UART (selected serial port, PC2/PC1)
 mpb.menu.upload_method.uart.upload.tool=mpb_upload_uart
 mpb.menu.upload_method.uart.upload.tool.default=mpb_upload_uart
 mpb.menu.upload_method.uart.upload.tool.serial=mpb_upload_uart
+
+# RTOS: FreeRTOS を選ぶと MpbFreeRTOS ライブラリが自動で組み込まれ, loop() はタスクとして動く
+mpb.menu.rtos.none=None (setup/loop)
+mpb.menu.rtos.none.build.rtos=0
+mpb.menu.rtos.none.build.rtos_ldflags=
+mpb.menu.rtos.freertos=FreeRTOS
+mpb.menu.rtos.freertos.build.rtos=1
+mpb.menu.rtos.freertos.build.rtos_ldflags=-Wl,--defsym=__stack_size=768

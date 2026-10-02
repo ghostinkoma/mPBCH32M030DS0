@@ -17,6 +17,8 @@ firmware/
 ├── app_template/      自分のスケッチの出発点 (src/config.h + src/sketch.c)
 ├── examples/          サンプル 13 本 (各ディレクトリで make / make upload)
 ├── tools/new_sketch.py  新しいスケッチを雛形から作る (config.h 付き)
+├── tools/mpb.py       SDK のコマンド (build / upload / monitor / compdb …)。VS Code のタスクが呼ぶ
+├── .vscode/           VS Code のワークスペース設定 (タスク, clangd, デバッグ)
 ├── tests/             ホスト (PC) で動く単体テスト
 ├── bootloader/        USB/UART ブートローダ (最初の 1 回だけ WCH-LinkE で書く)
 └── sdk/               WCH 公式 SDK (./sdk/fetch_sdk.sh で取得)
@@ -43,7 +45,22 @@ make -C app_template POWER_STAGE=B upload   # 子基板 B (24V 系) 用
   include ../../common/app.mk        # ディレクトリの深さに合わせる (new_sketch.py が合わせる)
   ```
 - `src/` に置いた `.c` は全部リンクされます。
-- **Arduino IDE** でも使えます (Boards Manager): [../arduino/README.md](../arduino/README.md)。
+- **Arduino IDE** でも使えます (Boards Manager, FreeRTOS も可): [../arduino/README.md](../arduino/README.md)。
+
+### エディタ (VS Code) で使う
+
+`firmware/` を VS Code で開くと, 設定済みのワークスペース (`firmware/.vscode/`) が使えます。
+推奨拡張機能 (clangd, C/C++, Serial Monitor) を入れてください。開いているファイルのプロジェクトが対象になります。
+
+| 操作 | 内容 |
+|---|---|
+| Ctrl+Shift+B (`mpb: build`) | ビルド + `compile_commands.json` 作成 (clangd がビルドと同じ設定で補完・定義ジャンプ・エラー表示) + 使用量 |
+| タスク `mpb: upload (USB-C)` | ビルドして書き込み |
+| タスク `mpb: serial monitor` | UART ログ (460800bps) |
+| タスク `mpb: new sketch` | サンプルから新しいスケッチ (config.h 付き) を作る |
+| F5 `mpb: debug (WCH-LinkE)` | WCH 版 OpenOCD + gdb でデバッグ (**未検証**: MounRiver 同梱の OpenOCD が必要) |
+
+中身は `tools/mpb.py` (build / upload / clean / compdb / new / monitor / size / list) で, 端末からも同じことができます。
 - コンパイラ: 汎用 GCC (`riscv64-unknown-elf-`, 既定) / xPack・MounRiver GCC (`make PREFIX=riscv-none-elf- LIBC_SPECS="--specs=nano.specs --specs=nosys.specs"`) /
   WCH GCC の高速割込み (`make IRQ=wch PREFIX=riscv-wch-elf-`)。
 - MounRiver Studio で使う場合は「Makefile プロジェクト」として `firmware/` を開き, ビルドコマンドに上の `make` を指定します
@@ -168,7 +185,8 @@ void loop(void)
 
 ## FreeRTOS
 
-`Makefile` に `RTOS := freertos` を書くと WCH SDK 同梱の FreeRTOS (V10.4.6) をリンクします (`src/FreeRTOSConfig.h` が必要)。
+Arduino 版は「ツール → RTOS → FreeRTOS」([../arduino/README.md](../arduino/README.md#freertos-ツール--rtos--freertos))。
+make 版は `Makefile` に `RTOS := freertos` を書くと WCH SDK 同梱の FreeRTOS (V10.4.6) をリンクします (`src/FreeRTOSConfig.h` が必要)。
 `setup()` でタスクを作って `vTaskStartScheduler()` を呼びます (`loop()` は呼ばれない)。RAM が 12KB なので静的確保だけにし,
 main のスタックは 768 バイト (割込み用に再利用)。書き込み要求の処理 `Mpb_Core_Service()` はどれかのタスクから呼びます。
 `mpb_i2c` はタスク間で排他しないので, 同じバスのデバイス (OLED と HT16K33 など) は 1 つのタスクから使います。

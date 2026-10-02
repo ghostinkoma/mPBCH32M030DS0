@@ -25,6 +25,8 @@
 
 void setup(void);
 void loop(void);
+/* RTOS (Arduino の FreeRTOS ライブラリ) が定義する: setup() の後で loop() をタスクにしてスケジューラを開始する */
+void Mpb_Rtos_AfterSetup(void) __attribute__((weak));
 void Mpb_Uart_TxIrq(void);
 
 void USART1_IRQHandler(void) MPB_IRQ;
@@ -95,6 +97,10 @@ int main(void)
     Mpb_Time_Init();                /* millis() / micros() を setup() の前から使えるように */
 #endif
     setup();
+    if (Mpb_Rtos_AfterSetup)
+    {
+        Mpb_Rtos_AfterSetup();      /* 戻らない */
+    }
     while (1)
     {
         loop();

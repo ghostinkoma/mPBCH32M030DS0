@@ -78,9 +78,11 @@ jobs:
           arduino-cli config set directories.user "$PWD/sb" --config-file arduino-cli.yaml
           arduino-cli core update-index --config-file arduino-cli.yaml
           arduino-cli core install arduino:avr --config-file arduino-cli.yaml   # ctags / discovery の取得用
-          for ex in sb/hardware/mpbch32m030/ch32m030/libraries/mpbfun/examples/*/; do
+          for ex in sb/hardware/mpbch32m030/ch32m030/libraries/*/examples/*/; do
             echo "::group::$(basename $ex)"
-            arduino-cli compile --config-file arduino-cli.yaml -b mpbch32m030:ch32m030:mpb --warnings default \
+            FQBN=mpbch32m030:ch32m030:mpb
+            case "$ex" in *MpbFreeRTOS*) FQBN=$FQBN:rtos=freertos ;; esac
+            arduino-cli compile --config-file arduino-cli.yaml -b $FQBN --warnings default \
               --build-property "runtime.tools.xpack-riscv-none-elf-gcc.path=$PWD/tc/xpack-riscv-none-elf-gcc-$XPACK_VER" "$ex"
             echo "::endgroup::"
           done

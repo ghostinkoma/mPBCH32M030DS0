@@ -1,0 +1,27 @@
+{
+    // デバッグ (WCH-LinkE + WCH 版 OpenOCD)。【未検証】
+    //   OpenOCD は MounRiver Studio 同梱の WCH 版 (wch-riscv.cfg 付き) を PATH に入れる。標準の OpenOCD は CH32 を書けない。
+    //   gdb は riscv-none-elf-gdb (xPack / MounRiver)。アプリは 0x08005000 (ブートローダの後ろ) に置かれる。
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "mpb: debug (WCH-LinkE)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${fileDirname}/../build/app.elf",
+            "cwd": "${workspaceFolder}",
+            "MIMode": "gdb",
+            "miDebuggerPath": "riscv-none-elf-gdb",
+            "miDebuggerServerAddress": "localhost:3333",
+            "preLaunchTask": "openocd (WCH-LinkE)",
+            "stopAtEntry": false,
+            "setupCommands": [
+                { "text": "set architecture riscv:rv32" },
+                { "text": "set remotetimeout 10" },
+                { "text": "monitor reset halt" },
+                { "text": "load" },
+                { "text": "monitor reset halt" }
+            ]
+        }
+    ]
+}

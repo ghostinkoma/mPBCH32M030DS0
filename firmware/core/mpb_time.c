@@ -27,15 +27,21 @@ void Mpb_Time_Init(void)
     TIM_Cmd(TIM3, ENABLE);
 }
 
+/* 割込みを止めた区間 (RTOS のスケジューラ開始前など) でも正しく進むよう, 未処理のオーバーフローはここでも数える */
 uint32_t Mpb_Micros(void)
 {
-    uint32_t hi, lo;
+    uint32_t m, hi, lo;
 
-    do
+    __asm volatile("csrrci %0, mstatus, 8" : "=r"(m));
+    lo = TIM3->CNT;
+    if (TIM3->INTFR & TIM_UIF)
     {
-        hi = s_ovf;
+        TIM3->INTFR = (uint16_t)~TIM_UIF;
+        s_ovf++;
         lo = TIM3->CNT;
-    } while (hi != s_ovf);
+    }
+    hi = s_ovf;
+    __asm volatile("csrs mstatus, %0" ::"r"(m & 8u));
     return (hi << 16) | lo;
 }
 
@@ -56,10 +62,16 @@ uint32_t Mpb_Tach_PeriodUs(void)
 
 void TIM3_IRQHandler(void)
 {
-    if (TIM_GetITStatus(TIM3, TIM_IT_Update) != RESET)
+    if (TIM3->INTFR & TIM_UIF)
     {
-        s_ovf++;
-        TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
+        uint32_t m;
+        __asm volatile("csrrci %0, mstatus, 8" : "=r"(m));   /* 入れ子の割込みの Mpb_Micros() と二重に数えない */
+        if (TIM3->INTFR & TIM_UIF)
+        {
+            TIM3->INTFR = (uint16_t)~TIM_UIF;
+            s_ovf++;
+        }
+        __asm volatile("csrs mstatus, %0" ::"r"(m & 8u));
     }
     if (TIM_GetITStatus(TIM3, TIM_IT_CC1) != RESET)
     {
@@ -75,7 +87,7 @@ void TIM3_IRQHandler(void)
     }
 }
 
-#if defined(MPB_RTOS)
+#if MPB_RTOS
 /* RTOS では SysTick が OS のティックなので, SDK の Delay_Us / Delay_Ms (SysTick を設定し直して止める) は使えない。
  * 同じ名前で TIM3 (1MHz) の待ちに置き換える (SDK 側は common/app.mk で Sdk_Delay_* に改名してある)。
  * TIM3 が動く前 (Mpb_Time_Init 前の USB 初期化など) は命令ループで近似する。 */

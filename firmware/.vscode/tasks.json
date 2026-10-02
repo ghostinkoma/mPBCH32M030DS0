@@ -1,0 +1,81 @@
+{
+    // mPBCH32M030DS0 — VS Code で firmware/ を開くと使える。開いているファイルのプロジェクトが対象。
+    // Ctrl+Shift+B = ビルド (既定のタスク)。他は「タスクの実行」から。中身は tools/mpb.py。
+    "version": "2.0.0",
+    "options": { "cwd": "${workspaceFolder}" },
+    "problemMatcher": {
+        "base": "$gcc",
+        "fileLocation": ["autoDetect", "${workspaceFolder}"]
+    },
+    "tasks": [
+        {
+            "label": "mpb: build",
+            "type": "shell",
+            "command": "python3 tools/mpb.py build \"${file}\"",
+            "windows": { "command": "python tools/mpb.py build \"${file}\"" },
+            "group": { "kind": "build", "isDefault": true }
+        },
+        {
+            "label": "mpb: build (power stage B)",
+            "type": "shell",
+            "command": "python3 tools/mpb.py build \"${file}\" --stage B",
+            "windows": { "command": "python tools/mpb.py build \"${file}\" --stage B" },
+            "group": "build"
+        },
+        {
+            "label": "mpb: upload (USB-C)",
+            "type": "shell",
+            "command": "python3 tools/mpb.py upload \"${file}\"",
+            "windows": { "command": "python tools/mpb.py upload \"${file}\"" }
+        },
+        {
+            "label": "mpb: clean",
+            "type": "shell",
+            "command": "python3 tools/mpb.py clean \"${file}\"",
+            "windows": { "command": "python tools/mpb.py clean \"${file}\"" },
+            "problemMatcher": []
+        },
+        {
+            "label": "mpb: serial monitor",
+            "type": "shell",
+            "command": "python3 tools/mpb.py monitor",
+            "windows": { "command": "python tools/mpb.py monitor" },
+            "isBackground": true,
+            "problemMatcher": []
+        },
+        {
+            "label": "mpb: new sketch",
+            "type": "shell",
+            "command": "python3 tools/mpb.py new \"${input:newDir}\" --from \"${input:fromExample}\"",
+            "windows": { "command": "python tools/mpb.py new \"${input:newDir}\" --from \"${input:fromExample}\"" },
+            "problemMatcher": []
+        },
+        {
+            "label": "mpb: unit tests (host)",
+            "type": "shell",
+            "command": "make -C tests",
+            "group": "test"
+        },
+        {
+            "label": "openocd (WCH-LinkE)",
+            "type": "shell",
+            "command": "openocd -f wch-riscv.cfg",
+            "isBackground": true,
+            "problemMatcher": {
+                "pattern": { "regexp": "^(Info|Error).*$" },
+                "background": { "activesBegin": "^Open On-Chip Debugger", "endsPattern": "Listening on port 3333" }
+            }
+        }
+    ],
+    "inputs": [
+        { "id": "newDir", "type": "promptString", "description": "作るディレクトリ (firmware/ からの相対, 例 ../my_app)", "default": "../my_app" },
+        {
+            "id": "fromExample",
+            "type": "pickString",
+            "description": "もとにするサンプル",
+            "options": ["dc_motor", "stepper", "bldc_hall", "bldc_open", "led_cie", "led_rgbw", "ws2812",
+                        "i2c_sensors", "i2c_slave", "uart_log", "protect", "rtos_motor_display"],
+            "default": "stepper"
+        }
+    ]
+}

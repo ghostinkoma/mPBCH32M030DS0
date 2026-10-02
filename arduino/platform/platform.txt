@@ -17,9 +17,10 @@ compiler.size.cmd={compiler.prefix}size
 
 # MPB_POWER_STAGE は文字 ('A' = 65) を数値で渡す (コマンド行の引用符を避ける)
 mpb.arch=-march=rv32imac_zicsr_zifencei -mabi=ilp32
-mpb.defs=-DARDUINO={runtime.ide.version} -DARDUINO_{build.board} -DARDUINO_ARCH_{build.arch} -DF_CPU={build.f_cpu} -DUSE_STD_IRQ_ATTR -DMPB_POWER_STAGE={build.power_stage} -DMPB_UART_BOOT={build.uart_boot}
+mpb.defs=-DARDUINO={runtime.ide.version} -DARDUINO_{build.board} -DARDUINO_ARCH_{build.arch} -DF_CPU={build.f_cpu} -DUSE_STD_IRQ_ATTR -DMPB_POWER_STAGE={build.power_stage} -DMPB_UART_BOOT={build.uart_boot} -DMPB_RTOS={build.rtos}
+# スケッチの config.h / FreeRTOSConfig.h (タブ) を優先し, 無ければ既定 (rtos_default) を使う
 # スケッチの config.h (タブ) をライブラリにも効かせる: mpb_config_select.h が __has_include で読む
-mpb.inc="-I{build.core.path}/mpb" "-I{build.core.path}/sdk/Core" "-I{build.core.path}/sdk/Debug" "-I{build.core.path}/sdk/Peripheral/inc" "-I{build.path}/sketch" -include "{build.core.path}/mpb_config_select.h"
+mpb.inc="-I{build.core.path}/mpb" "-I{build.core.path}/sdk/Core" "-I{build.core.path}/sdk/Debug" "-I{build.core.path}/sdk/Peripheral/inc" "-I{build.path}/sketch" "-I{build.core.path}/rtos_default" -include "{build.core.path}/mpb_config_select.h"
 # 標準 C ライブラリ (xPack: newlib-nano)
 mpb.libc=--specs=nano.specs --specs=nosys.specs
 mpb.common={mpb.libc} -Os -g -ffunction-sections -fdata-sections -fno-common -msmall-data-limit=8 -Wall -Wno-unused-parameter -MMD
@@ -41,7 +42,7 @@ recipe.cpp.o.pattern="{compiler.path}{compiler.cpp.cmd}" {compiler.cpp.flags} {c
 recipe.S.o.pattern="{compiler.path}{compiler.S.cmd}" {compiler.S.flags} {compiler.S.extra_flags} {build.extra_flags} {includes} "{source_file}" -o "{object_file}"
 recipe.ar.pattern="{compiler.path}{compiler.ar.cmd}" {compiler.ar.flags} "{archive_file_path}" "{object_file}"
 # core (起動・USB 書き込み・PD・SDK) はまるごとリンク, ライブラリ mpbfun は .a で使った物だけ (make と同じ)
-recipe.c.combine.pattern="{compiler.path}{compiler.c.elf.cmd}" {compiler.c.elf.flags} {compiler.c.elf.extra_flags} -o "{build.path}/{build.project_name}.elf" -Wl,--start-group {object_files} -Wl,--whole-archive "{archive_file_path}" -Wl,--no-whole-archive -lm -Wl,--end-group
+recipe.c.combine.pattern="{compiler.path}{compiler.c.elf.cmd}" {compiler.c.elf.flags} {compiler.c.elf.extra_flags} {build.rtos_ldflags} -o "{build.path}/{build.project_name}.elf" -Wl,--start-group {object_files} -Wl,--whole-archive "{archive_file_path}" -Wl,--no-whole-archive -lm -Wl,--end-group
 recipe.objcopy.bin.pattern="{compiler.path}{compiler.objcopy.cmd}" -O binary "{build.path}/{build.project_name}.elf" "{build.path}/{build.project_name}.bin"
 recipe.objcopy.hex.pattern="{compiler.path}{compiler.objcopy.cmd}" -O ihex "{build.path}/{build.project_name}.elf" "{build.path}/{build.project_name}.hex"
 recipe.output.tmp_file={build.project_name}.bin

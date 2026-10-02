@@ -26,6 +26,7 @@ arduino-cli upload  -b mpbch32m030:ch32m030:mpb -P mpbusb MySketch     # USB-C �
 | Power stage | A (12V) / B (24V) / C | 子基板。VBUS の分圧比が変わる (`MPB_POWER_STAGE`) |
 | UART boot request | On / Off | On: UART (PC2) からの書き込み要求も受ける。PC2 を WS2812 入力や TM1640 に使うときは Off |
 | Upload method | USB-C / UART | USB-C: ブートローダへ USB で。UART: 選んだシリアルポートへ |
+| RTOS | None / FreeRTOS | FreeRTOS: `loop()` がタスクになり, `delay()` が `vTaskDelay()` になる (下記) |
 
 ## 書き込み
 
@@ -40,11 +41,37 @@ arduino-cli upload  -b mpbch32m030:ch32m030:mpb -P mpbusb MySketch     # USB-C �
 * `Arduino.h` は最小限: `pinMode / digitalWrite / digitalRead / millis / micros / delay / Serial (送信のみ) / analogRead(ADC チャンネル)`。
   端子名は `PA0`〜`PC7`, `LED_BUILTIN` (= PC4, Low で点灯, ボタンと共用なので `OUTPUT_OPEN_DRAIN` で)。
 * 本体の機能は **mpbfun** ライブラリ (= `firmware/lib` と同じコード)。例は **ファイル → スケッチ例 → mpbfun**
-  (`firmware/examples` の 11 例 + Blink)。どれも待たない書き方なので, モーターなどを使うときは `delay()` ではなく
+  (`firmware/examples` の 11 例 + Blink)。FreeRTOS の例は MpbFreeRTOS の下。どれも待たない書き方なので, モーターなどを使うときは `delay()` ではなく
   `MPB_EVERY_MS()` や `millis()` で間隔を測る。
 * スケッチに **config.h タブ** を置くと, ライブラリの設定 (`MPB_LOG_BUF` など) とスケッチの `CFG_*` が全ファイルに効く
   (make 版の `src/config.h` と同じ。子基板と UART 書き込みだけはツールメニューで選ぶ)。
-* FreeRTOS のサンプル (`rtos_motor_display`) は make 版のみ。
+
+## FreeRTOS (ツール → RTOS → FreeRTOS)
+
+ESP32 の Arduino と同じ形です。`#include` は要りません (Arduino.h がライブラリ **MpbFreeRTOS** を自動で読む)。
+
+```cpp
+void worker(void *) { for (;;) { /* … */ delay(10); } }   // delay() = vTaskDelay()
+
+void setup() {
+  xTaskCreate(worker, "worker", 160, NULL, 2, NULL);      // スタックは語 (4 バイト) 単位
+}                                                          // 戻るとスケジューラ開始
+void loop() { /* 優先度 1 のタスクとして動く */ }
+```
+
+* カーネル: WCH SDK 同梱の FreeRTOS V10.4.6 (RISC-V ポート, SysTick = ティック 1kHz)。RAM は 12KB しかないので,
+  既定は **ヒープ 4KB** (`xTaskCreate` / キュー用) + loop タスク 1KB + 割込みスタック 768B。
+* 設定を変える: `config.h` タブに `#define MPB_RTOS_HEAP 3072`, `#define configUSE_TIMERS 1`, `#define MPB_LOOP_STACK 320` など。
+  全部自分で決めたいときは `FreeRTOSConfig.h` タブを置く (rtos_motor_display の例: 静的確保だけ・ヒープなし)。
+* `setup()` の中で自分で `vTaskStartScheduler()` を呼んでもよい (そのとき `loop()` は呼ばれない)。
+* スケジューラ開始前 (`setup()` の中) は割込みが止まっている (FreeRTOS の仕様)。`millis()` / `delay()` は使えるが,
+  USB や UART の送信は開始後に動く。
+* **使えない物**: `mpb_ws2812` / `mpb_wsrx` (SysTick で時間を測るため)。
+* **注意**: mpbfun のライブラリ (I2C, ログ, 表示器, モーター) はタスク間で排他しない。1 つの機能は 1 つのタスクから使う
+  (例: I2C の OLED と HT16K33 は同じタスク, `Serial` は 1 つのタスク)。
+* スタックあふれ・ヒープ不足は検出して停止する (状態 LED が点灯)。`uxTaskGetStackHighWaterMark()` で余裕を確かめる。
+* 例: **ファイル → スケッチ例 → MpbFreeRTOS** → `RtosBlink` (タスク 2 本 + キュー), `rtos_motor_display`
+  (ステッピング + OLED / HT16K33 ×4 / TM1640 ×4, make 版と同じコード)。
 
 ## パッケージの作り方 (保守者向け)
 
