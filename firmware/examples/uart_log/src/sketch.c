@@ -5,6 +5,7 @@
  *   例: picocom -b 460800 /dev/ttyUSB0
  * Mpb_Log_* はバッファに積むだけで, 送信は割込みが行う (loop が止まらない)。
  */
+#include "config.h"         /* このスケッチの設定 (ピン・定数) */
 #include "mpbfun.h"
 
 static void led(uint8_t on)
@@ -38,12 +39,12 @@ void loop(void)
 
     Mpb_PD_Task();
 
-    MPB_EVERY_MS(t_led, 250)
+    MPB_EVERY_MS(t_led, CFG_LED_MS)
     {
         on ^= 1;
         led(on);
     }
-    MPB_EVERY_MS(t_log, 1000)
+    MPB_EVERY_MS(t_log, CFG_LOG_MS)
     {
         int32_t t = Mpb_Ntc_DeciCelsius();
         pd = Mpb_PD_Status();

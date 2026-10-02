@@ -39,7 +39,9 @@
 #define MPB_PDEN_PIN        GPIO_Pin_3
 /* UART: USART1 リマップ1 (TX = PC1, RX = PC2)。PC0 は RST ピン */
 #define MPB_UART_REMAP      GPIO_PartialRemap1_USART1
-#define MPB_UART_BAUD       460800u
+#ifndef MPB_UART_BAUD
+#define MPB_UART_BAUD       460800u       /* src/config.h で変えられる */
+#endif
 
 /* ---- 割り込み属性 --------------------------------------------------------
  * MounRiver (WCH GCC) では WCH 独自の高速割り込み、

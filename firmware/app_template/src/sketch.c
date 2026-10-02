@@ -8,6 +8,7 @@
  * 注意: モーター出力 (PB8〜PB15) を直接触らないこと。HO/LO を同時に ON にするとハーフブリッジが短絡する
  *       (mpb_bridge の相補 PWM + デッドタイム + 過電流遮断を使う)。
  */
+#include "config.h"         /* このスケッチの設定 (ピン・定数) */
 #include "mpbfun.h"
 
 static void Led(uint8_t on)
@@ -39,7 +40,7 @@ void loop(void)
     static uint8_t on;
     uint32_t now = Mpb_Millis();
     /* PD 給電中は速い点滅, それ以外はゆっくり */
-    uint32_t period = Mpb_PD_Status()->power_enabled ? 125u : 500u;
+    uint32_t period = Mpb_PD_Status()->power_enabled ? CFG_LED_FAST_MS : CFG_LED_SLOW_MS;
 
     Mpb_PD_Task();
     if (now - t_led >= period)

@@ -26,9 +26,11 @@ ARCH    := -march=rv32imac_zicsr_zifencei -mabi=ilp32
 IRQDEF  := -DUSE_STD_IRQ_ATTR
 endif
 
-# パワー段 (子基板) A/B/C/D。B (24V 系) は VBUS 分圧比が変わる (src/mpb.h)
-POWER_STAGE ?= A
+# パワー段 (子基板) A/B/C。B (24V 系) は VBUS 分圧比が変わる (core/mpb.h)。
+# 通常はスケッチの src/config.h の MPB_POWER_STAGE で指定し, make POWER_STAGE=B で一時的に上書きできる
+ifdef POWER_STAGE
 IRQDEF  += -DMPB_POWER_STAGE=\'$(POWER_STAGE)\'
+endif
 
 CFLAGS  += $(ARCH) $(LIBC_SPECS) -Os -g -ffunction-sections -fdata-sections -fno-common \
            -msmall-data-limit=8 -Wall -Wno-unused-parameter $(IRQDEF) \
@@ -43,6 +45,10 @@ LIBA    :=
 ifeq ($(MPB_APP),1)
 # アプリ: core/ (起動・USB 書き込み・PD) は常にリンク, lib/ (機能ライブラリ) はアーカイブにして使った物だけリンク
 CFLAGS  += -I$(CORE) -I$(LIBDIR)
+# スケッチの設定 src/config.h は core / lib を含む全ファイルの先頭で読む (ライブラリの設定もここで変える)
+ifneq ($(wildcard src/config.h),)
+CFLAGS  += -include $(abspath src/config.h)
+endif
 SRCS    += $(wildcard $(CORE)/*.c)
 LIBSRCS := $(wildcard $(LIBDIR)/*.c)
 LIBOBJS := $(addprefix $(BUILD)/lib/,$(notdir $(LIBSRCS:.c=.o)))
@@ -68,6 +74,11 @@ $(BUILD)/%.o: %.c | $(BUILD)
 
 $(BUILD)/%.o: %.S | $(BUILD)
 	$(CC) $(CFLAGS) -c $< -o $@
+
+# config.h を変えたら全部作り直す
+ifneq ($(wildcard src/config.h),)
+$(OBJS) $(LIBOBJS): src/config.h
+endif
 
 $(BUILD)/lib/%.o: $(LIBDIR)/%.c | $(BUILD)
 	@mkdir -p $(BUILD)/lib

@@ -9,19 +9,20 @@
  * 配線: U/V/W = OUT0/OUT1/OUT2。エンコーダ A → HALL_A_IN (JP2 = 2-3), B → HALL_C_IN (JP4 = 2-3), 押し → PC4。
  * 操作: 回す … 目標回転数 ±100rpm / クリック (符号 = 向き)。押す … 停止。
  */
+#include "config.h"         /* このスケッチの設定 (ピン・定数) */
 #include "mpbfun.h"
-
-#define POLE_PAIRS  7u          /* 例: 14 極のアウターロータ */
 
 static int32_t s_rpm;
 static uint8_t s_ready;
 
 void setup(void)
 {
-    Mpb_BridgeCfg b = {.pwm_hz = 20000, .dead_ns = 500, .max_duty = 900, .use_tim2 = 0, .hw_break = 0};
-    Mpb_BldcCfg m = {.sense = MPB_BLDC_OPEN, .pole_pairs = POLE_PAIRS, .i_limit_mA = 3000,
-                     .open_start_hz = 5, .open_hz_per_s = 30, .open_duty_per_hz = 15, .open_min_duty = 60,
-                     .tach_ppr = 1};
+    Mpb_BridgeCfg b = {.pwm_hz = CFG_PWM_HZ, .dead_ns = CFG_DEAD_NS, .max_duty = CFG_MAX_DUTY, .use_tim2 = 0,
+                       .hw_break = CFG_HW_BREAK};
+    Mpb_BldcCfg m = {.sense = MPB_BLDC_OPEN, .pole_pairs = CFG_POLE_PAIRS, .i_limit_mA = CFG_I_LIMIT_MA,
+                     .open_start_hz = CFG_OPEN_START_HZ, .open_hz_per_s = CFG_OPEN_HZ_PER_S,
+                     .open_duty_per_hz = CFG_OPEN_DUTY_PER_HZ, .open_min_duty = CFG_OPEN_MIN_DUTY,
+                     .tach_ppr = CFG_TACH_PPR};
 
     Mpb_Time_Init();
     Mpb_Log_Init(0);
@@ -33,7 +34,7 @@ void setup(void)
     Mpb_Bldc_Init(&m);
     Mpb_Enc_Init(NULL, 0, NULL, 0, 4);
     Mpb_Enc_ButtonInit(NULL, 0);
-    MPB_LOGI("bldc_open: pole pairs %u", POLE_PAIRS);
+    MPB_LOGI("bldc_open: pole pairs %u", CFG_POLE_PAIRS);
 }
 
 void loop(void)
@@ -46,7 +47,7 @@ void loop(void)
 
     if (!s_ready)
     {
-        if (Mpb_Bridge_CurrentReady() && Mpb_Vbus_mV() >= 8000u)
+        if (Mpb_Bridge_CurrentReady() && Mpb_Vbus_mV() >= CFG_VBUS_MIN_MV)
         {
             s_ready = 1;
             MPB_LOGI("ready");
@@ -67,7 +68,7 @@ void loop(void)
     d = Mpb_Enc_Delta();
     if (d)
     {
-        s_rpm += d * 100;
+        s_rpm += d * CFG_RPM_PER_CLICK;
         Mpb_Bldc_SetRpm(s_rpm);
         MPB_LOGI("target %d rpm", s_rpm);
     }
@@ -76,7 +77,7 @@ void loop(void)
         s_rpm = 0;
         Mpb_Bldc_SetRpm(0);
     }
-    MPB_EVERY_MS(t_log, 250)
+    MPB_EVERY_MS(t_log, CFG_LOG_MS)
     {
         MPB_LOGI("rpm %d (soft)  %d (TACH_IN)  duty %d  I %d mA", Mpb_Bldc_Rpm(), Mpb_Bldc_TachRpm(), Mpb_Bldc_Duty(),
                  Mpb_Bldc_Current_mA());

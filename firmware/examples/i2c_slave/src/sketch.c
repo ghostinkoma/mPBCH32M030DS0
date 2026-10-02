@@ -13,17 +13,10 @@
  * 例 (Linux の i2c-tools): i2cget -y 1 0x30 0x00 → 0x4d / i2cset -y 1 0x30 0x10 2 / i2cget -y 1 0x30 0x02 w
  * 書き込みは割込みがレジスタへ写すだけで, loop が Mpb_I2cSlave_Written() で受け取って反映する。
  */
+#include "config.h"         /* このスケッチの設定 (ピン・定数) */
 #include "mpbfun.h"
 
-#define REG_WHO     0x00
-#define REG_STAT    0x01
-#define REG_VBUS    0x02
-#define REG_NTC     0x04
-#define REG_MS      0x06
-#define REG_LEDMODE 0x10
-#define REG_BLINK   0x11
-
-static uint8_t s_regs[0x20];
+static uint8_t s_regs[CFG_REG_SIZE];
 
 static void led(uint8_t on)
 {
@@ -47,7 +40,7 @@ void setup(void)
     s_regs[REG_WHO] = 0x4D;
     s_regs[REG_LEDMODE] = 2;
     s_regs[REG_BLINK] = 50;
-    Mpb_I2cSlave_Init(0x30, s_regs, sizeof(s_regs));
+    Mpb_I2cSlave_Init(CFG_SLAVE_ADDR, s_regs, sizeof(s_regs));
     Mpb_I2cSlave_SetWritable(REG_LEDMODE, 2);          /* 0x10〜0x11 だけ書ける */
     MPB_LOGI("i2c_slave: address 0x30");
 }

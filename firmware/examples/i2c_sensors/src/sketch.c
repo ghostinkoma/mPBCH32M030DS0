@@ -6,6 +6,7 @@
  * つながっていないセンサは「応答なし」になり, 周期ごとに初期化からやり直す (抜き差ししても復帰する)。
  * どの処理も待たない: 変換待ち (SHT3x 16ms, AHT20 80ms, BMx280 10ms) は時刻の比較で行う。
  */
+#include "config.h"         /* このスケッチの設定 (ピン・定数) */
 #include "mpbfun.h"
 
 static Mpb_Env s_env[4];
@@ -29,14 +30,14 @@ void setup(void)
 {
     Mpb_Time_Init();
     Mpb_Log_Init(0);
-    Mpb_I2c_Init(100000);
-    Mpb_Env_Init(&s_env[0], MPB_ENV_SHT3X, 0x44);
-    Mpb_Env_Init(&s_env[1], MPB_ENV_AHT20, 0x38);
-    Mpb_Env_Init(&s_env[2], MPB_ENV_BMX280, 0x76);
-    Mpb_Env_Init(&s_env[3], MPB_ENV_S5851A, 0x48);
+    Mpb_I2c_Init(CFG_I2C_HZ);
+    Mpb_Env_Init(&s_env[0], MPB_ENV_SHT3X, CFG_ADDR_SHT3X);
+    Mpb_Env_Init(&s_env[1], MPB_ENV_AHT20, CFG_ADDR_AHT20);
+    Mpb_Env_Init(&s_env[2], MPB_ENV_BMX280, CFG_ADDR_BMX280);
+    Mpb_Env_Init(&s_env[3], MPB_ENV_S5851A, CFG_ADDR_S5851A);
     for (uint8_t i = 0; i < 4; i++)
     {
-        Mpb_Env_SetPeriod(&s_env[i], 2000);
+        Mpb_Env_SetPeriod(&s_env[i], CFG_PERIOD_MS);
     }
     MPB_LOGI("i2c_sensors: scanning SHT3x/AHT20/BMx280/S-5851A every 2 s");
 }

@@ -170,11 +170,25 @@ void Mpb_Bridge_ClearFault(void)
     TIM1->BDTR |= TIM_MOE;          /* ブレーキで落ちた MOE を戻す (レッグは開放のまま) */
 }
 
+static void (*s_fault_hook)(void);
+
+void Mpb_Bridge_SetFaultHook(void (*fn)(void)) { s_fault_hook = fn; }
+
+void Mpb_Bridge_Trip(void)
+{
+    s_fault = 1;
+    Mpb_Bridge_AllFloat();
+}
+
 /* core の OPA_IRQHandler (過電流) から呼ばれる: 全レッグを GPIO Low に固定する */
 void Mpb_OnOvercurrent(void)
 {
     s_fault = 1;
     Mpb_Bridge_AllFloat();
+    if (s_fault_hook)
+    {
+        s_fault_hook();
+    }
 }
 
 static void tim_pwm(TIM_TypeDef *t, uint8_t ch)

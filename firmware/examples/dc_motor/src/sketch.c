@@ -10,11 +10,8 @@
  * DC モーターは電流 (= トルク) しか直接制御できないので, 回転数は Kv [rpm/V] と巻線抵抗から概算する。
  * ログ: UART (J2-3 TX, 460800bps) に 200ms ごと。
  */
+#include "config.h"         /* このスケッチの設定 (ピン・定数) */
 #include "mpbfun.h"
-
-#define KV_RPM_PER_V   800u     /* 例: 12V で無負荷 9600rpm のモーター */
-#define R_MOHM         1500u    /* 例: 巻線抵抗 1.5Ω */
-#define I_LIMIT_MA     3000u
 
 static uint8_t s_current_mode;
 static int32_t s_set;           /* 速度モード: rpm, 電流モード: mA */
@@ -22,8 +19,10 @@ static uint8_t s_ready;
 
 void setup(void)
 {
-    Mpb_BridgeCfg b = {.pwm_hz = 20000, .dead_ns = 500, .max_duty = 900, .use_tim2 = 0, .hw_break = 0};
-    Mpb_DcCfg dc = {.kv_rpm_per_v = KV_RPM_PER_V, .r_mohm = R_MOHM, .ramp_per_ms = 2, .i_limit_mA = I_LIMIT_MA};
+    Mpb_BridgeCfg b = {.pwm_hz = CFG_PWM_HZ, .dead_ns = CFG_DEAD_NS, .max_duty = CFG_MAX_DUTY, .use_tim2 = 0,
+                       .hw_break = CFG_HW_BREAK};
+    Mpb_DcCfg dc = {.kv_rpm_per_v = CFG_KV_RPM_PER_V, .r_mohm = CFG_R_MOHM, .ramp_per_ms = CFG_RAMP_PER_MS,
+                    .i_limit_mA = CFG_I_LIMIT_MA};
 
     Mpb_Time_Init();
     Mpb_Log_Init(0);
@@ -31,20 +30,20 @@ void setup(void)
     Mpb_Bridge_Init(&b);
     Mpb_Bridge_CurrentInit(OPA_ISP_GAIN_16, MPB_ISP_LEG);   /* ±10A 程度 */
     Mpb_Ocp_BusCmp3_Init();                         /* バス 25.4A でハード停止 (割込み) */
-    Mpb_Ocp_Cmp2_Init(Mpb_Ocp_DacCode(8000, OPA_ISP_GAIN_16));   /* HB0 レッグ 8A */
+    Mpb_Ocp_Cmp2_Init(Mpb_Ocp_DacCode(CFG_OCP_LEG_MA, OPA_ISP_GAIN_16));   /* HB0 レッグ 8A */
     Mpb_Dc_Init(0, &dc);
     Mpb_Enc_Init(NULL, 0, NULL, 0, 4);
     Mpb_Enc_ButtonInit(NULL, 0);
-    MPB_LOGI("dc_motor: Kv=%u rpm/V R=%u mOhm", KV_RPM_PER_V, R_MOHM);
+    MPB_LOGI("dc_motor: Kv=%u rpm/V R=%u mOhm", CFG_KV_RPM_PER_V, CFG_R_MOHM);
 }
 
 /* 目標回転数 → duty (逆算): duty = (rpm / Kv + I × R) / VBUS */
 static int16_t rpm_to_duty(int32_t rpm)
 {
     int32_t vbus = (int32_t)Mpb_Dc_VbusMv();
-    int32_t mv = rpm * 1000 / (int32_t)KV_RPM_PER_V;
+    int32_t mv = rpm * 1000 / (int32_t)CFG_KV_RPM_PER_V;
     int32_t i = Mpb_Dc_Current_mA(0);
-    mv += i * (int32_t)R_MOHM / 1000;
+    mv += i * (int32_t)CFG_R_MOHM / 1000;
     return vbus > 0 ? (int16_t)(mv * 1000 / vbus) : 0;
 }
 
@@ -59,7 +58,7 @@ void loop(void)
     /* 起動条件: VBUS ≥ 8V かつ電流オフセットの校正が済んだ */
     if (!s_ready)
     {
-        if (Mpb_Bridge_CurrentReady() && Mpb_Dc_VbusMv() >= 8000u)
+        if (Mpb_Bridge_CurrentReady() && Mpb_Dc_VbusMv() >= CFG_VBUS_MIN_MV)
         {
             s_ready = 1;
             MPB_LOGI("ready: VBUS %s V", Mpb_Log_Fixed((int32_t)Mpb_Dc_VbusMv() / 10, 2));
@@ -81,7 +80,7 @@ void loop(void)
     d = Mpb_Enc_Delta();
     if (d)
     {
-        s_set += d * 50;
+        s_set += d * (s_current_mode ? CFG_MA_PER_CLICK : CFG_RPM_PER_CLICK);
         MPB_LOGI("set %d %s", s_set, s_current_mode ? "mA" : "rpm");
     }
     if (Mpb_Enc_Pressed())
@@ -108,7 +107,7 @@ void loop(void)
         Mpb_Dc_SetDuty(0, rpm_to_duty(s_set));
     }
 
-    MPB_EVERY_MS(t_log, 200)
+    MPB_EVERY_MS(t_log, CFG_LOG_MS)
     {
         MPB_LOGI("duty %d  I %d mA  rpm~%d  VBUS %u mV", Mpb_Dc_Duty(0), Mpb_Dc_Current_mA(0), Mpb_Dc_Rpm(0),
                  Mpb_Dc_VbusMv());

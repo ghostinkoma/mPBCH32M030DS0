@@ -56,6 +56,9 @@ uint16_t Mpb_Bridge_Vdd8(void);
 /* 過電流などで止まったか (Mpb_OnOvercurrent から立つ)。Clear で再び出力できる */
 uint8_t  Mpb_Bridge_Faulted(void);
 void     Mpb_Bridge_ClearFault(void);
+/* 過電流 (短絡) で全レッグを止めた直後に割込みから呼ぶ関数を登録する (警報出力など。短く書くこと, NULL で解除) */
+void     Mpb_Bridge_SetFaultHook(void (*fn)(void));
+void     Mpb_Bridge_Trip(void);                       /* ソフトウェアから故障扱いで全レッグを止める (ClearFault まで出力しない) */
 
 /* ---- 電流 (PWM 同期) ---------------------------------------------------------------- */
 /* gain: OPA のゲイン (OPA_ISP_GAIN_4/8/16/55)。ia_src: JP7 の設定 (MPB_ISP_LEG / MPB_ISP_BUS)。

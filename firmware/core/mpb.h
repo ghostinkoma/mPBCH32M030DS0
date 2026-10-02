@@ -44,6 +44,9 @@
 #define MPB_USBVBUS_DIV   13u              /* 120k / 10k */
 #define MPB_SHUNT_MOHM    10u              /* 各レッグ / バス 10mΩ (子基板 A/B/C 共通) */
 
+/* ---- core ---------------------------------------------------------------- */
+void     Mpb_Core_Service(void);          /* USB/UART の書き込み要求を処理 (loop の外で回す RTOS 用。通常は自動) */
+
 /* ---- 時間基準 (TIM3 1MHz フリーラン。TIM3 CH1 は QII タコ捕捉にも使う) ------ */
 void     Mpb_Time_Init(void);
 uint32_t Mpb_Micros(void);

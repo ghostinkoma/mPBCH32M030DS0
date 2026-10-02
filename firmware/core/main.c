@@ -28,8 +28,9 @@ void Mpb_Uart_TxIrq(void);
 
 void USART1_IRQHandler(void) MPB_IRQ;
 
-/* ブート要求フラグが書かれていたらリセットしてブートローダへ */
-static void Mpb_ServiceBootRequest(void)
+/* ブート要求フラグが書かれていたらリセットしてブートローダへ。
+ * 通常は main の loop で毎回呼ぶ。RTOS で loop() に戻らないスケッチはタスクから Mpb_Core_Service() を呼ぶ */
+void Mpb_Core_Service(void)
 {
     if (*(vu32 *)CalAddr == CheckNum)
     {
@@ -87,6 +88,6 @@ int main(void)
     while (1)
     {
         loop();
-        Mpb_ServiceBootRequest();
+        Mpb_Core_Service();
     }
 }
