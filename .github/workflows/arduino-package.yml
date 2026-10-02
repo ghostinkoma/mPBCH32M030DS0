@@ -116,8 +116,10 @@ jobs:
       - name: Check install from the published index
         continue-on-error: true
         run: |
+          # 手で置いたコア (sb/hardware) と混ざらないよう, まっさらな場所に Boards Manager で入れる
           export PATH=$PWD/bin:$PATH
-          arduino-cli core update-index --config-file arduino-cli.yaml \
-            --additional-urls "https://raw.githubusercontent.com/${{ github.repository }}/main/package_mpbch32m030_index.json"
-          arduino-cli core install mpbch32m030:ch32m030@${{ steps.v.outputs.version }} --config-file arduino-cli.yaml \
-            --additional-urls "https://raw.githubusercontent.com/${{ github.repository }}/main/package_mpbch32m030_index.json"
+          export ARDUINO_DIRECTORIES_DATA=$PWD/fresh/data ARDUINO_DIRECTORIES_USER=$PWD/fresh/user ARDUINO_DIRECTORIES_DOWNLOADS=$PWD/fresh/dl
+          export ARDUINO_BOARD_MANAGER_ADDITIONAL_URLS="https://raw.githubusercontent.com/${{ github.repository }}/main/package_mpbch32m030_index.json"
+          arduino-cli core update-index
+          arduino-cli core install mpbch32m030:ch32m030@${{ steps.v.outputs.version }}
+          arduino-cli compile -b mpbch32m030:ch32m030:mpb "$ARDUINO_DIRECTORIES_DATA/packages/mpbch32m030/hardware/ch32m030/${{ steps.v.outputs.version }}/libraries/mpbfun/examples/Blink"
