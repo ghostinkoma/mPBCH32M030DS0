@@ -22,7 +22,8 @@ void setup(void)
     Mpb_BridgeCfg b = {.pwm_hz = CFG_PWM_HZ, .dead_ns = CFG_DEAD_NS, .max_duty = CFG_MAX_DUTY, .use_tim2 = 0,
                        .hw_break = CFG_HW_BREAK};
     Mpb_DcCfg dc = {.kv_rpm_per_v = CFG_KV_RPM_PER_V, .r_mohm = CFG_R_MOHM, .ramp_per_ms = CFG_RAMP_PER_MS,
-                    .i_limit_mA = CFG_I_LIMIT_MA};
+                    .i_limit_mA = CFG_I_LIMIT_MA,
+                    .brake_vbus_max_mV = CFG_BRAKE_VBUS_MAX_MV};
 
     Mpb_Time_Init();
     Mpb_Log_Init(0);
@@ -96,7 +97,7 @@ void loop(void)
 
     if (s_set == 0)
     {
-        Mpb_Dc_Brake(0);                            /* 0 は短絡ブレーキで止める */
+        Mpb_Dc_Stop(0, CFG_BRAKE_MA);               /* 0: 回生 → 短絡 → 保持 → 惰性 で止める */
     }
     else if (s_current_mode)
     {

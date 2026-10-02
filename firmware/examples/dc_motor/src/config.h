@@ -35,6 +35,8 @@
 #define CFG_KV_RPM_PER_V    800u        /* Kv [rpm/V] = 無負荷回転数 ÷ 定格電圧 (例: 12V で 9600rpm → 800) */
 #define CFG_R_MOHM          1500u       /* 巻線抵抗 [mΩ] (テスターで端子間を測る。0 = I×R の補正なし) */
 #define CFG_I_LIMIT_MA      3000u       /* 電流制限 [mA] (duty / 電流どちらのモードでも) */
+#define CFG_BRAKE_MA        1500u       /* 止めるときの制動電流 [mA] (回生 → 短絡 → 保持 → 惰性, mpb_dc.h 参照) */
+#define CFG_BRAKE_VBUS_MAX_MV 0u        /* 回生で許す VBUS [mV]。0 = 平常 + 1V (USB-PD / ベンチ電源向け)。バッテリーなら上げる */
 #define CFG_RAMP_PER_MS     2u          /* duty の変化率 [‰/ms] (0 = 即時) */
 #define CFG_OCP_LEG_MA      8000u       /* HB0 レッグのハード過電流 (CMP2 + DAC) [mA] */
 

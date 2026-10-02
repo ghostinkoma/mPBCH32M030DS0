@@ -68,6 +68,7 @@ uint8_t  Mpb_Bridge_CurrentReady(void);
 int32_t  Mpb_Bridge_Current_mA(uint8_t ch);           /* ch 0 = IA, 1 = IB。1/16 の IIR で平滑化 */
 int32_t  Mpb_Bridge_CurrentNow_mA(uint8_t ch);        /* 直近 1 回 (平滑化なし) */
 uint32_t Mpb_Bridge_SampleCount(void);                /* 取り込み回数 (PWM 周期ごとに +1) */
+uint32_t Mpb_Bridge_Vbus_mV(void);                   /* VBUS [mV] (PWM 周期ごとに測って平滑化)。回生ブレーキの監視用 */
 
 /* PWM 周期ごと (電流を取り込んだ直後) に割込みから呼ぶ関数を登録する (最大 2 個, NULL で解除)。
  * ステッピングの歩進・3 相の強制転流が使う。ユーザーも電流ループなどの高速処理に使える (短く書くこと)。

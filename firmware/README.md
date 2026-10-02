@@ -106,7 +106,7 @@ void loop(void)
 |---|---|---|
 | `mpb.h` (core) | 時間, ADC, VBUS, 電流アンプ, 過電流, ホール / BEMF, タコ (QII), NTC, USB-PD | `Mpb_Millis` `Mpb_Vbus_mV` `Mpb_Ocp_*` `Mpb_Tach_PeriodUs` `Mpb_Ntc_DeciCelsius` `Mpb_PD_*` |
 | `mpb_bridge.h` | 4 本のハーフブリッジ: 中心揃えの相補 PWM + デッドタイム (TIM1 と TIM2 を同期), ゲート電源 VDD8 の自動選択, **PWM の山で IA/IB を同時に取り込む電流計測**, ローサイドだけの PWM | `Mpb_Bridge_Init` `Mpb_Bridge_Leg` `Mpb_Bridge_LegLow` `Mpb_Bridge_CurrentInit` `Mpb_Bridge_Current_mA` |
-| `mpb_dc.h` | DC モーター ×2: 正転 / 逆転, duty (加減速付き) または **電流制御 (PI)**, 電流制限, 短絡ブレーキ, **Kv [rpm/V] からの回転数の概算** | `Mpb_Dc_SetDuty` `Mpb_Dc_SetCurrent` `Mpb_Dc_Rpm` |
+| `mpb_dc.h` | DC モーター ×2: 正転 / 逆転, duty (加減速付き) または **電流制御 (PI)**, 電流制限, **停止 (回生 → 短絡 → 保持 → 惰性, VBUS 監視付き)**, **Kv [rpm/V] からの回転数の概算** | `Mpb_Dc_SetDuty` `Mpb_Dc_SetCurrent` `Mpb_Dc_Stop` `Mpb_Dc_Rpm` |
 | `mpb_stepper.h` | 2 相バイポーラ: フル〜**1/128 マイクロステップ** (sin 表はフラッシュ 258 バイト), 正転 / 逆転, 台形加減速, 位置決め, 保持電流, **ソフトウェア タコ** | `Mpb_Stepper_SetRpm` `Mpb_Stepper_MoveTo` `Mpb_Stepper_Rpm` |
 | `mpb_bldc.h` | 3 相ブラシレス 6 ステップ: **ホールセンサ** (エッジで転流 + 周期でタコ) / **センサなしのオープンループ** (V/f), 正転 / 逆転, 電流制限, 外部タコ (TACH_IN) | `Mpb_Bldc_SetDuty` `Mpb_Bldc_SetRpm` `Mpb_Bldc_Rpm` `Mpb_Bldc_TachRpm` |
 | `mpb_led.h` + `mpb_cie.h` | パワー段 (MOSFET) につないだ単色 LED の **CIE 1931 L*** 調光, フェード, 呼吸 | `Mpb_Led_Fade` `Mpb_Led_Breathe` `Mpb_Cie` |
@@ -179,6 +179,40 @@ void loop(void)
 - ゲート駆動電源 VDD8 はリセット時 5V です。`Mpb_Bridge_Init` と各モーターの `*_Task` が VBUS に合わせて 8 / 9 / 10V に上げます
   (VBUS ≥ 12V で 10V)。子基板 B の TKR74F04PB は 10V 駆動が前提です。
 - ゲートを駆動する前に VBUS ≥ 8V を確認してください (サンプルは `Mpb_Vbus_mV() >= 8000` まで待ちます)。
+
+### 止め方 (ブレーキ) の状態 — DC モーター (mpb_dc)
+
+この基板の駆動 (片側 PWM + 反対側ローサイド ON, 同期整流) では, **回生ブレーキと短絡ブレーキは別の状態ではなく duty の連続した点**です
+(duty < 逆起電力/VBUS で電流が逆向き = 回生, duty = 0 = 両ローサイド ON = 短絡)。そこで状態は 4 つ + 故障だけにしています。
+
+```
+            SetDuty / SetCurrent                    Stop(制動電流)
+  COAST ───────────────────────▶ 駆動 (DUTY/CURRENT) ───────────────▶ STOP ──(止まった)──▶ BRAKE(保持) ──(brake_hold_ms)──▶ COAST
+ (全 FET OFF) ◀── Coast() ─────────┘   ▲  減速中も VBUS を監視          │ 回生 → (逆起電力/R ≤ 電流上限で) 短絡 
+      ▲                                └─────── SetDuty ───────────────┘
+      └──── 故障 (過電流・VBUS 上限・ウォッチドッグ): どこからでも全 FET OFF
+```
+
+| 状態 | FET | 電力の行き先 | 使いどころ |
+|---|---|---|---|
+| COAST (惰性) | 全 OFF | なし (逆起電力 > VBUS のときだけダイオード経由で母線へ) | 待機・故障・リセット後 |
+| 駆動 | 片側 PWM + 片側ローサイド ON | 母線 → モーター (減速中は逆向き = 回生) | 運転 |
+| STOP (停止) | 電流制御 (制動電流一定) | まず回生 (母線へ), 遅くなると短絡 (巻線の熱) | **止めるときはこれ** (`Mpb_Dc_Stop`) |
+| BRAKE (保持) | 両ローサイド ON | 巻線の熱 | 止まった後の短時間の保持 (`brake_hold_ms`, その後 COAST) |
+
+- **回生の上限**: USB-PD やベンチ電源は電力を吸い込めない (母線のコンデンサが小さいと 1A の回生で約 10V/ms 上がる)。
+  PWM 周期ごとに VBUS を測り, 「平常の VBUS + 1V」(`brake_vbus_max_mV` で変更, バッテリーなら上げる) を超えそうなら回生を弱める。
+  回生の強さは 0 からゆっくり上げ (約 0.5 秒), 上限に近づくとすぐ下げる。
+- **短絡への近道**: 巻線抵抗 (`r_mohm`) が分かっていれば, 逆起電力 ÷ 巻線抵抗 (= 短絡したときの電流) が電流上限以下になった時点で短絡に移る。
+  母線へ電力を返さずに止まる (電源が吸い込めない場合の最速)。
+- **duty / 電流モードでの減速も保護**: 急に duty を 0 にしても, 制動電流が上限を超えない duty より下げない。
+  VBUS が上限を超えたら duty を逆起電力と釣り合う値より少し上にして, 母線の電力をモーターへ戻す (インバーターの減速ストール防止)。
+- **しないこと**: 逆転させて止める (プラギング: 電源と逆起電力の両方で大電流), 高速回転中にいきなり短絡 (逆起電力 ÷ 巻線抵抗の大電流)。
+  `Mpb_Dc_Brake()` (即時の短絡) は低速での保持用。
+- 最後の守り: VBUS が子基板の上限 + 2V (`MPB_VBUS_TRIP_MV`) を超えると全 FET OFF (PWM 周期ごとの監視)。
+- 検証: `tests/test_dc.c` がモーター (巻線・慣性) と母線 (吸い込めない電源 + 100µF + MCU の消費 30mA) のモデルで,
+  逆転しない・VBUS が上限 +0.6V 以内・電流が上限以内・最後は全 FET OFF・惰性より十分早く止まる・バッテリーなら回生する, を確かめる。
+- 3 相 (mpb_bldc) の `Mpb_Bldc_Brake()` は今のところ即時の短絡ブレーキ (同じ方式への対応は今後)。
 
 ### ウォッチドッグと「全 FET OFF」(core/mpb_wdt.c, 常に有効)
 

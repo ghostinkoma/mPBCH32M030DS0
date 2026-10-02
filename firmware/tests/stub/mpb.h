@@ -19,4 +19,8 @@ typedef int OPA_ISP_GAIN_SEL_TypeDef;
 typedef enum { MPB_ISP_LEG = 0, MPB_ISP_BUS = 1 } Mpb_IspSrc;
 static inline void __disable_irq(void) {}
 static inline void __enable_irq(void) {}
+#ifndef MPB_VBUS_MAX_MV
+#define MPB_VBUS_MAX_MV 16000u     /* 子基板 A */
+#endif
+
 #endif

@@ -92,7 +92,7 @@ void loop(void)
         s_duty = 0;
     }
     if (s_duty) Mpb_Dc_SetDuty(0, (int16_t)s_duty);
-    else Mpb_Dc_Brake(0);
+    else Mpb_Dc_Stop(0, 1000);                     /* 回生 → 短絡 → 保持 → 惰性 */
 
     MPB_EVERY_MS(t_log, CFG_LOG_MS)
     {

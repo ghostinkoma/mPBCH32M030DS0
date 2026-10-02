@@ -361,6 +361,13 @@ static volatile uint32_t s_cnt;
 static volatile int32_t  s_off_acc[2];
 static volatile uint16_t s_off[2];
 static volatile uint16_t s_cal_n;                  /* 0 = 校正済み */
+static volatile uint32_t s_vbus_f;                 /* PWM 周期ごとの VBUS [mV × 8] (IIR 1/8) */
+static volatile uint8_t  s_ovp_n;
+
+/* VBUS の上限 (回生で上がりすぎたら全 FET OFF)。子基板の運用上限 + 2V */
+#ifndef MPB_VBUS_TRIP_MV
+#define MPB_VBUS_TRIP_MV (MPB_VBUS_MAX_MV + 2000u)
+#endif
 
 void ADC_IRQHandler(void) MPB_IRQ;
 
@@ -398,9 +405,13 @@ void Mpb_Bridge_CurrentInit(OPA_ISP_GAIN_SEL_TypeDef gain, Mpb_IspSrc ia_src)
     s_gain = gain;
     Mpb_Adc_Init();
     Mpb_ISense_Init(gain, ia_src);
-    ADC_InjectedSequencerLengthConfig(ADC1, 2);
+    ADC_InjectedSequencerLengthConfig(ADC1, 3);
     ADC_InjectedChannelConfig(ADC1, MPB_ADC_IA, 1, ADC_SampleTime_5Cycles5);
     ADC_InjectedChannelConfig(ADC1, MPB_ADC_IB, 2, ADC_SampleTime_5Cycles5);
+    /* 3 番目に VBUS: 回生ブレーキで上がる母線電圧を PWM 周期ごとに見る (分圧は高インピーダンスなので長めに取り込む) */
+    ADC_InjectedChannelConfig(ADC1, MPB_ADC_VBUS, 3, ADC_SampleTime_23Cycles5);
+    s_vbus_f = Mpb_Vbus_mV() * 8u;
+    s_ovp_n = 0;
     ADC_ExternalTrigInjectedConvConfig(ADC1, ADC_ExternalTrigInjecConv_T1_CC4);
     ADC_ExternalTrigInjectedConvCmd(ADC1, ENABLE);
     s_off_acc[0] = s_off_acc[1] = 0;
@@ -414,6 +425,7 @@ uint8_t Mpb_Bridge_CurrentReady(void) { return s_cal_n == 0; }
 int32_t Mpb_Bridge_Current_mA(uint8_t ch) { return ch < 2 ? s_filt[ch] / 16 : 0; }
 int32_t Mpb_Bridge_CurrentNow_mA(uint8_t ch) { return ch < 2 ? s_now[ch] : 0; }
 uint32_t Mpb_Bridge_SampleCount(void) { return s_cnt; }
+uint32_t Mpb_Bridge_Vbus_mV(void) { return s_vbus_f ? s_vbus_f / 8u : Mpb_Vbus_mV(); }
 
 void ADC_IRQHandler(void)
 {
@@ -421,8 +433,22 @@ void ADC_IRQHandler(void)
     {
         int32_t r0 = (int32_t)ADC_GetInjectedConversionValue(ADC1, ADC_InjectedChannel_1);
         int32_t r1 = (int32_t)ADC_GetInjectedConversionValue(ADC1, ADC_InjectedChannel_2);
+        uint32_t vb = Mpb_Adc_ToMilliVolt(ADC_GetInjectedConversionValue(ADC1, ADC_InjectedChannel_3)) * MPB_VBUS_DIV;
 
         ADC_ClearITPendingBit(ADC1, ADC_IT_JEOC);
+        s_vbus_f += vb - s_vbus_f / 8u;
+        /* 回生で母線が上限を超えたら (8 周期続いたら) 全 FET OFF。通常は mpb_dc の回生制限で手前で止まる */
+        if (s_vbus_f / 8u > MPB_VBUS_TRIP_MV)
+        {
+            if (++s_ovp_n >= 8u && !s_fault)
+            {
+                Mpb_Bridge_Trip();
+            }
+        }
+        else
+        {
+            s_ovp_n = 0;
+        }
         if (s_cal_n)
         {
             /* オフセット校正: 全レッグ開放 (電流 0) の間だけ積算する */

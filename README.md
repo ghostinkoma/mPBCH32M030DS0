@@ -294,7 +294,7 @@ make -C app_template upload
 | 基板 (2 層) | **子基板 A/B/C: 未接続 0 / 電気的 DRC エラー 0** (シルクの重なり等の警告のみ)。**MCU モジュール: 未接続 0 / 電気的 DRC エラー 0** ([docs/stacking.md](docs/stacking.md#mcu-モジュールの配線))。製造データ (ガーバー・ドリル・部品座標) は `hardware/fab/*.zip` |
 | ブートローダ / アプリ | GCC 13 (riscv64-unknown-elf + picolibc) で**警告 0 でビルド** (5.7KB / 10.6KB, サンプル 10〜22KB, FreeRTOS 版 35KB / 44KB)。`POWER_STAGE=A/B` の両方を確認 |
 | Arduino パッケージ | arduino-cli 1.3.1 で, 索引から**コアとツールのインストール → 全 12 サンプルのビルド**まで確認 (ツールチェーンは手元の GCC 13 で代用) |
-| ライブラリの計算 | ホストの単体テスト (`make -C firmware test`): 書式化, CIE 1931, センサ換算 (BMP280・SHT3x のデータシート例題と一致), ステッピングの加減速と位置決め |
+| ライブラリの計算 | ホストの単体テスト (`make -C firmware test`): 書式化, CIE 1931, センサ換算 (BMP280・SHT3x のデータシート例題と一致), ステッピングの加減速と位置決め, DC モーターの停止・回生 (モーター + 母線のモデル) |
 | 書き込みツール | ブートローダのプロトコル処理を Python で再現したシミュレータで**書込・検証が一致** (`tools/test_mpb_upload.py`) |
 | 実機 | **未確認** (基板未製作) |
 
