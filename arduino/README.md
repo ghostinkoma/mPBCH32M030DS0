@@ -48,10 +48,8 @@ arduino-cli upload  -b mpbch32m030:ch32m030:mpb -P mpbusb MySketch     # USB-C �
 
 ## パッケージの作り方 (保守者向け)
 
-```sh
-git tag arduino-v0.1.0 && git push origin arduino-v0.1.0
-```
-(または GitHub の Actions → arduino-package → Run workflow で版を入力)
+`arduino/RELEASE` の版 (例 `0.1.0`) を書き換えて main に push する
+(または `git tag arduino-v0.1.0` を push / GitHub の Actions → arduino-package → Run workflow で版を入力)。
 
 `.github/workflows/arduino-package.yml` が次を行う:
 

@@ -107,9 +107,12 @@ USB-C から ESP32-C3 / Arduino のように書き込めて、**USB-PD 充電器
 | `docs/design.md` | **部品選定の妥当性と設計根拠** (データシート値) |
 | `docs/advanced_features.md` | 内蔵機能 (電流源/シンク・USB-PD・OPA/CMP 全モード) の活用検討 |
 | `firmware/bootloader/` | USB/UART ブートローダ (WCH IAP 互換, 20KB) |
-| `firmware/core/`, `firmware/lib/` | スケッチ環境 (ch32fun 風): 起動・USB 書き込み・PD と, モーター / I2C / ログ / WS2812 / LED / センサ / エンコーダのライブラリ。**[firmware/README.md](firmware/README.md)** |
-| `firmware/app_template/` | Arduino 風テンプレート (`setup()` / `loop()`)。`#include "mpbfun.h"` で全ライブラリ |
-| `firmware/examples/` | サンプル 9 本 (DC / ステッピング / 3 相 ホール・センサなし, I2C マスタ・スレーブ, UART ログ, WS2812, LED の CIE 調光) |
+| `firmware/core/`, `firmware/lib/` | スケッチ環境 (ch32fun 風): 起動・USB 書き込み・PD と, モーター / I2C / ログ / WS2812 / LED (CIE, RGBW) / センサ / エンコーダ / 保護出力 / OLED・HT16K33・TM1640 表示のライブラリ。**[firmware/README.md](firmware/README.md)** |
+| `firmware/app_template/` | Arduino 風テンプレート (`setup()` / `loop()`)。全プロジェクト共通の `src/config.h` + `src/sketch.c`。`firmware/tools/new_sketch.py` で作る |
+| `firmware/examples/` | サンプル 13 本 (DC / ステッピング / 3 相 ホール・センサなし, I2C マスタ・スレーブ, UART ログ, WS2812, LED の CIE 調光, **RGBW 4ch (エンコーダ + WS2812 入力), 保護出力, FreeRTOS + OLED/HT16K33/TM1640**) |
+| `arduino/` | **Arduino Boards Manager 用パッケージ** (boards.txt / platform.txt / mpbfun ライブラリ) と作成スクリプト。**[arduino/README.md](arduino/README.md)** |
+| `package_mpbch32m030_index.json` | Boards Manager の索引 (GitHub Actions が作って置く) |
+| `.github/workflows/arduino-package.yml` | コアのアーカイブ作成, ツールチェーン (xPack riscv-none-elf-gcc) の Releases へのミラー, 全サンプルのビルド確認 |
 | `tools/mpb_upload.py` | 書き込みツール (USB / UART, Windows・macOS・Linux) |
 
 KiCad ファイルは **KiCad 8 形式** (回路図 20231120, 基板は pcbnew 8.0 で生成) です。再生成の手順 (KiCad 8.0.x の Python が必要):
@@ -289,7 +292,8 @@ make -C app_template upload
 | 回路図の接続 | `kicad-cli` のネットリストと設計値が一致 (`verify_netlist.py`): **モジュール 83/83, 子基板 A/B/C 58/58** (KiCad 8.0.9) |
 | モジュールと子基板の嵌合 | モジュール J1/J2 と子基板 J1/J2 は同じ座標・同じピン番号・同じネット名 (回路図生成時に同じピン表から作成) |
 | 基板 (2 層) | **子基板 A/B/C: 未接続 0 / 電気的 DRC エラー 0** (シルクの重なり等の警告のみ)。**MCU モジュール: 未接続 0 / 電気的 DRC エラー 0** ([docs/stacking.md](docs/stacking.md#mcu-モジュールの配線))。製造データ (ガーバー・ドリル・部品座標) は `hardware/fab/*.zip` |
-| ブートローダ / アプリ | GCC 13 (riscv64-unknown-elf + picolibc) で**警告 0 でビルド** (5.7KB / 10.6KB, サンプル 10〜21KB / 44KB)。`POWER_STAGE=A/B` の両方を確認 |
+| ブートローダ / アプリ | GCC 13 (riscv64-unknown-elf + picolibc) で**警告 0 でビルド** (5.7KB / 10.6KB, サンプル 10〜22KB, FreeRTOS 版 35KB / 44KB)。`POWER_STAGE=A/B` の両方を確認 |
+| Arduino パッケージ | arduino-cli 1.3.1 で, 索引から**コアとツールのインストール → 全 12 サンプルのビルド**まで確認 (ツールチェーンは手元の GCC 13 で代用) |
 | ライブラリの計算 | ホストの単体テスト (`make -C firmware test`): 書式化, CIE 1931, センサ換算 (BMP280・SHT3x のデータシート例題と一致), ステッピングの加減速と位置決め |
 | 書き込みツール | ブートローダのプロトコル処理を Python で再現したシミュレータで**書込・検証が一致** (`tools/test_mpb_upload.py`) |
 | 実機 | **未確認** (基板未製作) |

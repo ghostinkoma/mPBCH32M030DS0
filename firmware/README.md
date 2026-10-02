@@ -14,8 +14,9 @@ firmware/
 ├── core/              常にリンクされる土台: 起動, USB/UART 書き込み要求, USB-PD, mpb.h (ADC・電流アンプ・過電流・タコ・NTC)
 ├── lib/               機能ライブラリ (アーカイブにして, スケッチが使った物だけリンク)
 │   └── mpbfun.h       これ 1 つを include すれば全部使える
-├── app_template/      自分のスケッチの出発点 (src/sketch.c)
-├── examples/          サンプル 9 本 (各ディレクトリで make / make upload)
+├── app_template/      自分のスケッチの出発点 (src/config.h + src/sketch.c)
+├── examples/          サンプル 13 本 (各ディレクトリで make / make upload)
+├── tools/new_sketch.py  新しいスケッチを雛形から作る (config.h 付き)
 ├── tests/             ホスト (PC) で動く単体テスト
 ├── bootloader/        USB/UART ブートローダ (最初の 1 回だけ WCH-LinkE で書く)
 └── sdk/               WCH 公式 SDK (./sdk/fetch_sdk.sh で取得)
@@ -34,13 +35,15 @@ make -C examples/dc_motor upload  # サンプルを USB-C で書き込む
 make -C app_template POWER_STAGE=B upload   # 子基板 B (24V 系) 用
 ```
 
-- 自分のスケッチは `app_template/` をコピーして `src/sketch.c` を書き換えます。`Makefile` は 2 行です。
+- 自分のスケッチは `python3 tools/new_sketch.py ../my_app` で作ります (`--from stepper` でサンプルから, `--rtos` で FreeRTOS 版)。
+  全プロジェクト (テンプレート・サンプル) が同じ形: `Makefile` (2〜3 行) + `src/config.h` + `src/sketch.c`。
 
   ```make
   TARGET := app
-  include ../../common/app.mk        # ディレクトリの深さに合わせる
+  include ../../common/app.mk        # ディレクトリの深さに合わせる (new_sketch.py が合わせる)
   ```
-- `src/` に置いた `.c` は全部リンクされます。`EXTRA_CFLAGS += -DMPB_UART_BOOT=0` などで設定を変えられます。
+- `src/` に置いた `.c` は全部リンクされます。
+- **Arduino IDE** でも使えます (Boards Manager): [../arduino/README.md](../arduino/README.md)。
 - コンパイラ: 汎用 GCC (`riscv64-unknown-elf-`, 既定) / xPack・MounRiver GCC (`make PREFIX=riscv-none-elf- LIBC_SPECS="--specs=nano.specs --specs=nosys.specs"`) /
   WCH GCC の高速割込み (`make IRQ=wch PREFIX=riscv-wch-elf-`)。
 - MounRiver Studio で使う場合は「Makefile プロジェクト」として `firmware/` を開き, ビルドコマンドに上の `make` を指定します
@@ -48,7 +51,17 @@ make -C app_template POWER_STAGE=B upload   # 子基板 B (24V 系) 用
 
 ## スケッチの書き方
 
+### src/config.h (全プロジェクト共通の雛形)
+
+`src/config.h` はスケッチだけでなく **core / lib / SDK を含む全ソースの先頭で読み込まれます** (`-include`)。
+ボード (`MPB_POWER_STAGE` 子基板, `MPB_UART_BOOT` UART 書き込み, `MPB_UART_BAUD`), ライブラリ (`MPB_LOG_BUF`, `MPB_WS2812_MAX`, `MPB_DEBUG` …),
+スケッチの定数 (`CFG_*`: PWM 周波数, ピン, 電流 …) をここにまとめます。`#define` だけを書き, 変えると全部作り直されます。
+ステッピングモーターの代表的な形式ごとの設定値 (NEMA17/14/23, PM 型, 28BYJ-48) は `examples/stepper/src/config.h` のコメントにあります。
+
+### sketch.c
+
 ```c
+#include "config.h"
 #include "mpbfun.h"
 
 void setup(void)
@@ -86,6 +99,13 @@ void loop(void)
 | `mpb_i2c_slave.h` | I2C スレーブ (レジスタマップ, 書き込み範囲の通知) | `Mpb_I2cSlave_Init` `Mpb_I2cSlave_Written` |
 | `mpb_env.h` | 環境センサ: **SHT3x / AHT20 / BMP280・BME280 / S-5851A** (TinyWetherMemo と同じ種類) | `Mpb_Env_Init` `Mpb_Env_Task` |
 | `mpb_log.h` | UART ログ (リングバッファ + 送信割込み), 整数の printf, 小数の表示 | `MPB_LOGI` `Mpb_Log_Printf` `Mpb_Log_Fixed` |
+| `mpb_guard.h` | **保護出力**: 熱 (NTC) / 過電流 / 短絡 / 過電圧 / 低電圧で GPIO を High (既定 PC5)。短絡は割込み内で即時。ラッチ, ブリッジ停止 | `Mpb_Guard_Init` `Mpb_Guard_Task` `Mpb_Guard_Flags` |
+| `mpb_rgbw.h` | パワー段 4ch で RGBW LED テープ: マスター明るさ (L*) × 色 (線形混色 / ch ごとの L*), HSV, フェード | `Mpb_Rgbw_SetMaster` `Mpb_Rgbw_SetHsv` `Mpb_Rgbw_SetLevels` |
+| `mpb_wsrx.h` | **WS2812 互換の受信**: この基板を数珠つなぎの 1 画素にする (先頭 1 画素を受け, 残りを DOUT へ中継) | `Mpb_WsRx_Init` `Mpb_WsRx_Poll` |
+| `mpb_oled.h` | I2C OLED (SSD1306 / SH1106, 128×64/32) の 21 桁 × 8 行テキスト + バー。変わった行だけ送る (RAM 約 300 バイト) | `Mpb_Oled_Printf` `Mpb_Oled_Bar` `Mpb_Oled_Task` |
+| `mpb_matrix.h` | 8×8 マトリクスの数珠つなぎ用の描画 (2 色), 5×7 文字, 流れる文字 | `Mpb_Matrix_Print` `Mpb_Matrix_Marquee` |
+| `mpb_ht16k33.h` | HT16K33(A) 8×8 マトリクス ×8 枚まで (I2C 0x70〜, 配線の違いは map で選ぶ) | `Mpb_Ht16k33_Init` `Mpb_Ht16k33_Task` |
+| `mpb_tm1640.h` | TM1640 2 色 8×8 ×8 枚まで (SCLK 共有 + DIN 個別, 全枚を同時に送る)。ghostinkoma/TM1640MatrixChain の移植 | `Mpb_Tm1640_Init` `Mpb_Tm1640_Task` |
 
 ## サンプル
 
@@ -100,6 +120,9 @@ void loop(void)
 | `examples/uart_log` | UART ログ。VBUS・USB 電圧・NTC 温度・PD の状態を 1 秒ごと | TX = J2-3 |
 | `examples/ws2812` | WS2812 8 個: 虹色 / 呼吸 (L*), エンコーダで明るさ | DIN = J2-2 (PC2) |
 | `examples/led_cie` | LED テープを OUT0 のローサイドで CIE 調光 (2kHz, 1/18000), フェードと呼吸 | LED + = VBUS, − = OUT0 |
+| `examples/led_rgbw` | **RGBW 4ch LED (CIE 1931)**: エンコーダで明るさ / 色相 / 彩度 / 白 (長押しで切替, 押しで ON/OFF, 加速・勢い回し), **WS2812 互換入力**でも操作 (Ch32LightBox と同じ考え方) | R/G/B/W = OUT0〜3 (− 側), DIN = PC2, DOUT = PA14 |
+| `examples/protect` | **保護出力**: 熱・過電流・短絡で PC5 を High (外部のリレー・ブザー・上位機器へ), ボタンで解除 | 負荷 = OUT0–OUT1, 警報 = PC5 (High = VHV なので注意) |
+| `examples/rtos_motor_display` | **FreeRTOS**: ステッピングを回しながら OLED (状態 + バー), HT16K33 ×4 (rpm), TM1640 ×4 (流れる文字) に表示。タスク 4 本, 静的確保 (RAM 約 9KB) | I2C = J2-19/18, TM1640: SCLK = PA5, DIN = PA6/PA7/PC2/PC4 |
 
 ## 資源の割り当て (同時に使えない組み合わせに注意)
 
@@ -112,14 +135,15 @@ void loop(void)
 | USART1 | ログの送信 (PC1) + 書き込み要求の受信 (PC2) |
 | I2C1 | マスタ **または** スレーブ (PA14 SDA / PA15 SCL) |
 | EXTI | エンコーダ (既定 PA5/PA6) |
-| SysTick | WS2812 の送信中だけ HCLK で計時 (SDK の `Delay_*` も使う) |
+| SysTick | WS2812 の送受信中だけ HCLK で計時 (SDK の `Delay_*` も使う)。**FreeRTOS ではティック**: WS2812 / wsrx は使えず, `Delay_*` は TIM3 版に置き換わる |
 
 | 端子 (モジュール) | 使い道 |
 |---|---|
 | PA5 / PA7 / PA6 (J1-14〜16 HALL_A/B/C, JP2〜4) | ホールセンサ, BEMF (1-2), エンコーダ (2-3 にしてプルアップと RC を使う) |
 | PA14 / PA15 (J2-19 / J2-18) | I2C。**PA15 は TIM1 の BKIN 既定端子**なので, モーターと I2C を併用するときは `hw_break = 0` (既定) |
 | PC1 / PC2 (J2-3 / J2-2) | UART TX / RX。WS2812 は PC2 を使う (UART からの書き込み要求は切る) |
-| PC4 (J1-4) | 状態 LED + USER ボタン (共用, オープンドレイン) |
+| PC4 (J1-4) | 状態 LED + USER ボタン (共用, オープンドレイン)。TM1640 の DIN3 にも使える (オープンドレイン) |
+| PC5 (J6) | 保護出力 (`mpb_guard` の既定)。**HV I/O: High = VHV (VBUS 系)** なので, 3.3V/5V の機器へは分圧かトランジスタを入れる |
 | PA12 (J1-20 TACH_IN) | 外部タコ / FG (JP8 = 1-2), またはバス電流のリップル (2-3) |
 
 ## 電流の向きと計測
@@ -138,6 +162,16 @@ void loop(void)
 - ゲート駆動電源 VDD8 はリセット時 5V です。`Mpb_Bridge_Init` と各モーターの `*_Task` が VBUS に合わせて 8 / 9 / 10V に上げます
   (VBUS ≥ 12V で 10V)。子基板 B の TKR74F04PB は 10V 駆動が前提です。
 - ゲートを駆動する前に VBUS ≥ 8V を確認してください (サンプルは `Mpb_Vbus_mV() >= 8000` まで待ちます)。
+
+- `mpb_guard` (examples/protect): NTC の温度, 電流 (PWM 同期), VBUS を 1ms ごとに見て, 異常で警報端子を High にします。
+  短絡はコンパレータの割込みから直接 High にするので µs 単位で反応します。`latch = 1` なら原因が消えても解除まで保持します。
+
+## FreeRTOS
+
+`Makefile` に `RTOS := freertos` を書くと WCH SDK 同梱の FreeRTOS (V10.4.6) をリンクします (`src/FreeRTOSConfig.h` が必要)。
+`setup()` でタスクを作って `vTaskStartScheduler()` を呼びます (`loop()` は呼ばれない)。RAM が 12KB なので静的確保だけにし,
+main のスタックは 768 バイト (割込み用に再利用)。書き込み要求の処理 `Mpb_Core_Service()` はどれかのタスクから呼びます。
+`mpb_i2c` はタスク間で排他しないので, 同じバスのデバイス (OLED と HT16K33 など) は 1 つのタスクから使います。
 
 ## 未実装 / 今後
 

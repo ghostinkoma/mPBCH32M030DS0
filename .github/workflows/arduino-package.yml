@@ -1,6 +1,6 @@
 # Arduino Boards Manager 用パッケージを作って GitHub Releases に置く
 #
-#   git tag arduino-v0.1.0 && git push origin arduino-v0.1.0      (または Actions 画面から手動で版を指定)
+#   arduino/RELEASE の版を書き換えて main に push する  (または git tag arduino-v0.1.0 を push / Actions 画面から手動)
 #
 # 1. WCH SDK を取得し, arduino/build_package.py でコア (mpbch32m030-<版>.tar.bz2) を作る
 # 2. ツールチェーン xPack riscv-none-elf-gcc を本家から取り, SHA-256 を公開値と照合して
@@ -14,6 +14,8 @@ name: arduino-package
 on:
   push:
     tags: ['arduino-v*']
+    branches: [main]
+    paths: ['arduino/RELEASE']
   workflow_dispatch:
     inputs:
       version:
@@ -36,7 +38,9 @@ jobs:
       - name: Version
         id: v
         run: |
-          if [ -n "${{ github.event.inputs.version }}" ]; then V="${{ github.event.inputs.version }}"; else V="${GITHUB_REF_NAME#arduino-v}"; fi
+          if [ -n "${{ github.event.inputs.version }}" ]; then V="${{ github.event.inputs.version }}"
+          elif [ "${GITHUB_REF_TYPE}" = tag ]; then V="${GITHUB_REF_NAME#arduino-v}"
+          else V="$(tr -d ' \r\n' < arduino/RELEASE)"; fi
           echo "version=$V" >> "$GITHUB_OUTPUT"
           echo "tag=arduino-v$V" >> "$GITHUB_OUTPUT"
 
