@@ -15,7 +15,7 @@ on:
   push:
     tags: ['arduino-v*']
     branches: [main]
-    paths: ['arduino/RELEASE']
+    paths: ['arduino/RELEASE', '.github/workflows/arduino-package.yml']
   workflow_dispatch:
     inputs:
       version:
@@ -67,6 +67,7 @@ jobs:
       - name: Test build of all examples (arduino-cli, before publishing)
         run: |
           set -e
+          mkdir -p bin
           curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=$PWD/bin sh
           export PATH=$PWD/bin:$PATH
           V=${{ steps.v.outputs.version }}
